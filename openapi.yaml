@@ -1,0 +1,364 @@
+---
+openapi: 3.0.3
+info:
+  title: Coordinate Transformation API
+  version: 2.0.0
+  description: >
+    The Coordinate Transformation API is a service for transformation between
+    different coordinate reference systems (CRS), using the official RDNAPTRANS™
+    transformation procedure.
+
+    Currently supported coordinate reference systems:
+      - 2D RD (EPSG:28992)
+      - 3D RD&NAP (EPSG:7415), which is a compound CRS of RD (EPSG:28992) and
+        NAP (EPSG:5709).
+      - 3D ETRS89 realisation ETRF2000 (EPSG:7931), which has a 2D equivalent
+        (EPSG:9067) and is a member of the datum ensemble 3D ETRS89 (EPSG:4937)
+        with 2D equivalent (EPSG:4258).
+
+    When using the input for (or using the output as) an ITRS realisation like
+    2D WGS84 (EPSG:4326) instead of the ETRS89 realisation 3D ETRF2000
+    (EPSG:7931),this gives an approximation of about 1 metre.
+
+    When the input contains 3D coordinates outside the bounds of the
+    quasi-geoid grid or 2D coordinates, this will result in a 2D transformation
+    for these coordinates.
+
+    Next to the transformation of coordinates, the Transformation API checks
+    the maximum length of line segments. When the input contains line segments
+    longer than allowed for the user specified value for the accepted deviation
+    of long line segments (input property: acceptDeviationLongLineSegments),
+    this will result in a bad request with the following message: "The input
+    contains one or more line segments of more than ___ km. To guarantee an
+    accuracy within the accepted deviation of ___ m for long line segments,
+    this is not allowed. Please insert additional vertices according to the
+    intended trajectory, e.g. a geodesic, a loxodrome, a straight line in RD or
+    a straight line in another map projection."
+  contact:
+    name: NSGI
+    email: info@nsgi.nl
+    url: www.nsgi.nl
+  license:
+    name: CC-BY 4.0 license
+    url: https://creativecommons.org/licenses/by/4.0/
+  termsOfService: https://creativecommons.org/licenses/by/4.0/
+  x-keywords:
+    - geospatial
+    - api
+    - transformations
+
+servers:
+  - url: http://localhost:8000/
+
+paths:
+  /:
+    get:
+      tags:
+        - server
+      summery: Landing page
+      description: >
+        Landing page describing what the capabilities are of this
+        service.
+      responses:
+        200:
+          description: OK
+          $ref: '#/components/responses/LandingPage'
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+
+  /conformance:
+    get:
+      tags:
+        - server
+      summery: Conformance page
+      description: >
+        Conformance page describing what the capabilities are of this
+        service.
+      responses:
+        200:
+          description: OK
+          $ref: '#/components/responses/ConformanceDeclaration'
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+
+  /openapi:
+    get:
+      tags:
+        - server
+      summery: This document
+      description: The Open API Spec document for this service.
+      parameters:
+        - $ref: '#/components/parameters/f'
+        - $ref: '#/components/parameters/contentType'
+      responses:
+        200:
+          description: OK
+          $ref: '#/components/responses/200'
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+
+  /transformation:
+    get:
+      tags:
+        - transformation
+      summery: The transformations available in this API
+      description: >
+        By providing a source and target Coordinate Reference System as input
+        it will return the available transformation as WKT2 or PROJJSON string.
+        So it can be used in a compatible application.
+
+        Also a simplified output can be selected with will provide a summary of
+        the transformation in JSON.
+      parameters:
+        - $ref: '#/components/parameters/source-crs'
+        - $ref: '#/components/parameters/target-crs'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transformation'
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+
+  /transform:
+    get:
+      tags:
+        - transform
+      summery: >
+        Transforms the given coordinates of a point from the source CRS to the
+        target CRS.
+      description: >
+        A simple GET endpoint that accepts coordinates of a given source CRS
+        and transforms it to the provided target CRS. The input coordinates are
+        a comma sperated list of numbers that can represent the xy, lat/lon or
+        lon/lat with or without a third height dimension.
+      parameters:
+        - $ref: '#/components/parameters/source-crs'
+        - $ref: '#/components/parameters/target-crs'
+        - $ref: '#/components/parameters/coordinates'
+      responses:
+        200:
+          description: OK
+          content:
+            application/geo+json:
+              schema:
+                $ref: https://geojson.org/schema/Point.json
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+    post:
+      tags:
+        - transform
+      summery: >
+        Transforms the given geometries from the source CRS to the
+        target CRS.
+      description: >
+        A simple GET endpoint that accepts coordinates of a given source CRS
+        and transforms it to the provided target CRS. The input coordinates are
+        a comma sperated list of numbers that can represent the xy, lat/lon or
+        lon/lat with or without a third height dimension.
+      parameters:
+        - $ref: '#/components/parameters/source-crs'
+        - $ref: '#/components/parameters/target-crs'
+      requestBody:
+        required: true
+        content:
+          application/geo+json:
+            schema:
+              $ref: https://geojson.org/schema/GeometryCollection.json
+      responses:
+        200:
+          description: OK
+          content:
+            application/geo+json:
+              schema:
+                $ref: https://geojson.org/schema/GeometryCollection.json
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+
+components:
+  headers:
+    API-Version:
+      description: API version
+      schema:
+        type: string
+  parameters:
+    f:
+      description: >
+        The optional f parameter indicates the output format which the server
+        shall provide as part of the response document. The default format is
+        GeoJSON.
+      in: query
+      type: string
+      required: false
+      name: f
+      schema:
+        default: application/json
+        enum:
+          - application/json
+    source-crs:
+      description: Source Coordinate Reference System
+      in: query
+      name: source-crs
+      required: true
+      schema:
+        $ref: '#/components/schemas/crs'
+    target-crs:
+      description: Target Coordinate Reference System
+      in: query
+      name: target-crs
+      required: true
+      schema:
+        $ref: '#/components/schemas/crs'
+    coordinates:
+      description: Coordinates of the query point as comma seperated list
+      in: query
+      name: coordinates
+      required: true
+      schema:
+        type: string
+      example: 155000,463000,1
+      default: 155000,463000,1
+
+    contentType:
+      description: Content Type
+      in: header
+      name: Content-Type
+      required: false
+      schema:
+        default: application/json
+        enum:
+          - application/json
+        type: string
+
+  responses:
+    200:
+      description: successful operation
+
+    LandingPage:
+      description: |-
+        The landing page provides links to the API definition
+        (link relations `service-desc` and `service-doc`),
+        the Conformance declaration (path `/conformance`,
+        link relation `conformance`), and the Coordinate
+        Transformation (path `/transform`, link relation
+        `transform`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/landingPage'
+          example:
+            title: Coordinatetransformation API
+            description: >
+              Landing page of the Coordinatetransformation API
+            links:
+              - href: 'http://data.example.org/'
+                rel: self
+                type: application/json
+                title: this document
+              - href: 'http://data.example.org/api'
+                rel: service-desc
+                type: application/vnd.oai.openapi+json;version=3.0
+                title: the API definition
+              - href: 'http://data.example.org/api.html'
+                rel: service-doc
+                type: text/html
+                title: the API documentation
+              - href: 'http://data.example.org/conformance'
+                rel: conformance
+                type: application/json
+                title: OGC API conformance classes implemented by this server
+              - href: 'http://data.example.org/collections'
+                rel: data
+                type: application/json
+                title: Information about the feature collections
+        text/html:
+          schema:
+            type: string
+
+    ConformanceDeclaration:
+      description: |-
+        The URIs of all conformance classes supported by the server.
+
+        To support "generic" clients that want to access multiple
+        OGC API Features implementations - and not "just" a specific
+        API / server, the server declares the conformance
+        classes it implements and conforms to.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/confClasses'
+          example:
+            conformsTo:
+              - 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core'
+              - 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30'
+              - 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/html'
+              - 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'
+        text/html:
+          schema:
+            type: string
+
+  schemas:
+    crs:
+      type: string
+      enum:
+        - EPSG:28992
+        - EPSG:4258
+        - EPSG:4937
+        - EPSG:7415
+        - CRS84
+        - EPSG:3857
+
+    transformation:
+      type: object
+      description: Transformation response
+      properties:
+        source-crs:
+          type: string
+        target-crs:
+          type: string
+        quantity:
+          schema:
+            type: string
+        unit:
+          schema:
+            type: string
+            description: The units that are used with the given transformation
+        axis:
+          type: number
+          description: Amount of axis 2 or 3
+
+    landingPage:
+      type: object
+      required:
+        - links
+      properties:
+        title:
+          type: string
+          example: Coordinatetransformation API
+        description:
+          type: string
+          example: >
+            Landing page of the Coordinatetransformation API
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/link"
+
+    confClasses:
+      type: object
+      required:
+        - conformsTo
+      properties:
+        conformsTo:
+          type: array
+          items:
+            type: string
+            example: "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core"
