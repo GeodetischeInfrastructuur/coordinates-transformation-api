@@ -1,0 +1,39 @@
+[project]
+name = "coordinates-transformation-api"
+description = "Coordinates transformation API of the Nederlandse Samenwerking Geodetische Infrastructuur (NSGI)"
+keywords = ["NSGI", "pyproj", "fastapi", "coordinates", "geo"]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+]
+readme = { file = "./README.md", content-type = "text/markdown" }
+dependencies = [
+    "fastapi == 0.100.1",
+    "uvicorn == 0.23.2",
+    "pyyaml == 5.3.1",
+]
+requires-python = ">=3.11.4"
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["black", "mypy", "autoflake", "isort"]
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools>=45",
+    "setuptools-git-versioning==1.13.1",
+    "wheel==0.38.4"
+]
+
+[project.scripts]
+ct-api = "coordinates_transformation_api.main:start"
+
+[tool.setuptools-git-versioning]
+enabled = true
+
+[tool.setuptools.packages.find]
+include = ["coordinates_transformation_api*"]  # package names should match these glob patterns (["*"] by default)
+exclude = []  # exclude packages matching these glob patterns (empty by default)
