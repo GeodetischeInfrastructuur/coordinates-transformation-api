@@ -27,10 +27,16 @@ Design rues. Examples of these are:
   parameter.
   - with additional scenarios for other combinations.
 
+## Install
+
+```bash
+pip3 install .
+```
+
 ## Run
 
 ```bash
-uvicorn main:app --reload
+ct-api
 ```
 
 ## Exanple operaties
