@@ -37,3 +37,6 @@ enabled = true
 [tool.setuptools.packages.find]
 include = ["coordinates_transformation_api*"]  # package names should match these glob patterns (["*"] by default)
 exclude = []  # exclude packages matching these glob patterns (empty by default)
+
+[tool.setuptools.package-data]
+"coordinates_transformation_api.assets" = ["*"]

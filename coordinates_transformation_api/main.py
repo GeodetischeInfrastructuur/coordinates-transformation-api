@@ -4,6 +4,10 @@ from typing import List
 import yaml
 import uvicorn
 
+from importlib import resources as impresources
+from . import assets
+
+
 default_headers = {"API-Version": "2.0.1"}
 
 app = FastAPI(docs_url="/api")
@@ -81,12 +85,12 @@ async def transform():
 
 
 def custom_openapi():
-    with open("openapi.yaml", "rb") as openapi:
-        return yaml.load(openapi, yaml.SafeLoader)
+    oas_file_resource = (impresources.files(assets) / "openapi.yaml")
+    with oas_file_resource.open("rb") as oas_file:
+        return yaml.load(oas_file, yaml.SafeLoader)
 
 
 app.openapi = custom_openapi
-
 
 def start():
     uvicorn.run("coordinates_transformation_api.main:app", workers=2, host="0.0.0.0", port=8000, reload=True)
