@@ -1,12 +1,10 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI
 from pydantic import BaseModel
-from starlette.responses import RedirectResponse, JSONResponse
 from typing import List
-
 import yaml
-import json
+import uvicorn
 
-default_headers = {"API-Version": "2.0.0"}
+default_headers = {"API-Version": "2.0.1"}
 
 app = FastAPI(docs_url="/api")
 
@@ -88,3 +86,7 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
+
+
+def start():
+    uvicorn.run("coordinates_transformation_api.main:app", workers=2, host="0.0.0.0", port=8000, reload=True)
