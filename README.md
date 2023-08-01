@@ -135,3 +135,17 @@ that one forwarded to <https://api.nsgi.nl/coordinatestransformation/v2>
 ### new URL
 
 <https://api.nsgi.nl/coordinatestransformation/v2>
+
+## Docker
+
+### Build container
+
+```bash
+docker build -t nsgi/coordinatestransformation-api .
+```
+
+### Run container
+
+```bash
+docker run --rm -d -p 8000:8000 --name ct-api nsgi/coordinatestransformation-api
+```
