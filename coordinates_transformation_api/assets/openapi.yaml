@@ -37,10 +37,7 @@ info:
   contact:
     name: NSGI
     email: info@nsgi.nl
-    url: www.nsgi.nl
-  license:
-    name: CC-BY 4.0 license
-    url: https://creativecommons.org/licenses/by/4.0/
+    url: https://www.nsgi.nl
   termsOfService: https://creativecommons.org/licenses/by/4.0/
   x-keywords:
     - geospatial
@@ -62,10 +59,10 @@ paths:
       responses:
         200:
           description: OK
-          $ref: '#/components/responses/LandingPage'
+          $ref: "#/components/responses/LandingPage"
           headers:
             API-Version:
-              $ref: '#/components/headers/API-Version'
+              $ref: "#/components/headers/API-Version"
 
   /openapi:
     get:
@@ -74,15 +71,15 @@ paths:
       summery: This document
       description: The Open API Spec document for this service.
       parameters:
-        - $ref: '#/components/parameters/f'
-        - $ref: '#/components/parameters/contentType'
+        - $ref: "#/components/parameters/f"
+        - $ref: "#/components/parameters/contentType"
       responses:
         200:
           description: OK
-          $ref: '#/components/responses/200'
+          $ref: "#/components/responses/200"
           headers:
             API-Version:
-              $ref: '#/components/headers/API-Version'
+              $ref: "#/components/headers/API-Version"
 
   /conformance:
     get:
@@ -95,10 +92,10 @@ paths:
       responses:
         200:
           description: OK
-          $ref: '#/components/responses/ConformanceDeclaration'
+          $ref: "#/components/responses/ConformanceDeclaration"
           headers:
             API-Version:
-              $ref: '#/components/headers/API-Version'
+              $ref: "#/components/headers/API-Version"
 
   /transform:
     get:
@@ -113,9 +110,9 @@ paths:
         a comma sperated list of numbers that can represent the xy, lat/lon or
         lon/lat with or without a third height dimension.
       parameters:
-        - $ref: '#/components/parameters/source-crs'
-        - $ref: '#/components/parameters/target-crs'
-        - $ref: '#/components/parameters/coordinates'
+        - $ref: "#/components/parameters/source-crs"
+        - $ref: "#/components/parameters/target-crs"
+        - $ref: "#/components/parameters/coordinates"
       responses:
         200:
           description: OK
@@ -125,7 +122,7 @@ paths:
                 $ref: https://geojson.org/schema/Point.json
           headers:
             API-Version:
-              $ref: '#/components/headers/API-Version'
+              $ref: "#/components/headers/API-Version"
     post:
       tags:
         - Transform
@@ -138,8 +135,8 @@ paths:
         a comma sperated list of numbers that can represent the xy, lat/lon or
         lon/lat with or without a third height dimension.
       parameters:
-        - $ref: '#/components/parameters/source-crs'
-        - $ref: '#/components/parameters/target-crs'
+        - $ref: "#/components/parameters/source-crs"
+        - $ref: "#/components/parameters/target-crs"
       requestBody:
         required: true
         content:
@@ -155,7 +152,7 @@ paths:
                 $ref: https://geojson.org/schema/GeometryCollection.json
           headers:
             API-Version:
-              $ref: '#/components/headers/API-Version'
+              $ref: "#/components/headers/API-Version"
 
 components:
   headers:
@@ -170,7 +167,7 @@ components:
       name: source-crs
       required: true
       schema:
-        $ref: '#/components/schemas/crs'
+        $ref: "#/components/schemas/crs"
 
     target-crs:
       description: Target Coordinate Reference System
@@ -178,7 +175,7 @@ components:
       name: target-crs
       required: true
       schema:
-        $ref: '#/components/schemas/crs'
+        $ref: "#/components/schemas/crs"
 
     coordinates:
       description: Coordinates of the query point as comma seperated list
@@ -188,7 +185,7 @@ components:
       style: form
       explode: false
       schema:
-        $ref: '#/components/schemas/coords'
+        $ref: "#/components/schemas/coords"
       example: 155000,463000,1
       default: 155000,463000,1
 
@@ -218,29 +215,29 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/landingPage'
+            $ref: "#/components/schemas/landingPage"
           example:
             title: Coordinatetransformation API
             description: >
               Landing page of the Coordinatetransformation API
             links:
-              - href: 'http://data.example.org/'
+              - href: "http://data.example.org/"
                 rel: self
                 type: application/json
                 title: this document
-              - href: 'http://data.example.org/api'
+              - href: "http://data.example.org/api"
                 rel: service-desc
                 type: application/vnd.oai.openapi+json;version=3.0
                 title: the API definition
-              - href: 'http://data.example.org/api.html'
+              - href: "http://data.example.org/api.html"
                 rel: service-doc
                 type: text/html
                 title: the API documentation
-              - href: 'http://data.example.org/conformance'
+              - href: "http://data.example.org/conformance"
                 rel: conformance
                 type: application/json
                 title: OGC API conformance classes implemented by this server
-              - href: 'http://data.example.org/collections'
+              - href: "http://data.example.org/collections"
                 rel: data
                 type: application/json
                 title: Information about the feature collections
@@ -259,13 +256,13 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/confClasses'
+            $ref: "#/components/schemas/confClasses"
           example:
             conformsTo:
-              - 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core'
-              - 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30'
-              - 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/html'
-              - 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson'
+              - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core"
+              - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30"
+              - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/html"
+              - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson"
         text/html:
           schema:
             type: string
