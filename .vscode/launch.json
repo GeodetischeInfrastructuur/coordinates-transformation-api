@@ -10,8 +10,10 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "coordinates_transformation_api.main:start",
-                "--reload"
+                "--reload",
+                "--port", "8000",
+                "coordinates_transformation_api.main:app",
+
             ],
             "jinja": true,
             "justMyCode": true
