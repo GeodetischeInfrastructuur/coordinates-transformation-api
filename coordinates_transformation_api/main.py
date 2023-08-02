@@ -1,20 +1,31 @@
+import os
 from importlib import resources as impresources
 from typing import List
-import time
 
 import uvicorn
 import yaml
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Query, Request
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import assets
+
+API_TITLE = "Coordinates Transformation API"
 
 OAS_FILEPATH = impresources.files(assets) / "openapi.yaml"
 with OAS_FILEPATH.open("rb") as oas_file:
     OPEN_API_SPEC = yaml.load(oas_file, yaml.SafeLoader)
 API_VERSION = OPEN_API_SPEC["info"]["version"]
+BASE_DIR = os.path.dirname(__file__)
 
-app = FastAPI(docs_url="/openapi")
+app = FastAPI(docs_url=None)
+
+app.mount(
+    "/static",
+    StaticFiles(directory=f"{BASE_DIR}/assets/static"),
+    name="static",
+)
 
 
 class Link(BaseModel):
@@ -22,6 +33,7 @@ class Link(BaseModel):
     type: str
     rel: str
     href: str
+
 
 class LandingPage(BaseModel):
     title: str
@@ -38,6 +50,15 @@ async def add_api_version(request: Request, call_next):
     response = await call_next(request)
     response.headers["API-Version"] = API_VERSION
     return response
+
+
+@app.get("/openapi", include_in_schema=False)
+async def swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title=f"{API_TITLE} - Swagger UI",
+        swagger_favicon_url="https://www.nsgi.nl/o/iv-kadaster-business-theme/images/favicon.ico",
+    )
 
 
 @app.get("/", response_model=LandingPage)
@@ -60,11 +81,15 @@ async def landingpage():
 async def conformance():
     return Conformance(conformsTo={"mekker", "blaat"})
 
-@app.get("/transform")
-async def transform(source_crs: str = Query(alias="source-crs"), target_crs: str = Query(alias="target-crs"), coordinates: str = Query(alias="coordinates")):
 
+@app.get("/transform")
+async def transform(
+    source_crs: str = Query(alias="source-crs"),
+    target_crs: str = Query(alias="target-crs"),
+    coordinates: str = Query(alias="coordinates"),
+):
     return {
-        "type": "Feature",  
+        "type": "Feature",
         "geometry": {"type": "Point", "coordinates": coordinates},
         "properties": {"sourcecrs": source_crs, "targetcrs": target_crs},
     }
@@ -89,7 +114,9 @@ app.openapi = get_oas
 
 def main():
     # TODO: add CLI args for uvicorn, see https://www.uvicorn.org/settings/
-    uvicorn.run("coordinates_transformation_api.main:app", workers=2, port=8000)
+    uvicorn.run(
+        "coordinates_transformation_api.main:app", workers=2, port=8000, host="0.0.0.0"
+    )
 
 
 if __name__ == "__main__":
