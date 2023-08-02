@@ -54,7 +54,7 @@ paths:
   /:
     get:
       tags:
-        - server
+        - Common
       summery: Landing page
       description: >
         Landing page describing what the capabilities are of this
@@ -67,26 +67,10 @@ paths:
             API-Version:
               $ref: '#/components/headers/API-Version'
 
-  /conformance:
-    get:
-      tags:
-        - server
-      summery: Conformance page
-      description: >
-        Conformance page describing what the capabilities are of this
-        service.
-      responses:
-        200:
-          description: OK
-          $ref: '#/components/responses/ConformanceDeclaration'
-          headers:
-            API-Version:
-              $ref: '#/components/headers/API-Version'
-
   /openapi:
     get:
       tags:
-        - server
+        - Common
       summery: This document
       description: The Open API Spec document for this service.
       parameters:
@@ -100,28 +84,18 @@ paths:
             API-Version:
               $ref: '#/components/headers/API-Version'
 
-  /transformation:
+  /conformance:
     get:
       tags:
-        - transformation
-      summery: The transformations available in this API
+        - Common
+      summery: Conformance page
       description: >
-        By providing a source and target Coordinate Reference System as input
-        it will return the available transformation as WKT2 or PROJJSON string.
-        So it can be used in a compatible application.
-
-        Also a simplified output can be selected with will provide a summary of
-        the transformation in JSON.
-      parameters:
-        - $ref: '#/components/parameters/source-crs'
-        - $ref: '#/components/parameters/target-crs'
+        Conformance page describing what the capabilities are of this
+        service.
       responses:
         200:
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Transformation'
+          $ref: '#/components/responses/ConformanceDeclaration'
           headers:
             API-Version:
               $ref: '#/components/headers/API-Version'
@@ -129,7 +103,7 @@ paths:
   /transform:
     get:
       tags:
-        - transform
+        - Transform
       summery: >
         Transforms the given coordinates of a point from the source CRS to the
         target CRS.
@@ -154,7 +128,7 @@ paths:
               $ref: '#/components/headers/API-Version'
     post:
       tags:
-        - transform
+        - Transform
       summery: >
         Transforms the given geometries from the source CRS to the
         target CRS.
@@ -190,19 +164,6 @@ components:
       schema:
         type: string
   parameters:
-    f:
-      description: >
-        The optional f parameter indicates the output format which the server
-        shall provide as part of the response document. The default format is
-        GeoJSON.
-      in: query
-      type: string
-      required: false
-      name: f
-      schema:
-        default: application/json
-        enum:
-          - application/json
     source-crs:
       description: Source Coordinate Reference System
       in: query
@@ -210,6 +171,7 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/crs'
+
     target-crs:
       description: Target Coordinate Reference System
       in: query
@@ -217,13 +179,16 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/crs'
+
     coordinates:
       description: Coordinates of the query point as comma seperated list
       in: query
       name: coordinates
       required: true
+      style: form
+      explode: false
       schema:
-        type: string
+        $ref: '#/components/schemas/coords'
       example: 155000,463000,1
       default: 155000,463000,1
 
@@ -316,24 +281,12 @@ components:
         - CRS84
         - EPSG:3857
 
-    transformation:
-      type: object
-      description: Transformation response
-      properties:
-        source-crs:
-          type: string
-        target-crs:
-          type: string
-        quantity:
-          schema:
-            type: string
-        unit:
-          schema:
-            type: string
-            description: The units that are used with the given transformation
-        axis:
-          type: number
-          description: Amount of axis 2 or 3
+    coords:
+      type: array
+      items:
+        type: float
+      minItems: 3
+      maxItems: 3
 
     landingPage:
       type: object

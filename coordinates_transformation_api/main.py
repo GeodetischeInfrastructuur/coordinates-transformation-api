@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from typing import List
 import yaml
@@ -7,18 +7,13 @@ import uvicorn
 from importlib import resources as impresources
 from . import assets
 
-
-default_headers = {"API-Version": "2.0.1"}
-
-app = FastAPI(docs_url="/api")
-
+app = FastAPI(docs_url="/openapi")
 
 class Link(BaseModel):
     title: str
     type: str
     rel: str
     href: str
-
 
 class LandingPage(BaseModel):
     title: str
@@ -28,11 +23,6 @@ class LandingPage(BaseModel):
 
 class Conformance(BaseModel):
     conformsTo: List[str] = []
-
-
-# class VndResponse(JSONResponse):
-#     media_type = 'application/vnd.oai.openapi+json;version=3.0'
-
 
 @app.get("/", response_model=LandingPage)
 async def landingpage():
@@ -54,35 +44,24 @@ async def landingpage():
 async def conformance():
     return Conformance(conformsTo={"mekker", "blaat"})
 
-
-@app.get("/transformation")
-async def transformation():
-    return [
-        {
-            "data": "string",
-        }
-    ]
-
-
 @app.get("/transform")
-async def transform(sourcecrs: str, targetcrs: str, coordinates: str):
-    coordinates = list(map(float, coordinates.split(",")))
+async def transform(source_crs: str = Query(alias="source-crs"), target_crs: str = Query(alias="target-crs"), coordinates: str = Query(alias="coordinates")):
 
     return {
-        "type": "Feature",
+        "type": "Feature",  
         "geometry": {"type": "Point", "coordinates": coordinates},
-        "properties": {"sourcecrs": sourcecrs, "targetcrs": targetcrs},
+        "properties": {"sourcecrs": source_crs, "targetcrs": target_crs},
     }
 
 
 @app.post("/transform")
-async def transform():
+async def transform(sourcec_rs: str, target_crs: str):
     return [
         {
             "data": "string",
+            "properties": {"sourcecrs": sourcec_rs, "targetcrs": target_crs},
         }
     ]
-
 
 def custom_openapi():
     oas_file_resource = (impresources.files(assets) / "openapi.yaml")
