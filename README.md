@@ -27,6 +27,22 @@ Design rues. Examples of these are:
   parameter.
   - with additional scenarios for other combinations.
 
+## Develop
+
+To install from source requires minimum version of pip: `23.2.1`. 
+
+Install dev dependencies with:
+
+```sh
+pip install ".[dev]"
+```
+
+Install enable precommit hook with:
+
+```sh
+git config -f .gitconfig core.hooksPath .githooks
+```
+
 ## Install
 
 ```bash
@@ -39,7 +55,7 @@ pip3 install .
 ct-api
 ```
 
-## Exanple operaties
+## Example operaties
 
 ```bash
 # Landingpage
