@@ -9,7 +9,12 @@ from pydantic import BaseModel
 
 from . import assets
 
-app = FastAPI(docs_url="/api")
+OAS_FILEPATH = impresources.files(assets) / "openapi.yaml"
+with OAS_FILEPATH.open("rb") as oas_file:
+    OPEN_API_SPEC = yaml.load(oas_file, yaml.SafeLoader)
+API_VERSION = OPEN_API_SPEC["info"]["version"]
+
+app = FastAPI(docs_url="/openapi")
 
 
 class Link(BaseModel):
@@ -86,12 +91,11 @@ async def transform():
     ]
 
 
-OAS_FILEPATH = impresources.files(assets) / "openapi.yaml"
+def get_oas():
+    return OPEN_API_SPEC
 
-with OAS_FILEPATH.open("rb") as oas_file:
-    OPEN_API_SPEC = yaml.load(oas_file, yaml.SafeLoader)
-API_VERSION = OPEN_API_SPEC["info"]["version"]
-app.openapi = OPEN_API_SPEC
+
+app.openapi = get_oas
 
 
 def start():
@@ -100,5 +104,5 @@ def start():
         workers=2,
         host="0.0.0.0",
         port=8000,
-        reload=True,
+        reload=False,
     )
