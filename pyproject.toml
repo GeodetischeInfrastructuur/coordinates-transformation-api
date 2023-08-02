@@ -18,7 +18,9 @@ requires-python = ">=3.11.4"
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["black", "mypy", "autoflake", "isort"]
+dev = ["black"]
+# TODO: add/enable other formatting/linting tools
+# "mypy", "autoflake", "isort"
 
 [build-system]
 build-backend = "setuptools.build_meta"
