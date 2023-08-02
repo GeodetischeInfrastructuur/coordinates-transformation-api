@@ -4,7 +4,7 @@ import time
 
 import uvicorn
 import yaml
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query
 from pydantic import BaseModel
 
 from . import assets
@@ -22,7 +22,6 @@ class Link(BaseModel):
     type: str
     rel: str
     href: str
-
 
 class LandingPage(BaseModel):
     title: str
@@ -61,32 +60,22 @@ async def landingpage():
 async def conformance():
     return Conformance(conformsTo={"mekker", "blaat"})
 
-
-@app.get("/transformation")
-async def transformation():
-    return [
-        {
-            "data": "string",
-        }
-    ]
-
-
 @app.get("/transform")
-async def transform(sourcecrs: str, targetcrs: str, coordinates: str):
-    coordinates = list(map(float, coordinates.split(",")))
+async def transform(source_crs: str = Query(alias="source-crs"), target_crs: str = Query(alias="target-crs"), coordinates: str = Query(alias="coordinates")):
 
     return {
-        "type": "Feature",
+        "type": "Feature",  
         "geometry": {"type": "Point", "coordinates": coordinates},
-        "properties": {"sourcecrs": sourcecrs, "targetcrs": targetcrs},
+        "properties": {"sourcecrs": source_crs, "targetcrs": target_crs},
     }
 
 
 @app.post("/transform")
-async def transform():
+async def transform(sourcec_rs: str, target_crs: str):
     return [
         {
             "data": "string",
+            "properties": {"sourcecrs": sourcec_rs, "targetcrs": target_crs},
         }
     ]
 
