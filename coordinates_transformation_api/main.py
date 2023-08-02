@@ -87,11 +87,10 @@ def get_oas():
 app.openapi = get_oas
 
 
-def start():
-    uvicorn.run(
-        "coordinates_transformation_api.main:app",
-        workers=2,
-        host="0.0.0.0",
-        port=8000,
-        reload=False,
-    )
+def main():
+    # TODO: add CLI args for uvicorn, see https://www.uvicorn.org/settings/
+    uvicorn.run("coordinates_transformation_api.main:app", workers=2, port=8000)
+
+
+if __name__ == "__main__":
+    main()
