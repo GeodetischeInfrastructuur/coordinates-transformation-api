@@ -26,18 +26,17 @@ print_message() {
 
 print_message "pre-commit - running Black formatting" 1 "" true
 
-if ! command -v black &> /dev/null
-then
+if ! command -v black &>/dev/null; then
     print_message "ERROR: black could not be found" 2 "ERROR" false
     exit 1
 fi
 
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g' | grep -E "\.py$")
 [ -z "$FILES" ] && exit 0
-echo "$FILES" | xargs black  --stdin-filename "{}"
+echo "$FILES" | xargs black --stdin-filename "{}"
 
 print_message "pre-commit - running Autoflake formatting" 1 "" true
-echo "$FILES" | xargs autoflake --in-place --remove-unused-variables
+echo "$FILES" | xargs autoflake --remove-all-unused-imports --in-place --remove-unused-variables
 
 print_message "pre-commit - running isort formatting" 1 "" true
 echo "$FILES" | xargs isort --overwrite-in-place

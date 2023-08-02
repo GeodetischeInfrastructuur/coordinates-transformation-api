@@ -4,7 +4,7 @@ from typing import List
 
 import uvicorn
 import yaml
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, Response
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -47,12 +47,28 @@ class Conformance(BaseModel):
 
 @app.middleware("http")
 async def add_api_version(request: Request, call_next):
-    response = await call_next(request)
+    if request.url.path != "/" and request.url.path.endswith("/"):
+        response = Response(
+            content='{"detail": "not found" }',
+            status_code=404,
+            media_type="application/json",
+        )
+        # overwrite response in case route is a know route with trailing slash
+        for route in app.routes:
+            if request.url.path == f"{route.path}/":
+                response = Response(
+                    content=f'{{"detail": "not found, try {route.path}"}}',
+                    status_code=404,
+                    media_type="application/json",
+                )
+    else:
+        response = await call_next(request)
     response.headers["API-Version"] = API_VERSION
     return response
 
 
 @app.get("/openapi", include_in_schema=False)
+@app.get("/openapi/", include_in_schema=False)
 async def swagger_ui_html():
     return get_swagger_ui_html(
         openapi_url="/openapi.json",
@@ -77,8 +93,13 @@ async def landingpage():
     )
 
 
+@app.get("/conformance/")
 @app.get("/conformance", response_model=Conformance)
-async def conformance():
+async def conformance(request: Request):
+    # if request.url.path.endswith("/"):
+    #     raise HTTPException(
+    #         status_code=404, detail=f"Item not found, try {request.url.path[:-1]}"
+    #     )
     return Conformance(conformsTo={"mekker", "blaat"})
 
 
