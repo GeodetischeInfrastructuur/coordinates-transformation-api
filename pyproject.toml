@@ -41,3 +41,5 @@ exclude = []  # exclude packages matching these glob patterns (empty by default)
 
 [tool.setuptools.package-data]
 "coordinates_transformation_api.assets" = ["*"]
+"coordinates_transformation_api.assets.static" = ["*"]
+
