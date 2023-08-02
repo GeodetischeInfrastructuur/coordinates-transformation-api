@@ -85,12 +85,19 @@ async def transform():
 
 
 def custom_openapi():
-    oas_file_resource = (impresources.files(assets) / "openapi.yaml")
+    oas_file_resource = impresources.files(assets) / "openapi.yaml"
     with oas_file_resource.open("rb") as oas_file:
         return yaml.load(oas_file, yaml.SafeLoader)
 
 
 app.openapi = custom_openapi
 
+
 def start():
-    uvicorn.run("coordinates_transformation_api.main:app", workers=2, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "coordinates_transformation_api.main:app",
+        workers=2,
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+    )
