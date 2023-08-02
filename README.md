@@ -17,19 +17,19 @@ Design rues. Examples of these are:
 - No trailing slash `../`.
 - API-Version header in responses.
 - Resource limits on:
-  - max size attr
-  - max features
-  - max coordinates
-  - max runtime
+    + max size attr
+    + max features
+    + max coordinates
+    + max runtime
 - Additional error messages
 - Changelog publishing on github.com/GeodetischeInfrastuctuur
 - Allow with POST operatie the crs in the (geo)json, when there is no source-crs
   parameter.
-  - with additional scenarios for other combinations.
+    + with additional scenarios for other combinations.
 
 ## Develop
 
-To install from source requires minimum version of pip: `23.2.1`. 
+To install from source requires minimum version of pip: `23.2.1`.
 
 Install dev dependencies with:
 
