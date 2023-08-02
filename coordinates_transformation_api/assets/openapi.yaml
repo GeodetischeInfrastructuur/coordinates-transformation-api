@@ -63,9 +63,13 @@ paths:
         200:
           description: OK
           $ref: '#/components/responses/LandingPage'
-          headers:
-            API-Version:
-              $ref: '#/components/headers/API-Version'
+
+        400:
+          $ref: '#/components/responses/400'
+        406:
+          $ref: '#/components/responses/406'
+        500:
+          $ref: '#/components/responses/500'
 
   /openapi:
     get:
@@ -84,6 +88,13 @@ paths:
             API-Version:
               $ref: '#/components/headers/API-Version'
 
+        400:
+          $ref: '#/components/responses/400'
+        406:
+          $ref: '#/components/responses/406'
+        500:
+          $ref: '#/components/responses/500'
+
   /conformance:
     get:
       tags:
@@ -99,6 +110,13 @@ paths:
           headers:
             API-Version:
               $ref: '#/components/headers/API-Version'
+
+        400:
+          $ref: '#/components/responses/400'
+        406:
+          $ref: '#/components/responses/406'
+        500:
+          $ref: '#/components/responses/500'
 
   /transform:
     get:
@@ -126,6 +144,14 @@ paths:
           headers:
             API-Version:
               $ref: '#/components/headers/API-Version'
+
+        400:
+          $ref: '#/components/responses/400'
+        406:
+          $ref: '#/components/responses/406'
+        500:
+          $ref: '#/components/responses/500'
+
     post:
       tags:
         - Transform
@@ -153,6 +179,24 @@ paths:
             application/geo+json:
               schema:
                 $ref: https://geojson.org/schema/GeometryCollection.json
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+
+        400:
+          $ref: '#/components/responses/400'
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+          
+        406:
+          $ref: '#/components/responses/406'
+          headers:
+            API-Version:
+              $ref: '#/components/headers/API-Version'
+
+        500:
+          $ref: '#/components/responses/500'
           headers:
             API-Version:
               $ref: '#/components/headers/API-Version'
@@ -204,8 +248,23 @@ components:
         type: string
 
   responses:
-    200:
-      description: successful operation
+    '400':
+      description: Bad request
+      headers:
+        API-Version:
+          $ref: '#/components/headers/API-Version'
+
+    '406':
+      description: Not Acceptable
+      headers:
+        API-Version:
+          $ref: '#/components/headers/API-Version'
+
+    '500':
+      description: Internal Server Error
+      headers:
+        API-Version:  
+          $ref: '#/components/headers/API-Version'
 
     LandingPage:
       description: |-
@@ -247,6 +306,9 @@ components:
         text/html:
           schema:
             type: string
+      headers:
+        API-Version:
+          $ref: '#/components/headers/API-Version'
 
     ConformanceDeclaration:
       description: |-
@@ -269,6 +331,9 @@ components:
         text/html:
           schema:
             type: string
+      headers:
+        API-Version:
+          $ref: '#/components/headers/API-Version'
 
   schemas:
     crs:
