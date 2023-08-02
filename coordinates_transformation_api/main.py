@@ -1,12 +1,12 @@
+from importlib import resources as impresources
+from typing import List
+
+import uvicorn
+import yaml
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List
-import yaml
-import uvicorn
 
-from importlib import resources as impresources
 from . import assets
-
 
 default_headers = {"API-Version": "2.0.1"}
 
