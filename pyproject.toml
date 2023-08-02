@@ -30,7 +30,7 @@ requires = [
 ]
 
 [project.scripts]
-ct-api = "coordinates_transformation_api.main:start"
+ct-api = "coordinates_transformation_api.main:main"
 
 [tool.setuptools-git-versioning]
 enabled = true
