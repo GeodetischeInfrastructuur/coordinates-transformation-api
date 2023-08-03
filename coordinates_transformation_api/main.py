@@ -93,13 +93,8 @@ async def landingpage():
     )
 
 
-@app.get("/conformance/")
 @app.get("/conformance", response_model=Conformance)
-async def conformance(request: Request):
-    # if request.url.path.endswith("/"):
-    #     raise HTTPException(
-    #         status_code=404, detail=f"Item not found, try {request.url.path[:-1]}"
-    #     )
+async def conformance():
     return Conformance(conformsTo={"mekker", "blaat"})
 
 
