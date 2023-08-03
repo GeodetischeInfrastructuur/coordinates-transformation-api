@@ -1,3 +1,4 @@
+import json
 import os
 from importlib import resources as impresources
 from typing import List
@@ -9,6 +10,8 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from coordinates_transformation_api.fastapi_rfc7807 import middleware
+
 from . import assets
 
 API_TITLE = "Coordinates Transformation API"
@@ -19,7 +22,8 @@ with OAS_FILEPATH.open("rb") as oas_file:
 API_VERSION = OPEN_API_SPEC["info"]["version"]
 BASE_DIR = os.path.dirname(__file__)
 
-app = FastAPI(docs_url=None)
+app = FastAPI(docs_url=None)  #
+middleware.register(app)
 
 app.mount(
     "/static",
@@ -47,19 +51,29 @@ class Conformance(BaseModel):
 
 @app.middleware("http")
 async def add_api_version(request: Request, call_next):
+    response_body = {
+        "type": "about:blank",
+        "title": "Not Found",
+        "status": 404,
+        "detail": "Not Found",
+    }
+    response = Response(
+        content=json.dumps(response_body),
+        status_code=404,
+        media_type="application/problem+json",
+    )
+
     if request.url.path != "/" and request.url.path.endswith("/"):
-        response = Response(
-            content='{"detail": "not found" }',
-            status_code=404,
-            media_type="application/json",
-        )
         # overwrite response in case route is a know route with trailing slash
         for route in app.routes:
             if request.url.path == f"{route.path}/":
+                response_body[
+                    "detail"
+                ] = f"not found, path contains trailing slash try {route.path}"
                 response = Response(
-                    content=f'{{"detail": "not found, try {route.path}"}}',
+                    content=json.dumps(response_body),
                     status_code=404,
-                    media_type="application/json",
+                    media_type="application/problem+json",
                 )
     else:
         response = await call_next(request)
@@ -68,7 +82,7 @@ async def add_api_version(request: Request, call_next):
 
 
 @app.get("/openapi", include_in_schema=False)
-@app.get("/openapi/", include_in_schema=False)
+@app.get("/openapi.html", include_in_schema=False)
 async def swagger_ui_html():
     return get_swagger_ui_html(
         openapi_url="/openapi.json",
