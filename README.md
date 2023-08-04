@@ -40,7 +40,7 @@ pip install ".[dev]"
 Install enable precommit hook with:
 
 ```sh
-git config -f .gitconfig core.hooksPath .githooks
+git config --local core.hooksPath .githooks
 ```
 
 ## Install
