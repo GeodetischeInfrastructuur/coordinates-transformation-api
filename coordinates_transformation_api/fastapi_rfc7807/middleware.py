@@ -26,7 +26,7 @@ class ProblemResponse(Response):
         self.debug: bool = debug
         super(ProblemResponse, self).__init__(*args, **kwargs)
 
-    def init_headers(self, headers: Mapping[str, str] = None) -> None:
+    def init_headers(self, headers: Mapping[str, str] = None) -> None:  # type: ignore
         h = dict(headers) if headers else {}
         if hasattr(self, "problem") and self.problem.headers:
             h.update(self.problem.headers)
