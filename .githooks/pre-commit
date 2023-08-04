@@ -24,21 +24,30 @@ print_message() {
     printf "${color}%s %s\n\033[0;37m" $(printf "${padding_char}%.0s" $(seq 1 "$indent_level")) "$message"
 }
 
+command_available() {
+    command="$1"
+    if ! command -v "$command" &>/dev/null; then
+        print_message "ERROR: ${command} could not be found" 2 "ERROR" false
+        exit 1
+    fi
+}
+
+command_available "black"
 print_message "pre-commit - running Black formatting" 1 "" true
-
-if ! command -v black &>/dev/null; then
-    print_message "ERROR: black could not be found" 2 "ERROR" false
-    exit 1
-fi
-
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g' | grep -E "\.py$")
 [ -z "$FILES" ] && exit 0
 echo "$FILES" | xargs black --stdin-filename "{}"
 
+command_available "autoflake"
 print_message "pre-commit - running Autoflake formatting" 1 "" true
 echo "$FILES" | xargs autoflake --remove-all-unused-imports --in-place --remove-unused-variables
 
+command_available "isort"
 print_message "pre-commit - running isort formatting" 1 "" true
 echo "$FILES" | xargs isort --overwrite-in-place
+
+command_available "prettier"
+print_message "pre-commit - running prettier formatting" 1 "" true
+echo "$FILES" | grep -E ".*\.yaml$" | xargs prettier --ignore-unknown --stdin-filepath
 
 echo "$FILES" | xargs git add
