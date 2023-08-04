@@ -62,17 +62,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/responses/LandingPage'
+                $ref: "#/components/responses/LandingPage"
             text/html:
               schema:
                 $ref: "#/components/responses/htmlSchema"
-          
+
         400:
-          $ref: '#/components/responses/400'
+          $ref: "#/components/responses/400"
         406:
-          $ref: '#/components/responses/406'
+          $ref: "#/components/responses/406"
         500:
-          $ref: '#/components/responses/500'
+          $ref: "#/components/responses/500"
 
   /openapi:
     get:
@@ -91,11 +91,11 @@ paths:
               $ref: "#/components/headers/API-Version"
 
         400:
-          $ref: '#/components/responses/400'
+          $ref: "#/components/responses/400"
         406:
-          $ref: '#/components/responses/406'
+          $ref: "#/components/responses/406"
         500:
-          $ref: '#/components/responses/500'
+          $ref: "#/components/responses/500"
 
   /conformance:
     get:
@@ -114,17 +114,17 @@ paths:
                 $ref: "#/components/responses/ConformanceDeclaration"
             text/html:
               schema:
-                $ref: "#/components/responses/htmlSchema"                
+                $ref: "#/components/responses/htmlSchema"
           headers:
             API-Version:
               $ref: "#/components/headers/API-Version"
 
         400:
-          $ref: '#/components/responses/400'
+          $ref: "#/components/responses/400"
         406:
-          $ref: '#/components/responses/406'
+          $ref: "#/components/responses/406"
         500:
-          $ref: '#/components/responses/500'
+          $ref: "#/components/responses/500"
 
   /transform:
     get:
@@ -151,14 +151,14 @@ paths:
                 $ref: https://geojson.org/schema/Point.json
           headers:
             API-Version:
-              $ref: '#/components/headers/API-Version'
+              $ref: "#/components/headers/API-Version"
 
         400:
-          $ref: '#/components/responses/400'
+          $ref: "#/components/responses/400"
         406:
-          $ref: '#/components/responses/406'
+          $ref: "#/components/responses/406"
         500:
-          $ref: '#/components/responses/500'   
+          $ref: "#/components/responses/500"
 
     post:
       tags:
@@ -192,11 +192,11 @@ paths:
               $ref: "#/components/headers/API-Version"
 
         400:
-          $ref: '#/components/responses/400'
+          $ref: "#/components/responses/400"
         406:
-          $ref: '#/components/responses/406'
+          $ref: "#/components/responses/406"
         500:
-          $ref: '#/components/responses/500'          
+          $ref: "#/components/responses/500"
 
 components:
   headers:
@@ -207,7 +207,8 @@ components:
 
   parameters:
     source-crs:
-      description: Source Coordinate Reference System
+      description: |
+        Source Coordinate Reference System
       in: query
       name: source-crs
       required: true
@@ -223,7 +224,7 @@ components:
         $ref: "#/components/schemas/crs"
 
     coordinates:
-      description: Coordinates of the query point as comma seperated list
+      description: Coordinates of the query point as comma seperated list, see `source-crs` parameter for order and required number of the coordinates
       in: query
       name: coordinates
       required: true
@@ -246,35 +247,35 @@ components:
         type: string
 
   responses:
-    '400':
+    "400":
       description: Bad request. The request body does not contain valid GeoJSON or the query is not supported by the API.
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Error'          
+            $ref: "#/components/schemas/Error"
       headers:
         API-Version:
-          $ref: '#/components/headers/API-Version'
+          $ref: "#/components/headers/API-Version"
 
-    '406':
+    "406":
       description: Not Acceptable. Currently the API can only return `application/geo+json`
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Error'          
+            $ref: "#/components/schemas/Error"
       headers:
         API-Version:
-          $ref: '#/components/headers/API-Version'
+          $ref: "#/components/headers/API-Version"
 
-    '500':
+    "500":
       description: An internal error occurred in the server
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
       headers:
         API-Version:
-          $ref: '#/components/headers/API-Version'
+          $ref: "#/components/headers/API-Version"
 
     LandingPage:
       description: |-
@@ -315,7 +316,7 @@ components:
             title: Information about the feature collections
       headers:
         API-Version:
-          $ref: '#/components/headers/API-Version'
+          $ref: "#/components/headers/API-Version"
 
     htmlSchema:
       description: HTML representation
@@ -323,7 +324,7 @@ components:
       example: "<html>...<html>"
       headers:
         API-Version:
-          $ref: '#/components/headers/API-Version'      
+          $ref: "#/components/headers/API-Version"
 
     ConformanceDeclaration:
       description: |-
@@ -345,7 +346,7 @@ components:
           - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson"
       headers:
         API-Version:
-          $ref: '#/components/headers/API-Version'
+          $ref: "#/components/headers/API-Version"
 
   schemas:
     crs:
@@ -355,9 +356,8 @@ components:
         - EPSG:4258
         - EPSG:4937
         - EPSG:7415
-        - CRS84
+        - EPSG:4326
         - EPSG:3857
-
     coords:
       type: array
       items:
@@ -395,7 +395,7 @@ components:
 
     Error:
       type: object
-      description: 'Object specified according to https://tools.ietf.org/html/rfc7807.'
+      description: "Object specified according to https://tools.ietf.org/html/rfc7807."
       required:
         - title
         - status
@@ -404,7 +404,7 @@ components:
         type:
           type: string
           description: URI to a page with more information about this error.
-          example: 'about:blank'
+          example: "about:blank"
         title:
           type: string
           example: Not Found
