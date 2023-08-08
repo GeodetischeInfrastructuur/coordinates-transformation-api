@@ -34,8 +34,8 @@ def transform_multipolygon(transformer, geom):
     for polygon in geom.coordinates:
         new_polygon = []
         for ring in polygon:
-            x2, y2 = transformer.transform(*zip(*ring))
-            new_polygon.append(list(zip(x2, y2)))
+            zipped_transformed_coords = transformer.transform(*zip(*ring))
+            new_polygon.append(list(zip(*zipped_transformed_coords)))
         new_coords.append(new_polygon)
     return new_coords
 
@@ -43,15 +43,15 @@ def transform_multipolygon(transformer, geom):
 def transform_polygon_multilinestring(transformer, geom):
     new_coords = []
     for ring_linestring in geom.coordinates:
-        x2, y2 = transformer.transform(*zip(*ring_linestring))
-        new_coords.append(list(zip(x2, y2)))
+        zipped_transformed_coords = transformer.transform(*zip(*ring_linestring))
+        new_coords.append(list(zip(*zipped_transformed_coords)))
     return new_coords
 
 
 def transform_multipoint_linestring(transformer, geom):
     geom.coordinates = list(transformer.transform(*geom.coordinates))
-    x2, y2 = transformer.transform(*zip(*geom.coordinates))
-    new_coords = list(zip(x2, y2))
+    zipped_transformed_coords = transformer.transform(*zip(*geom.coordinates))
+    new_coords = list(zip(*zipped_transformed_coords))
     return new_coords
 
 
