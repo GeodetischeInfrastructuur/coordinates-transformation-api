@@ -358,6 +358,7 @@ components:
         - EPSG:7415
         - EPSG:4326
         - EPSG:3857
+        - OGC:CRS84
     coords:
       type: array
       items:
