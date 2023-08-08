@@ -149,6 +149,9 @@ paths:
             application/geo+json:
               schema:
                 $ref: https://geojson.org/schema/Point.json
+            text/html:
+              schema:
+                $ref: "#/components/responses/wktSchema"
           headers:
             API-Version:
               $ref: "#/components/headers/API-Version"
@@ -177,16 +180,20 @@ paths:
       requestBody:
         required: true
         content:
-          application/geo+json:
-            schema:
-              $ref: https://geojson.org/schema/GeometryCollection.json
+          application/json:
+              schema:
+                oneOf:
+                  - $ref: https://geojson.org/schema/Feature.json
+                  - $ref: https://geojson.org/schema/FeatureCollection.json
       responses:
         200:
           description: OK
           content:
-            application/geo+json:
-              schema:
-                $ref: https://geojson.org/schema/GeometryCollection.json
+            application/json:
+                schema:
+                  oneOf:
+                    - $ref: https://geojson.org/schema/Feature.json
+                    - $ref: https://geojson.org/schema/FeatureCollection.json
           headers:
             API-Version:
               $ref: "#/components/headers/API-Version"
@@ -258,7 +265,7 @@ components:
           $ref: "#/components/headers/API-Version"
 
     "406":
-      description: Not Acceptable. Currently the API can only return `application/geo+json`
+      description: Not Acceptable. Currently the API can only return `application/json` 
       content:
         application/problem+json:
           schema:
@@ -325,6 +332,14 @@ components:
       headers:
         API-Version:
           $ref: "#/components/headers/API-Version"
+
+    wktSchema:
+      description: WKT representation of a point as POINT (...) or POINT Z (...)
+      type: string
+      example: "POINT Z (155000 463000 1)"
+      headers:
+        API-Version:
+          $ref: "#/components/headers/API-Version"      
 
     ConformanceDeclaration:
       description: |-
