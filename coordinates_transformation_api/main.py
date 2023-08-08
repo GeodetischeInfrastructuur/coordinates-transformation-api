@@ -1,20 +1,27 @@
 import json
 import os
+from enum import Enum
 from importlib import resources as impresources
-from typing import List, Tuple
+from typing import Iterable, List, Tuple, Union
 
 import uvicorn
 import yaml
-from fastapi import FastAPI, Query, Request, Response
+from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from geojson_pydantic import Feature, FeatureCollection
+from geojson_pydantic.geometries import Geometry
+from pydantic import BaseModel, ValidationError
+from pydantic_core import InitErrorDetails, PydanticCustomError
+from pyproj import CRS, Transformer
 
 from coordinates_transformation_api import assets
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
-from coordinates_transformation_api.util import get_projs_axis_info
+from coordinates_transformation_api.util import (get_projs_axis_info,
+                                                 transform_geom)
 
 
 def init_oas() -> Tuple[dict, str, dict]:
@@ -71,6 +78,75 @@ class LandingPage(BaseModel):
 
 class Conformance(BaseModel):
     conformsTo: List[str] = []
+
+
+class TransformGetAcceptHeaders(Enum):
+    json = "application/json"
+    wkt = "text/plain"
+
+
+def validate_crs_transformation(source_crs, target_crs):
+    source_crs_dims = PROJS_AXIS_INFO[source_crs]["dimensions"]
+    target_crs_dims = PROJS_AXIS_INFO[target_crs]["dimensions"]
+
+    if source_crs_dims < target_crs_dims:
+        raise RequestValidationError(
+            errors=(
+                ValidationError.from_exception_data(
+                    "ValueError",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "value_error",
+                                f"number of dimensions of target-crs should be equal or less then that of the source-crs\n * source-crs: {source_crs}, dimensions: {source_crs_dims}\n * target-crs {target_crs}, dimensions: {target_crs_dims}",
+                            ),
+                            loc=("query", "target-crs"),
+                        )
+                    ],
+                )
+            ).errors()
+        )
+
+
+def validate_coords_source_crs(coordinates, source_crs):
+    source_crs_dims = PROJS_AXIS_INFO[source_crs]["dimensions"]
+    if source_crs_dims != len(coordinates.split(",")):
+        raise RequestValidationError(
+            errors=(
+                ValidationError.from_exception_data(
+                    "ValueError",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "value_error",
+                                "number of coordinates must match number of dimensions of source-crs",
+                            ),
+                            loc=("query", "coordinates"),
+                        )
+                    ],
+                )
+            ).errors()
+        )
+
+
+def validate_input_crs(value, name):
+    if value not in PROJS_AXIS_INFO.keys():
+        raise RequestValidationError(
+            errors=(
+                ValidationError.from_exception_data(
+                    "ValueError",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "value_error",
+                                f"{name} should be one of {', '.join(PROJS_AXIS_INFO.keys())}",
+                            ),
+                            loc=("query", name),
+                        )
+                    ],
+                )
+            ).errors()
+        )
 
 
 @app.middleware("http")
@@ -137,93 +213,59 @@ async def conformance():
     return Conformance(conformsTo={"mekker", "blaat"})
 
 
-from pydantic import ValidationError
-from pydantic_core import InitErrorDetails, PydanticCustomError
-
-
-def validate_input_crs(value, name):
-    if value not in PROJS_AXIS_INFO.keys():
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "value_error",
-                                f"{name} should be one of {', '.join(PROJS_AXIS_INFO.keys())}",
-                            ),
-                            loc=("query", name),
-                        )
-                    ],
-                )
-            ).errors()
-        )
-
-
 @app.get("/transform")
 async def transform(
+    response: Response,
     source_crs: str = Query(alias="source-crs"),
     target_crs: str = Query(alias="target-crs"),
     coordinates: str = Query(alias="coordinates"),
+    accept: str = Header(default=TransformGetAcceptHeaders.json),
 ):
     validate_input_crs(source_crs, "source-crs")
     validate_input_crs(target_crs, "target_crs")
+    validate_crs_transformation(source_crs, target_crs)
+    validate_coords_source_crs(coordinates, source_crs)
 
-    source_crs_dims = PROJS_AXIS_INFO[source_crs]["dimensions"]
-    target_crs_dims = PROJS_AXIS_INFO[target_crs]["dimensions"]
+    coordinates_list: list = coordinates.split(",")
+    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
+    target_crs_crs = CRS.from_authority(*target_crs.split(":"))
+    transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
+    transformed_coordinates = transformer.transform(*coordinates_list)
 
-    if source_crs_dims < target_crs_dims:
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "value_error",
-                                f"number of dimensions of target-crs should be equal or less then that of the source-crs\n * source-crs: {source_crs}, dimensions: {source_crs_dims}\n * target-crs {target_crs}, dimensions: {target_crs_dims}",
-                            ),
-                            loc=("query", "target-crs"),
-                        )
-                    ],
-                )
-            ).errors()
+    if accept == str(TransformGetAcceptHeaders.wkt.value):
+        return PlainTextResponse(
+            f"POINT({' '.join([str(x) for x in transformed_coordinates])})"
         )
-
-    if source_crs_dims != len(coordinates.split(",")):
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "value_error",
-                                "number of coordinates must match number of dimensions of source-crs",
-                            ),
-                            loc=("query", "coordinates"),
-                        )
-                    ],
-                )
-            ).errors()
-        )
-
-    return {
-        "type": "Feature",
-        "geometry": {"type": "Point", "coordinates": coordinates},
-        "properties": {"sourcecrs": source_crs, "targetcrs": target_crs},
-    }
+    else:  # default case serve json
+        return {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": transformed_coordinates},
+        }
 
 
 @app.post("/transform")  # type: ignore
-async def transform(sourcec_rs: str, target_crs: str):
-    return [
-        {
-            "data": "string",
-            "properties": {"sourcecrs": sourcec_rs, "targetcrs": target_crs},
-        }
-    ]
+async def transform(
+    body: Union[Feature, FeatureCollection],
+    source_crs: str = Query(alias="source-crs"),
+    target_crs: str = Query(alias="target-crs"),
+):
+    validate_input_crs(source_crs, "source-crs")
+    validate_input_crs(target_crs, "target_crs")
+    validate_crs_transformation(source_crs, target_crs)
+    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
+    target_crs_crs = CRS.from_authority(*target_crs.split(":"))
+    transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
+
+    if isinstance(body, Feature):
+        feature_body: Feature = body
+        geom: Geometry = feature_body.geometry
+        transform_geom(transformer, geom)
+    elif isinstance(body, FeatureCollection):
+        fc_body: FeatureCollection = body
+        features: Iterable[Feature] = fc_body.features
+        for feature in features:
+            feature.geometry = transform_geom(transformer, feature.geometry)
+    return body
 
 
 def get_oas() -> dict:
