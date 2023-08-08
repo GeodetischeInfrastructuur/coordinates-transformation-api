@@ -146,7 +146,7 @@ paths:
         200:
           description: OK
           content:
-            application/geo+json:
+            application/json:
               schema:
                 $ref: https://geojson.org/schema/Point.json
             text/html:
@@ -239,8 +239,6 @@ components:
       explode: false
       schema:
         $ref: "#/components/schemas/coords"
-      example: 155000,463000,1
-      default: 155000,463000,1
 
     contentType:
       description: Content Type
@@ -374,12 +372,15 @@ components:
         - EPSG:4326
         - EPSG:3857
         - OGC:CRS84
+
     coords:
       type: array
+      nullable: false
       items:
         type: float
-      minItems: 3
+      minItems: 2
       maxItems: 3
+      default: [155000.0, 463000.0]
 
     landingPage:
       type: object
