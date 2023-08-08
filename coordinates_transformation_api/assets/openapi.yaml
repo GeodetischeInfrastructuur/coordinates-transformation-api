@@ -149,7 +149,7 @@ paths:
             application/json:
               schema:
                 $ref: https://geojson.org/schema/Point.json
-            text/html:
+            text/plain:
               schema:
                 $ref: "#/components/responses/wktSchema"
           headers:
