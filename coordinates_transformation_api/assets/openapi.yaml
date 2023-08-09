@@ -225,6 +225,7 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/crs"
+      default: EPSG:7415
 
     target-crs:
       description: Target Coordinate Reference System
@@ -233,6 +234,7 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/crs"
+      default: EPSG:4937
 
     coordinates:
       description: Coordinates of the query point as comma seperated list, see `source-crs` parameter for order and required number of the coordinates
@@ -338,7 +340,7 @@ components:
     wktSchema:
       description: WKT representation of a point as POINT (...) or POINT Z (...)
       type: string
-      example: "POINT Z (155000 463000 1)"
+      example: "POINT Z (66080.2628 531539.0239 73.2384)"
       headers:
         API-Version:
           $ref: "#/components/headers/API-Version"      
@@ -384,7 +386,7 @@ components:
         type: float
       minItems: 2
       maxItems: 3
-      default: [155000.0, 463000.0]
+      default: [66080.2628, 531539.0239, 73.2384]
 
     landingPage:
       type: object
