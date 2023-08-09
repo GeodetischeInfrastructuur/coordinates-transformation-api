@@ -20,6 +20,8 @@ from pyproj import CRS, Transformer
 
 from coordinates_transformation_api import assets
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
+from coordinates_transformation_api.limit_middleware.middleware import (
+    ContentSizeLimitMiddleware, TimeoutMiddleware)
 from coordinates_transformation_api.util import (get_projs_axis_info,
                                                  transform_geom)
 
@@ -55,6 +57,10 @@ BASE_DIR: str = os.path.dirname(__file__)
 app: FastAPI = FastAPI(docs_url=None)
 middleware.register(app)
 
+# note: order of adding middleware is required for it to work
+# with TimeoutMiddleware added first, the Request Entity Too Large error will not be sent
+app.add_middleware(ContentSizeLimitMiddleware, max_content_size=2000000)  # 2000000 ~2MB
+app.add_middleware(TimeoutMiddleware, timeout_seconds=10)
 
 app.mount(
     "/static",
