@@ -185,6 +185,8 @@ paths:
                 oneOf:
                   - $ref: https://geojson.org/schema/Feature.json
                   - $ref: https://geojson.org/schema/FeatureCollection.json
+                  - $ref: https://geojson.org/schema/Geometry.json
+                  - $ref: https://geojson.org/schema/GeometryCollection.json                  
       responses:
         200:
           description: OK
@@ -194,6 +196,8 @@ paths:
                   oneOf:
                     - $ref: https://geojson.org/schema/Feature.json
                     - $ref: https://geojson.org/schema/FeatureCollection.json
+                    - $ref: https://geojson.org/schema/Geometry.json
+                    - $ref: https://geojson.org/schema/GeometryCollection.json                     
           headers:
             API-Version:
               $ref: "#/components/headers/API-Version"

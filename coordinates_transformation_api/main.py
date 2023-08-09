@@ -13,7 +13,8 @@ from fastapi.responses import PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geojson_pydantic import Feature, FeatureCollection
-from geojson_pydantic.geometries import Geometry
+from geojson_pydantic.geometries import (Geometry, GeometryCollection,
+                                         _GeometryBase)
 from pydantic import BaseModel, ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
@@ -245,7 +246,7 @@ async def transform(
 
 @app.post("/transform")  # type: ignore
 async def transform(
-    body: Union[Feature, FeatureCollection],
+    body: Union[Feature, FeatureCollection, Geometry, GeometryCollection],
     source_crs: str = Query(alias="source-crs"),
     target_crs: str = Query(alias="target-crs"),
 ):
@@ -265,6 +266,13 @@ async def transform(
         features: Iterable[Feature] = fc_body.features
         for feature in features:
             feature.geometry = transform_geom(transformer, feature.geometry)
+    elif isinstance(body, _GeometryBase):
+        geom: Geometry = body
+        transform_geom(transformer, geom)
+    elif isinstance(body, GeometryCollection):
+        geometries: Iterable[Geometry] = body
+        for geometry in geometries:
+            geometry = transform_geom(transformer, geometry)
     return body
 
 
