@@ -1,4 +1,9 @@
-from pyproj import CRS
+from typing import Any, Iterable
+
+from geojson_pydantic import Feature, FeatureCollection
+from geojson_pydantic.geometries import (Geometry, GeometryCollection,
+                                         _GeometryBase)
+from pyproj import CRS, Transformer
 
 
 def get_projs_axis_info(proj_strings):
@@ -12,48 +17,101 @@ def get_projs_axis_info(proj_strings):
     return result
 
 
-def transform_geom(transformer, geom):
-    match geom.type:
-        case "Point":
-            geom.coordinates = transform_point(transformer, geom)
-        case "MultiPoint":
-            geom.coordinates = transform_multipoint_linestring(transformer, geom)
-        case "LineString":
-            geom.coordinates = transform_multipoint_linestring(transformer, geom)
-        case "MultiLineString":
-            geom.coordinates = transform_polygon_multilinestring(transformer, geom)
-        case "Polygon":
-            geom.coordinates = transform_polygon_multilinestring(transformer, geom)
-        case "MultiPolygon":
-            geom.coordinates = transform_multipolygon(transformer, geom)
-    return geom
+def traverse_geojson_coordinates(geojson_coordinates, callback):
+    """traverse GeoJSON coordinates object and apply callback function to coordinates-nodes
+
+    Args:
+        obj: GeoJSON coordinates object
+        callback (): callback function to transform coordinates-nodes
+
+    Returns:
+        GeoJSON coordinates object
+    """
+    if all(isinstance(x, float) or isinstance(x, int) for x in geojson_coordinates):
+        return callback(geojson_coordinates)
+    elif isinstance(geojson_coordinates, list):
+        return [
+            traverse_geojson_coordinates(elem, callback=callback)
+            for elem in geojson_coordinates
+        ]
 
 
-def transform_multipolygon(transformer, geom):
-    new_coords = []
-    for polygon in geom.coordinates:
-        new_polygon = []
-        for ring in polygon:
-            zipped_transformed_coords = transformer.transform(*zip(*ring))
-            new_polygon.append(list(zip(*zipped_transformed_coords)))
-        new_coords.append(new_polygon)
-    return new_coords
+def count_coordinates_nodes(geojson_coordinates: Any) -> int:
+    count = 0
+
+    def traverse_count(
+        geojson_coordinates: list[any] | list[float] | list[int],
+    ) -> None:
+        nonlocal count
+        if all(isinstance(x, float) or isinstance(x, int) for x in geojson_coordinates):
+            count += len(geojson_coordinates)
+        elif isinstance(geojson_coordinates, list):
+            return [traverse_count(elem) for elem in geojson_coordinates]
+
+    traverse_count(geojson_coordinates)
+    return count
 
 
-def transform_polygon_multilinestring(transformer, geom):
-    new_coords = []
-    for ring_linestring in geom.coordinates:
-        zipped_transformed_coords = transformer.transform(*zip(*ring_linestring))
-        new_coords.append(list(zip(*zipped_transformed_coords)))
-    return new_coords
+from typing import Any
 
 
-def transform_multipoint_linestring(transformer, geom):
-    geom.coordinates = list(transformer.transform(*geom.coordinates))
-    zipped_transformed_coords = transformer.transform(*zip(*geom.coordinates))
-    new_coords = list(zip(*zipped_transformed_coords))
-    return new_coords
+def count_coordinate_nodes_object(
+    input: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
+) -> int:
+    # handle collections first
+    if isinstance(input, FeatureCollection | GeometryCollection):
+        if isinstance(input, FeatureCollection):
+            fc: FeatureCollection = input
+            features: Iterable[Feature] = fc.features
+            coordinates: Iterable[Any] = [x.geometry.coordinates for x in features]
+        elif isinstance(input, GeometryCollection):
+            geometries: Iterable[Geometry] = input
+            coordinates: Iterable[Any] = [x.coordinates for x in geometries]
+
+        if len(coordinates) > 0:
+            return sum([count_coordinates_nodes(x) for x in coordinates])
+    else:
+        if isinstance(input, Feature):
+            ft: Feature = input
+            single_coordinates: Any = ft.geometry.coordinates
+        if isinstance(input, _GeometryBase):
+            geometry: _GeometryBase = input
+            single_coordinates: Any = geometry.coordinates
+        return count_coordinates_nodes(single_coordinates)
 
 
-def transform_point(transformer, geom):
-    return list(transformer.transform(*geom.coordinates))
+def transform_request_body(
+    body: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
+    transformer: Transformer,
+) -> None:
+    """transform coordinates of request body in place
+
+    Args:
+        body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
+        transformer (Transformer): pyproj Transformer object
+    """
+
+    def transform_geom(transformer: Transformer, geom: _GeometryBase) -> None:
+        def callback(val: list[float]) -> list[float]:
+            return [round(x, 6) for x in transformer.transform(*val)]
+
+        geom.coordinates = traverse_geojson_coordinates(
+            geom.coordinates, callback=callback
+        )
+
+    if isinstance(body, Feature):
+        feature_body: Feature = body
+        geom: Geometry = feature_body.geometry
+        transform_geom(transformer, geom)
+    elif isinstance(body, FeatureCollection):
+        fc_body: FeatureCollection = body
+        features: Iterable[Feature] = fc_body.features
+        for feature in features:
+            transform_geom(transformer, feature.geometry)
+    elif isinstance(body, _GeometryBase):
+        geom: Geometry = body
+        transform_geom(transformer, geom)
+    elif isinstance(body, GeometryCollection):
+        geometries: Iterable[Geometry] = body
+        for geometry in geometries:
+            transform_geom(transformer, geometry)
