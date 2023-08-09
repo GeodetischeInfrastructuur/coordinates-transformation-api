@@ -2,7 +2,7 @@ import json
 import os
 from enum import Enum
 from importlib import resources as impresources
-from typing import Iterable, List, Tuple, Union
+from typing import List, Tuple, Union
 
 import uvicorn
 import yaml
@@ -23,8 +23,9 @@ from coordinates_transformation_api import assets
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
 from coordinates_transformation_api.limit_middleware.middleware import (
     ContentSizeLimitMiddleware, TimeoutMiddleware)
-from coordinates_transformation_api.util import (get_projs_axis_info,
-                                                 transform_geom)
+from coordinates_transformation_api.util import (count_coordinate_nodes_object,
+                                                 get_projs_axis_info,
+                                                 transform_request_body)
 
 
 def init_oas() -> Tuple[dict, str, dict]:
@@ -58,10 +59,14 @@ BASE_DIR: str = os.path.dirname(__file__)
 app: FastAPI = FastAPI(docs_url=None)
 middleware.register(app)
 
+TIMEOUT_SECONDS = 10
+MAX_CONTENT_SIZE = 2000000  # 2000000 ~2MB
+MAX_NR_COORDINATES = 100000  # 100,000
+
 # note: order of adding middleware is required for it to work
 # with TimeoutMiddleware added first, the Request Entity Too Large error will not be sent
-app.add_middleware(ContentSizeLimitMiddleware, max_content_size=2000000)  # 2000000 ~2MB
-app.add_middleware(TimeoutMiddleware, timeout_seconds=10)
+app.add_middleware(ContentSizeLimitMiddleware, max_content_size=MAX_CONTENT_SIZE)
+app.add_middleware(TimeoutMiddleware, timeout_seconds=TIMEOUT_SECONDS)
 
 app.mount(
     "/static",
@@ -90,6 +95,29 @@ class Conformance(BaseModel):
 class TransformGetAcceptHeaders(Enum):
     json = "application/json"
     wkt = "text/plain"
+
+
+def validate_coordinates_limit(
+    body: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
+):
+    coordinates_count = count_coordinate_nodes_object(body)
+    if coordinates_count > MAX_NR_COORDINATES:
+        raise RequestValidationError(
+            errors=(
+                ValidationError.from_exception_data(
+                    "ValueError",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "value_error",
+                                f"number of coordinates in request body ({coordinates_count}) exceeds MAX_NR_COORDINATES ({MAX_NR_COORDINATES})",
+                            ),
+                            loc=("body"),
+                        )
+                    ],
+                )
+            ).errors()
+        )
 
 
 def validate_crs_transformation(source_crs, target_crs):
@@ -259,26 +287,12 @@ async def transform(
     validate_input_crs(source_crs, "source-crs")
     validate_input_crs(target_crs, "target_crs")
     validate_crs_transformation(source_crs, target_crs)
+    validate_coordinates_limit(body)
     source_crs_crs = CRS.from_authority(*source_crs.split(":"))
     target_crs_crs = CRS.from_authority(*target_crs.split(":"))
-    transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
+    transformer: Transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
 
-    if isinstance(body, Feature):
-        feature_body: Feature = body
-        geom: Geometry = feature_body.geometry
-        transform_geom(transformer, geom)
-    elif isinstance(body, FeatureCollection):
-        fc_body: FeatureCollection = body
-        features: Iterable[Feature] = fc_body.features
-        for feature in features:
-            feature.geometry = transform_geom(transformer, feature.geometry)
-    elif isinstance(body, _GeometryBase):
-        geom: Geometry = body
-        transform_geom(transformer, geom)
-    elif isinstance(body, GeometryCollection):
-        geometries: Iterable[Geometry] = body
-        for geometry in geometries:
-            geometry = transform_geom(transformer, geometry)
+    transform_request_body(body, transformer)
     return body
 
 
