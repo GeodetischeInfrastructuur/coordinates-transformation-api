@@ -250,7 +250,6 @@ async def conformance():
 
 @app.get("/transform")
 async def transform(
-    response: Response,
     source_crs: str = Query(alias="source-crs"),
     target_crs: str = Query(alias="target-crs"),
     coordinates: str = Query(alias="coordinates"),
@@ -267,7 +266,19 @@ async def transform(
     transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
     transformed_coordinates = transformer.transform(*coordinates_list)
 
+    if PROJS_AXIS_INFO[target_crs]["dimensions"] != None and PROJS_AXIS_INFO[
+        target_crs
+    ]["dimensions"] != len(transformed_coordinates):
+        transformed_coordinates = transformed_coordinates[
+            0 : (PROJS_AXIS_INFO[target_crs]["dimensions"])
+        ]
+
     if accept == str(TransformGetAcceptHeaders.wkt.value):
+        if len(transformed_coordinates) == 3:
+            return PlainTextResponse(
+                f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})"
+            )
+
         return PlainTextResponse(
             f"POINT({' '.join([str(x) for x in transformed_coordinates])})"
         )
