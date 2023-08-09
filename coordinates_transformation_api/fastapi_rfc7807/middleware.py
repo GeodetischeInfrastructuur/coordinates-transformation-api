@@ -2,6 +2,8 @@
 import asyncio
 import http
 import json
+import logging
+from sys import gettrace
 from typing import (Any, Awaitable, Callable, Dict, Mapping, Optional,
                     Sequence, Union)
 
@@ -15,6 +17,8 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 PreHook = Callable[[Request, Exception], Union[Any, Awaitable[Any]]]
 PostHook = Callable[[Request, Response, Exception], Union[Any, Awaitable[Any]]]
+
+logger = logging.getLogger(__name__)
 
 
 class ProblemResponse(Response):
@@ -46,12 +50,18 @@ class ProblemResponse(Response):
         elif isinstance(content, Exception):
             p = from_exception(content)
         else:
-            p = Problem(
-                status=500,
-                title="Application Error",
-                detail="Got unexpected content when trying to generate error response",
-                content=str(content),
+            logger.error(
+                f"Got unexpected content when trying to generate error response. Content: {content}"
             )
+            if gettrace():  # if debug
+                p = Problem(
+                    status=500,
+                    title="Application Error",
+                    detail="Got unexpected content when trying to generate error response",
+                    content=str(content),
+                )
+            else:
+                p = get_prod_500_problem()
 
         p.debug = self.debug
 
@@ -181,6 +191,15 @@ def from_dict(data: Dict[str, Any]) -> Problem:
     )
 
 
+def get_prod_500_problem() -> Problem:
+    """Create a HTTP 500 problem response for production use, to not leak implementation details to the client
+
+    Returns:
+        Problem: HTTP 500 Problem
+    """
+    return Problem(title="Internal Server Error", status=500, type="about:blank")
+
+
 def from_http_exception(exc: HTTPException) -> Problem:
     """Create a new Problem instance from an HTTPException.
 
@@ -244,12 +263,16 @@ def from_exception(exc: Exception) -> Problem:
     Returns:
         A new Problem instance populated from the Exception.
     """
-    return Problem(
-        title="Unexpected Server Error",
-        status=500,
-        detail=str(exc),
-        exc_type=exc.__class__.__name__,
-    )
+    logger.exception(exc, stack_info=True)
+    if gettrace():
+        return Problem(
+            title="Unexpected Server Error",
+            status=500,
+            detail=str(exc),
+            exc_type=exc.__class__.__name__,
+        )
+    else:
+        return get_prod_500_problem()
 
 
 def get_exception_handler(
