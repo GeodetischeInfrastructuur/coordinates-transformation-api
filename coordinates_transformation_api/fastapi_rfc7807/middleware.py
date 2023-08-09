@@ -214,6 +214,7 @@ def from_request_validation_error(exc: RequestValidationError) -> Problem:
     Returns:
          A new Problem instance populated from the RequestValidationError.
     """
+
     return Problem(
         title="Validation Error",
         status=400,
@@ -442,6 +443,8 @@ class ProblemMiddleware:
         self.pre_hooks = pre_hooks or []
         self.post_hooks = post_hooks or []
         self.debug: bool = debug
+        self.received = 0
+        self.max_content_size = 2000
 
         self._handler = get_exception_handler(
             debug=self.debug,
