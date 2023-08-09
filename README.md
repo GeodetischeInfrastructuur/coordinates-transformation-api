@@ -27,6 +27,42 @@ Design rues. Examples of these are:
   parameter.
     + with additional scenarios for other combinations.
 
+## pyproj
+
+> :warning: pyproj makes use of it's own proj binaries and `PROJ_DIR`. These are
+> set when pyproj is build.
+
+Pyproj in it's default configuration isn't capable in preforming the right
+transformations. Because our primairy transformations layer on the following
+transformation grids:
+
+Variant 1:
+
+1. <https://cdn.proj.org/nl_nsgi_nlgeo2018.tif>
+1. <https://cdn.proj.org/nl_nsgi_rdcorr2018.tif>
+
+The recommended variant.
+
+Variant 2:
+
+1. <https://cdn.proj.org/nl_nsgi_rdtrans2018.tif>
+
+These transformation grids need to be downloaded from the [PROJ.org Datumgrid
+CDN](https://cdn.proj.org/) and put in the correct directory. This can be done
+in a couple of ways.
+
+1. Enable PROJ_NETWORK environment variable
+1. Edit proj.ini file by setting `network = on`
+
+These will download the necessary files to a cache so they can be use for the
+correct transformation. But this requires a network connection, preferable we
+don't want to rely on this network connection and provide these files with the
+application. This can be done by
+
+1. [Mirror](https://pyproj4.github.io/pyproj/stable/transformation_grids.html)
+   <https://dcn.proj.org> and write the these file to the data dir
+1. Download the specific files to the root of the data dir
+
 ## Develop
 
 To install from source requires minimum version of pip: `23.2.1`.
