@@ -3,7 +3,6 @@ import asyncio
 import http
 import json
 import logging
-from sys import gettrace
 from typing import (Any, Awaitable, Callable, Dict, Mapping, Optional,
                     Sequence, Union)
 
@@ -15,8 +14,11 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from coordinates_transformation_api.settings import app_settings
+
 PreHook = Callable[[Request, Exception], Union[Any, Awaitable[Any]]]
 PostHook = Callable[[Request, Response, Exception], Union[Any, Awaitable[Any]]]
+
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +55,7 @@ class ProblemResponse(Response):
             logger.error(
                 f"Got unexpected content when trying to generate error response. Content: {content}"
             )
-            if gettrace():  # if debug
+            if app_settings.debug:  # if debug
                 p = Problem(
                     status=500,
                     title="Application Error",
@@ -264,7 +266,7 @@ def from_exception(exc: Exception) -> Problem:
         A new Problem instance populated from the Exception.
     """
     logger.exception(exc, stack_info=True)
-    if gettrace():
+    if app_settings.debug:
         return Problem(
             title="Unexpected Server Error",
             status=500,
