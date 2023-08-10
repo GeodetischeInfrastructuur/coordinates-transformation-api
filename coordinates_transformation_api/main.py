@@ -12,7 +12,6 @@ from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geojson_pydantic import Feature, FeatureCollection
 from geojson_pydantic.geometries import Geometry, GeometryCollection
-from pyproj import CRS, Transformer
 
 from coordinates_transformation_api import assets
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
@@ -23,13 +22,12 @@ from coordinates_transformation_api.models import (Conformance, LandingPage,
                                                    TransformGetAcceptHeaders)
 from coordinates_transformation_api.settings import app_settings
 from coordinates_transformation_api.util import (get_transform_callback,
-                                                 init_oas,
+                                                 get_transformer, init_oas,
                                                  transform_request_body,
                                                  traverse_geojson_coordinates,
                                                  validate_coordinates_limit,
                                                  validate_coords_source_crs,
-                                                 validate_crs_transformation,
-                                                 validate_input_crs)
+                                                 validate_crss)
 
 assets_resources = impresources.files(assets)
 logging_conf = assets_resources.joinpath("logging.conf")
@@ -136,29 +134,28 @@ async def transform(
     coordinates: str = Query(alias="coordinates"),
     accept: str = Header(default=TransformGetAcceptHeaders.json),
 ):
-    validate_input_crs(source_crs, "source-crs", PROJS_AXIS_INFO)
-    validate_input_crs(target_crs, "target_crs", PROJS_AXIS_INFO)
-    validate_crs_transformation(source_crs, target_crs, PROJS_AXIS_INFO)
+    validate_crss(source_crs, target_crs, PROJS_AXIS_INFO)
     validate_coords_source_crs(coordinates, source_crs, PROJS_AXIS_INFO)
 
+    transformer = get_transformer(source_crs, target_crs)
+
     coordinates_list: list = [float(x) for x in coordinates.split(",")]
-    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
-    target_crs_crs = CRS.from_authority(*target_crs.split(":"))
-    transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
 
     transformed_coordinates = traverse_geojson_coordinates(
         coordinates_list, callback=get_transform_callback(transformer)
     )
 
     if accept == str(TransformGetAcceptHeaders.wkt.value):
+        if len(transformed_coordinates) == 3:
+            return PlainTextResponse(
+                f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})"
+            )
+
         return PlainTextResponse(
             f"POINT({' '.join([str(x) for x in transformed_coordinates])})"
         )
     else:  # default case serve json
-        return {
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": transformed_coordinates},
-        }
+        return {"type": "Point", "coordinates": transformed_coordinates}
 
 
 @app.post("/transform")  # type: ignore
@@ -167,13 +164,10 @@ async def transform(
     source_crs: str = Query(alias="source-crs"),
     target_crs: str = Query(alias="target-crs"),
 ):
-    validate_input_crs(source_crs, "source-crs", PROJS_AXIS_INFO)
-    validate_input_crs(target_crs, "target_crs", PROJS_AXIS_INFO)
-    validate_crs_transformation(source_crs, target_crs, PROJS_AXIS_INFO)
+    validate_crss(source_crs, target_crs, PROJS_AXIS_INFO)
     validate_coordinates_limit(body, app_settings.max_nr_coordinates)
-    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
-    target_crs_crs = CRS.from_authority(*target_crs.split(":"))
-    transformer: Transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
+
+    transformer = get_transformer(source_crs, target_crs)
 
     transform_request_body(body, transformer)
     return body
