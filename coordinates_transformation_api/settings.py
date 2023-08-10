@@ -13,11 +13,6 @@ class AppSettings(BaseSettings):
         default=2000000,
         description="max size request body in bytes",
     )
-    max_nr_coordinates: int = Field(
-        alias="MAX_NR_COORDINATES",
-        default=100000,
-        description="max number of coordinates in request body",
-    )
     log_level: str = Field(alias="LOG_LEVEL", default="ERROR")
     debug: bool = Field(
         alias="DEBUG",
