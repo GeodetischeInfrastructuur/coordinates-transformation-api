@@ -1,16 +1,27 @@
 from importlib import resources as impresources
-from typing import Any, Iterable, Tuple, Union, cast
+from typing import Callable, Iterable, Tuple, Union, cast
 
 import yaml
 from fastapi.exceptions import RequestValidationError
-from geojson_pydantic import (Feature, FeatureCollection, LineString,
-                              MultiLineString, MultiPoint, MultiPolygon, Point,
-                              Polygon)
-from geojson_pydantic.geometries import (Geometry, GeometryCollection,
-                                         _GeometryBase)
-from geojson_pydantic.types import (LineStringCoords, MultiLineStringCoords,
-                                    MultiPointCoords, MultiPolygonCoords,
-                                    PolygonCoords, Position)
+from geojson_pydantic import (
+    Feature,
+    FeatureCollection,
+    LineString,
+    MultiLineString,
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
+)
+from geojson_pydantic.geometries import Geometry, GeometryCollection, _GeometryBase
+from geojson_pydantic.types import (
+    LineStringCoords,
+    MultiLineStringCoords,
+    MultiPointCoords,
+    MultiPolygonCoords,
+    PolygonCoords,
+    Position,
+)
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
@@ -34,37 +45,10 @@ GeojsonCoordinates = Union[
 ]
 
 import logging
-from typing import Any
 
 from coordinates_transformation_api import assets
 
 logger = logging.getLogger(__name__)
-
-
-def validate_coordinates_limit(
-    body: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
-    max_nr_coordinates: int,
-):
-    coordinates_count = count_coordinate_nodes_object(body)
-    if coordinates_count > max_nr_coordinates:
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            # TODO: fix loc field in error
-                            type=PydanticCustomError(
-                                "value_error",
-                                f"number of coordinates in request body ({coordinates_count}) exceeds MAX_NR_COORDINATES ({max_nr_coordinates})",
-                            ),
-                            loc=tuple("body"),
-                            input=body,
-                        )
-                    ],
-                )
-            ).errors()
-        )
 
 
 def validate_crs_transformation(source_crs, target_crs, projections_axis_info):
@@ -161,93 +145,6 @@ def traverse_geojson_coordinates(geojson_coordinates, callback):
         ]
 
 
-def count_coordinates_nodes(geojson_coordinates: Any) -> int:
-    count = 0
-
-    def traverse_count(
-        geojson_coordinates: list[Any] | list[float] | list[int],
-    ):
-        nonlocal count
-        if all(isinstance(x, float) or isinstance(x, int) for x in geojson_coordinates):
-            count += len(geojson_coordinates)
-        elif isinstance(geojson_coordinates, list):
-            for elem in geojson_coordinates:
-                elem_any: list[Any] = cast(list[Any], elem)
-                traverse_count(elem_any)
-
-    traverse_count(geojson_coordinates)
-    return count
-
-
-def get_coordinates_from_geometry(
-    geom: GeojsonGeomNoGeomCollection,
-) -> GeojsonCoordinates:
-    return geom.coordinates
-
-
-def get_coordinates_from_feature(
-    ft: Feature,
-) -> Union[GeojsonCoordinates, list[GeojsonCoordinates]]:
-    if isinstance(ft.geometry, GeometryCollection):
-        gc: GeometryCollection = cast(GeometryCollection, ft.geometry)
-        result = []
-        for x in gc.geometries:
-            y = cast(
-                GeojsonGeomNoGeomCollection,
-                x,
-            )
-            result.append(y.coordinates)
-        return result
-    else:
-        geom = cast(
-            GeojsonGeomNoGeomCollection,
-            ft.geometry,
-        )
-        return geom.coordinates
-
-
-def count_coordinate_nodes_object(
-    input: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
-) -> int:
-    # handle collections first
-    if isinstance(input, FeatureCollection | GeometryCollection):
-        coordinates: Iterable[Any]
-        if isinstance(input, FeatureCollection):
-            fc: FeatureCollection = input
-            features: Iterable[Feature] = fc.features
-            coordinates = [get_coordinates_from_feature(x) for x in features]
-        elif isinstance(input, GeometryCollection):
-            geometries: Iterable[Geometry] = input.geometries
-            coordinates = [
-                get_coordinates_from_geometry(
-                    cast(
-                        GeojsonGeomNoGeomCollection,
-                        x,
-                    )
-                )
-                for x in geometries
-            ]
-
-        return sum([count_coordinates_nodes(x) for x in coordinates])
-    else:
-        if isinstance(input, Feature):
-            ft: Feature = input
-            geometry = cast(Geometry, ft.geometry)
-
-        if isinstance(input, _GeometryBase):
-            geometry = cast(Geometry, input)
-
-        c = cast(
-            GeojsonGeomNoGeomCollection,
-            geometry,
-        )
-        single_coordinates = cast(
-            GeojsonCoordinates,
-            c.coordinates,
-        )
-        return count_coordinates_nodes(single_coordinates)
-
-
 def validate_crss(source_crs: str, target_crs: str, projections_axis_info: dict):
     validate_input_crs(source_crs, "source-crs", projections_axis_info)
     validate_input_crs(target_crs, "target_crs", projections_axis_info)
@@ -286,30 +183,51 @@ def transform_request_body(
         transformer (Transformer): pyproj Transformer object
     """
 
-    # TODO: fix type annotation geom object
-    def transform_geom(transformer: Transformer, geom: Any) -> None:
+    def transform_geom(
+        transformer: Transformer, geom: GeojsonGeomNoGeomCollection
+    ) -> None:
         geom.coordinates = traverse_geojson_coordinates(
             geom.coordinates, callback=get_transform_callback(transformer)
         )
 
     if isinstance(body, Feature):
-        feature_body: Feature = body
-        geom = feature_body.geometry
-        transform_geom(transformer, geom)
+        feature = cast(Feature, body)
+        transform_feature(transformer, transform_geom, feature)
     elif isinstance(body, FeatureCollection):
         fc_body: FeatureCollection = body
         features: Iterable[Feature] = fc_body.features
         for feature in features:
-            geom = feature.geometry
-            transform_geom(transformer, geom)
-        # TODO: add case for GeometryCollection
+            transform_feature(transformer, transform_geom, feature)
     elif isinstance(body, _GeometryBase):
-        geom = body
+        geom = cast(GeojsonGeomNoGeomCollection, body)
         transform_geom(transformer, geom)
     elif isinstance(body, GeometryCollection):
-        geometries: Iterable[Geometry] = body
-        for geometry in geometries:
-            transform_geom(transformer, geometry)
+        gc = cast(GeometryCollection, body)
+        transform_geometry_collection(transformer, transform_geom, gc)
+
+
+def transform_geometry_collection(
+    transformer: Transformer,
+    transform_geom: Callable[[Transformer, GeojsonGeomNoGeomCollection], None],
+    gc: GeometryCollection,
+) -> None:
+    geometries: list[Geometry] = gc.geometries
+    for g in geometries:
+        geom = cast(GeojsonGeomNoGeomCollection, g)
+        transform_geom(transformer, geom)
+
+
+def transform_feature(
+    transformer: Transformer,
+    transform_geom: Callable[[Transformer, GeojsonGeomNoGeomCollection], None],
+    feature: Feature,
+) -> None:
+    if isinstance(feature.geometry, GeometryCollection):
+        gc = cast(GeometryCollection, feature.geometry)
+        transform_geometry_collection(transformer, transform_geom, gc)
+    else:
+        geom = cast(GeojsonGeomNoGeomCollection, feature.geometry)
+        transform_geom(transformer, geom)
 
 
 def init_oas() -> Tuple[dict, str, str, dict]:
