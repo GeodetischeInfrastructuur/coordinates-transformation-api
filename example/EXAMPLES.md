@@ -41,7 +41,7 @@ curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=
 
 
 ```sh
-curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=EPSG:4326' \
+curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=EPSG:28992' \
   -H 'Content-Type: application/json' \
   -d '{
   "type": "FeatureCollection",
@@ -86,3 +86,90 @@ curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=
   }]
 }'  | jq
 ```
+
+
+
+```sh
+curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=EPSG:28992' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "type": "Feature", 
+    "properties": {},
+    "geometry": { 
+      "type": "GeometryCollection",
+      "geometries": [ 
+        { 
+          "type": "Point",
+          "coordinates": [
+            61.34765625,
+            48.63290858589535
+          ]
+        },
+        {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ]
+            ]
+          ]
+        }
+      ]
+    }
+  }' | jq
+```
+
+
+```sh
+curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=EPSG:28992' \
+  -H 'Content-Type: application/json' \
+  -d '{ 
+      "type": "GeometryCollection",
+      "geometries": [ 
+        { 
+          "type": "Point",
+          "coordinates": [
+            61.34765625,
+            48.63290858589535
+          ]
+        },
+        {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ]
+            ]
+          ]
+        }
+      ]
+    }' | jq
+  ```

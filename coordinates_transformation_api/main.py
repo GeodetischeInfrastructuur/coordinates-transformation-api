@@ -25,7 +25,6 @@ from coordinates_transformation_api.util import (get_transform_callback,
                                                  get_transformer, init_oas,
                                                  transform_request_body,
                                                  traverse_geojson_coordinates,
-                                                 validate_coordinates_limit,
                                                  validate_coords_source_crs,
                                                  validate_crss)
 
@@ -165,7 +164,6 @@ async def transform(
     target_crs: str = Query(alias="target-crs"),
 ):
     validate_crss(source_crs, target_crs, PROJS_AXIS_INFO)
-    validate_coordinates_limit(body, app_settings.max_nr_coordinates)
 
     transformer = get_transformer(source_crs, target_crs)
 
@@ -177,7 +175,6 @@ app.openapi = lambda: OPEN_API_SPEC  # type: ignore
 
 
 def main():
-    # TODO: add CLI args for uvicorn, see https://www.uvicorn.org/settings/
     uvicorn.run(
         "coordinates_transformation_api.main:app", workers=2, port=8000, host="0.0.0.0"
     )
