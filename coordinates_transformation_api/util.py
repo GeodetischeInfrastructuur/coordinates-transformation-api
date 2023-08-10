@@ -179,13 +179,6 @@ def count_coordinates_nodes(geojson_coordinates: Any) -> int:
     return count
 
 
-def get_geom(in_geom: Union[Geometry, Any, None]) -> GeojsonGeomNoGeomCollection:
-    return cast(
-        GeojsonGeomNoGeomCollection,
-        in_geom,
-    )
-
-
 def get_coordinates_from_geometry(
     geom: GeojsonGeomNoGeomCollection,
 ) -> GeojsonCoordinates:
@@ -195,9 +188,8 @@ def get_coordinates_from_geometry(
 def get_coordinates_from_feature(
     ft: Feature,
 ) -> Union[GeojsonCoordinates, list[GeojsonCoordinates]]:
-    geom: Geometry
-    if isinstance(geom, GeometryCollection):
-        gc: GeometryCollection = cast(GeometryCollection, geom)
+    if isinstance(ft.geometry, GeometryCollection):
+        gc: GeometryCollection = cast(GeometryCollection, ft.geometry)
         result = []
         for x in gc.geometries:
             y = cast(
@@ -207,7 +199,10 @@ def get_coordinates_from_feature(
             result.append(y.coordinates)
         return result
     else:
-        geom = get_geom(ft.geometry)
+        geom = cast(
+            GeojsonGeomNoGeomCollection,
+            ft.geometry,
+        )
         return geom.coordinates
 
 
@@ -224,7 +219,13 @@ def count_coordinate_nodes_object(
         elif isinstance(input, GeometryCollection):
             geometries: Iterable[Geometry] = input.geometries
             coordinates = [
-                get_coordinates_from_geometry(get_geom(x)) for x in geometries
+                get_coordinates_from_geometry(
+                    cast(
+                        GeojsonGeomNoGeomCollection,
+                        x,
+                    )
+                )
+                for x in geometries
             ]
 
         return sum([count_coordinates_nodes(x) for x in coordinates])
@@ -283,6 +284,7 @@ def transform_request_body(
         for feature in features:
             geom = feature.geometry
             transform_geom(transformer, geom)
+        # TODO: add case for GeometryCollection
     elif isinstance(body, _GeometryBase):
         geom = body
         transform_geom(transformer, geom)
