@@ -3,7 +3,7 @@
 ```sh
 curl -X 'POST' 'http://localhost:8000/transform?source-crs=EPSG%3A28992&target-crs=EPSG%3A28992' \
   -H 'Content-Type: application/json' \
-  -d '{"type":"Type","crs":"foo","properties": {},"geometry":{"type":"Point","coordinates":[633092.3577539952,6849959.336556375]}}' | jq
+  -d '{"type":"Feature","crs":"foo","properties": {},"geometry":{"type":"Point","coordinates":[633092.3577539952,6849959.336556375]}}' | jq
 ```
 
 ```sh
@@ -36,4 +36,53 @@ curl -X 'POST' 'http://localhost:8000/transform?source-crs=EPSG%3A4326&target-cr
 curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=EPSG:4326' \
   -H 'Content-Type: application/json' \
   -d @example/polygon.json
+```
+
+
+
+```sh
+curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=EPSG:4326' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature", 
+    "properties": {},
+    "geometry": { 
+      "type": "GeometryCollection",
+      "geometries": [ 
+        { 
+          "type": "Point",
+          "coordinates": [
+            61.34765625,
+            48.63290858589535
+          ]
+        },
+        {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ],
+              [
+                59.94140624999999,
+                50.65294336725709
+              ]
+            ]
+          ]
+        }
+      ]
+    }
+  }]
+}'  | jq
 ```

@@ -15,6 +15,10 @@
                 "coordinates_transformation_api.main:app",
 
             ],
+            "env": {
+                "LOG_LEVEL": "DEBUG",
+                "DEBUG": "true",
+            },
             "jinja": true,
             "justMyCode": true
         }
