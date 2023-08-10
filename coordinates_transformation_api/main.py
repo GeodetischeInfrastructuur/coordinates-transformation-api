@@ -21,6 +21,7 @@ from coordinates_transformation_api.limit_middleware.middleware import (
 from coordinates_transformation_api.models import (Conformance, LandingPage,
                                                    Link,
                                                    TransformGetAcceptHeaders)
+from coordinates_transformation_api.settings import app_settings
 from coordinates_transformation_api.util import (get_transform_callback,
                                                  init_oas,
                                                  transform_request_body,
@@ -30,35 +31,32 @@ from coordinates_transformation_api.util import (get_transform_callback,
                                                  validate_crs_transformation,
                                                  validate_input_crs)
 
-# TODO: improve logger config; see also https://github.com/tiangolo/fastapi/issues/1508
-# requirement: seperate configs for prod and debug
-logging_conf = impresources.files(assets) / "logging.conf"
-logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
-logger = logging.getLogger(
-    __name__
-)  # the __name__ resolve to "main" since we are at the root of the project.
-# This will get the root logger since no logger in the configuration has this name.
+assets_resources = impresources.files(assets)
+logging_conf = assets_resources.joinpath("logging.conf")
 
 
-API_TITLE: str = "Coordinates Transformation API"
+logging.config.fileConfig(str(logging_conf), disable_existing_loggers=False)
+logger = logging.getLogger(__name__)
+logger.setLevel(app_settings.log_level)
+if not app_settings.debug:  # suppres pyproj warnings in prod
+    logging.getLogger("pyproj").setLevel(logging.ERROR)
+
+
 OPEN_API_SPEC: dict = {}
 API_VERSION: str = ""
 PROJS_AXIS_INFO: dict = {}
-OPEN_API_SPEC, API_VERSION, PROJS_AXIS_INFO = init_oas()
-
+OPEN_API_SPEC, API_VERSION, API_TITLE, PROJS_AXIS_INFO = init_oas()
 BASE_DIR: str = os.path.dirname(__file__)
 
+
 app: FastAPI = FastAPI(docs_url=None)
-middleware.register(app)
-
-TIMEOUT_SECONDS = 10
-MAX_CONTENT_SIZE = 2000000  # 2000000 ~2MB
-MAX_NR_COORDINATES = 100000  # 100,000
-
 # note: order of adding middleware is required for it to work
-# with TimeoutMiddleware added first, the Request Entity Too Large error will not be sent
-app.add_middleware(ContentSizeLimitMiddleware, max_content_size=MAX_CONTENT_SIZE)
-app.add_middleware(TimeoutMiddleware, timeout_seconds=TIMEOUT_SECONDS)
+middleware.register(app)
+app.add_middleware(
+    ContentSizeLimitMiddleware, max_content_size=app_settings.max_size_request_body
+)
+app.add_middleware(TimeoutMiddleware, timeout_seconds=app_settings.request_timeout)
+
 
 app.mount(
     "/static",
@@ -172,7 +170,7 @@ async def transform(
     validate_input_crs(source_crs, "source-crs", PROJS_AXIS_INFO)
     validate_input_crs(target_crs, "target_crs", PROJS_AXIS_INFO)
     validate_crs_transformation(source_crs, target_crs, PROJS_AXIS_INFO)
-    validate_coordinates_limit(body, MAX_NR_COORDINATES)
+    validate_coordinates_limit(body, app_settings.max_nr_coordinates)
     source_crs_crs = CRS.from_authority(*source_crs.split(":"))
     target_crs_crs = CRS.from_authority(*target_crs.split(":"))
     transformer: Transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
