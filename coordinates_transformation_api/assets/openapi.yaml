@@ -149,6 +149,8 @@ paths:
             application/json:
               schema:
                 $ref: https://geojson.org/schema/Point.json
+              example: >
+                {"type": "Point", "coordinates": [52.763875, 4.069801, 115.904857]}
             text/plain:
               schema:
                 $ref: "#/components/responses/wktSchema"
@@ -181,23 +183,27 @@ paths:
         required: true
         content:
           application/json:
-              schema:
-                oneOf:
-                  - $ref: https://geojson.org/schema/Feature.json
-                  - $ref: https://geojson.org/schema/FeatureCollection.json
-                  - $ref: https://geojson.org/schema/Geometry.json
-                  - $ref: https://geojson.org/schema/GeometryCollection.json                  
+            schema:
+              oneOf:
+                - $ref: https://geojson.org/schema/Feature.json
+                - $ref: https://geojson.org/schema/FeatureCollection.json
+                - $ref: https://geojson.org/schema/Geometry.json
+                - $ref: https://geojson.org/schema/GeometryCollection.json         
+            example: >
+              {"type": "Feature", "geometry": {"type": "Point", "coordinates": [66080.2628, 531539.0239, 73.2384]}, "properties": {"id": 1}}
       responses:
         200:
           description: OK
           content:
             application/json:
-                schema:
-                  oneOf:
-                    - $ref: https://geojson.org/schema/Feature.json
-                    - $ref: https://geojson.org/schema/FeatureCollection.json
-                    - $ref: https://geojson.org/schema/Geometry.json
-                    - $ref: https://geojson.org/schema/GeometryCollection.json                     
+              schema:
+                oneOf:
+                  - $ref: https://geojson.org/schema/Feature.json
+                  - $ref: https://geojson.org/schema/FeatureCollection.json
+                  - $ref: https://geojson.org/schema/Geometry.json
+                  - $ref: https://geojson.org/schema/GeometryCollection.json
+              example: >
+                {"type": "Feature", "geometry": {"type": "Point", "coordinates": [52.763875, 4.069801, 115.904857]}, "properties": {"id": 1}}
           headers:
             API-Version:
               $ref: "#/components/headers/API-Version"
@@ -340,7 +346,7 @@ components:
     wktSchema:
       description: WKT representation of a point as POINT (...) or POINT Z (...)
       type: string
-      example: "POINT Z (66080.2628 531539.0239 73.2384)"
+      example: "POINT Z (52.763875 4.069801 115.904857)"
       headers:
         API-Version:
           $ref: "#/components/headers/API-Version"      

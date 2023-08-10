@@ -175,8 +175,27 @@ def count_coordinate_nodes_object(
         return count_coordinates_nodes(single_coordinates)
 
 
+def validate_crss(source_crs: str, target_crs: str, projections_axis_info: dict):
+    validate_input_crs(source_crs, "source-crs", projections_axis_info)
+    validate_input_crs(target_crs, "target_crs", projections_axis_info)
+    validate_crs_transformation(source_crs, target_crs, projections_axis_info)
+
+
+def get_transformer(source_crs: str, target_crs: str):
+    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
+    target_crs_crs = CRS.from_authority(*target_crs.split(":"))
+    transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
+
+    return transformer
+
+
 def get_transform_callback(transformer: Transformer):
     def callback(val: tuple[float]) -> tuple[float]:
+        dim = len(transformer.target_crs.axis_info)
+
+        if dim != None and dim != len(val):
+            val = val[0:dim]
+
         return tuple([round(x, 6) for x in transformer.transform(*val)])
 
     return callback
