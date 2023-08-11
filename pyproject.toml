@@ -2,7 +2,7 @@
 name = "coordinates-transformation-api"
 description = "Coordinates transformation API of the Nederlandse Samenwerking Geodetische Infrastructuur (NSGI)"
 keywords = ["NSGI", "pyproj", "fastapi", "coordinates", "geo"]
-license = {text = "MIT"}
+license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -23,13 +23,10 @@ dynamic = ["version"]
 [project.optional-dependencies]
 dev = ["black", "autoflake", "isort", "mypy"]
 
+
 [build-system]
+requires = ["setuptools>=61.0", "setuptools-git-versioning<2"]
 build-backend = "setuptools.build_meta"
-requires = [
-    "setuptools>=45",
-    "setuptools-git-versioning<2",
-    "wheel==0.38.4"
-]
 
 [project.scripts]
 ct-api = "coordinates_transformation_api.main:main"
@@ -37,11 +34,12 @@ ct-api = "coordinates_transformation_api.main:main"
 [tool.setuptools-git-versioning]
 enabled = true
 
+
 [tool.setuptools.packages.find]
+where = ["src"]  # list of folders that contain the packages (["."] by default)
 include = ["coordinates_transformation_api*"]  # package names should match these glob patterns (["*"] by default)
-exclude = []  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.setuptools.package-data]
 "coordinates_transformation_api.assets" = ["*"]
 "coordinates_transformation_api.assets.static" = ["*"]
-

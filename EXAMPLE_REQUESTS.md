@@ -1,4 +1,9 @@
-# EXAMPLES
+# EXAMPLE REQUESTS
+
+```sh
+curl -X 'POST' 'http://localhost:8000/transform?source-crs=EPSG:28992&target-crs=EPSG:4326' -H 'Content-Type: application/json' -d @feature-geometry-collection.json
+```
+
 
 ```sh
 curl -X 'POST' 'http://localhost:8000/transform?source-crs=EPSG%3A28992&target-crs=EPSG%3A28992' \
