@@ -3,25 +3,14 @@ from typing import Callable, Iterable, Tuple, Union, cast
 
 import yaml
 from fastapi.exceptions import RequestValidationError
-from geojson_pydantic import (
-    Feature,
-    FeatureCollection,
-    LineString,
-    MultiLineString,
-    MultiPoint,
-    MultiPolygon,
-    Point,
-    Polygon,
-)
-from geojson_pydantic.geometries import Geometry, GeometryCollection, _GeometryBase
-from geojson_pydantic.types import (
-    LineStringCoords,
-    MultiLineStringCoords,
-    MultiPointCoords,
-    MultiPolygonCoords,
-    PolygonCoords,
-    Position,
-)
+from geojson_pydantic import (Feature, FeatureCollection, LineString,
+                              MultiLineString, MultiPoint, MultiPolygon, Point,
+                              Polygon)
+from geojson_pydantic.geometries import (Geometry, GeometryCollection,
+                                         _GeometryBase)
+from geojson_pydantic.types import (LineStringCoords, MultiLineStringCoords,
+                                    MultiPointCoords, MultiPolygonCoords,
+                                    PolygonCoords, Position)
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
@@ -163,10 +152,19 @@ def get_transform_callback(transformer: Transformer):
     def callback(
         val: Union[Tuple[float, float], Tuple[float, float, float]]
     ) -> Tuple[float, ...]:
+        if transformer.target_crs is None:
+            raise ValueError("transformer.target_crs is None")
         dim = len(transformer.target_crs.axis_info)
-
         if dim != None and dim != len(val):
-            val = val[0:dim]
+            if (
+                2 > dim > 3
+            ):  # check so we can safely cast to Tuple[float, float], Tuple[float, float, float]
+                raise ValueError(
+                    f"number of dimensions of target-crs should be 2 or 3, is {dim}"
+                )
+            val = cast(
+                Union[Tuple[float, float], Tuple[float, float, float]], val[0:dim]
+            )
         return tuple([float(round(x, 6)) for x in transformer.transform(*val)])
 
     return callback

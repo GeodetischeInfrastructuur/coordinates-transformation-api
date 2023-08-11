@@ -21,8 +21,7 @@ requires-python = ">=3.11.4"
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["black", "autoflake", "isort"]
-# TODO: add/enable mypy when using type annotations
+dev = ["black", "autoflake", "isort", "mypy"]
 
 [build-system]
 build-backend = "setuptools.build_meta"
