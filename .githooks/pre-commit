@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -u
 
 print_message() {
     padding_char=">"
@@ -27,10 +28,17 @@ print_message() {
 command_available() {
     command="$1"
     if ! command -v "$command" &>/dev/null; then
-        print_message "ERROR: ${command} could not be found" 2 "ERROR" false
+        print_message "ERROR: ${command} could not be found - commit aborted" 2 "ERROR" false
         exit 1
     fi
 }
+command_available "mypy"
+print_message "pre-commit - running mypy static type checking" 1 "" true
+if ! mypy coordinates_transformation_api;then
+    print_message "mypy static type check failed - commit aborted" 1 "ERROR" true
+    exit 1
+fi
+
 
 command_available "black"
 print_message "pre-commit - running Black formatting" 1 "" true
