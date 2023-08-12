@@ -85,6 +85,12 @@ To run debug session in VS Code install the package with `pip` with the `--edita
 pip install --editable .
 ```
 
+Check test coverage (install `coverage` with `pip install coverage`):
+
+```sh
+coverage run --source=src/coordinates_transformation_api -m pytest -v tests && coverage report -m
+```
+
 ## Install
 
 ```bash

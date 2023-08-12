@@ -44,6 +44,13 @@ curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=
 ```
 
 
+```sh
+curl -X 'POST' 'http://localhost:8000/transform?source-crs=EPSG:28992&target-crs=EPSG:4326' \
+  -H 'Content-Type: application/json' \
+  -d @tests/data/geometry.json
+```
+
+
 
 ```sh
 curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=EPSG:28992' \

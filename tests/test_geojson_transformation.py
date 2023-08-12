@@ -8,6 +8,19 @@ from pyproj import Transformer
 from coordinates_transformation_api.util import transform_request_body
 
 
+def test_bbox_transformed():
+    with open("tests/data/geometry.json") as f:
+        data = json.load(f)
+        geometry = parse_geometry_obj(data)
+        geometry_original = parse_geometry_obj(data)
+        transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
+        transform_request_body(geometry, transformer)
+        assert geometry_original.bbox is not None
+        assert geometry.bbox is not None
+        assert len(geometry_original.bbox) == len(geometry.bbox)
+        assert geometry_original.bbox != geometry.bbox
+
+
 def test_transform_geometry():
     with open("tests/data/geometry.json") as f:
         data = json.load(f)

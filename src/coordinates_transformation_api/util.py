@@ -1,5 +1,6 @@
 from importlib import resources as impresources
-from typing import Callable, Iterable, Tuple, Union, cast
+from itertools import chain
+from typing import Any, Callable, Iterable, Tuple, Union, cast
 
 import yaml
 from fastapi.exceptions import RequestValidationError
@@ -8,9 +9,10 @@ from geojson_pydantic import (Feature, FeatureCollection, LineString,
                               Polygon)
 from geojson_pydantic.geometries import (Geometry, GeometryCollection,
                                          _GeometryBase)
-from geojson_pydantic.types import (LineStringCoords, MultiLineStringCoords,
-                                    MultiPointCoords, MultiPolygonCoords,
-                                    PolygonCoords, Position)
+from geojson_pydantic.types import (BBox, LineStringCoords,
+                                    MultiLineStringCoords, MultiPointCoords,
+                                    MultiPolygonCoords, PolygonCoords,
+                                    Position)
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
@@ -148,7 +150,11 @@ def get_transformer(source_crs: str, target_crs: str):
     return transformer
 
 
-def get_transform_callback(transformer: Transformer):
+def get_transform_callback(
+    transformer: Transformer,
+) -> Callable[
+    [Union[Tuple[float, float], Tuple[float, float, float]]], Tuple[float, ...]
+]:
     def callback(
         val: Union[Tuple[float, float], Tuple[float, float, float]]
     ) -> Tuple[float, ...]:
@@ -170,6 +176,73 @@ def get_transform_callback(transformer: Transformer):
     return callback
 
 
+def explode(coords):
+    """Explode a GeoJSON geometry's coordinates object and yield coordinate tuples.
+    As long as the input is conforming, the type of the geometry doesn't matter.
+    Source: https://gis.stackexchange.com/a/90554
+    """
+    for e in coords:
+        if isinstance(
+            e,
+            (
+                float,
+                int,
+            ),
+        ):
+            yield coords
+            break
+        else:
+            for f in explode(e):
+                yield f
+
+
+def get_bbox_from_coordinates(coordinates) -> BBox:
+    coordinate_tuples = list(zip(*list(explode(coordinates))))
+    if len(coordinate_tuples) == 2:
+        x, y = coordinate_tuples
+        return min(x), min(y), max(x), max(y)
+    elif len(coordinate_tuples) == 3:
+        x, y, z = coordinate_tuples
+        return min(x), min(y), min(z), max(x), max(y), max(z)
+    else:
+        raise ValueError(
+            f"expected length of coordinate tuple is either 2 or 3, got {len(coordinate_tuples)}"
+        )
+
+
+def get_bbox(
+    item: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
+) -> BBox:
+    if isinstance(item, _GeometryBase) or isinstance(item, GeometryCollection):
+        coordinates = get_coordinates_from_geometry(item)
+    elif isinstance(item, Feature):
+        geometry = cast(Geometry, item.geometry)
+        coordinates = get_coordinates_from_geometry(geometry)
+    elif isinstance(item, FeatureCollection):
+        features: Iterable[Feature] = item.features
+        coordinates = [
+            get_coordinates_from_geometry(cast(Geometry, ft.geometry))
+            for ft in features
+        ]
+    return get_bbox_from_coordinates(coordinates)
+
+
+def get_coordinates_from_geometry(
+    item: _GeometryBase | GeometryCollection,
+) -> Iterable[
+    Position | MultiPointCoords | MultiLineStringCoords | MultiPolygonCoords | Any
+]:
+    if isinstance(item, _GeometryBase):
+        geom = cast(_GeometryBase, item)
+        return chain(explode(geom.coordinates))
+    elif isinstance(item, GeometryCollection):
+        geom_collection = cast(GeometryCollection, item)
+        geometries: Iterable[GeojsonGeomNoGeomCollection] = [
+            cast(GeojsonGeomNoGeomCollection, x) for x in geom_collection.geometries
+        ]
+        return chain(*[explode(y.coordinates) for y in geometries])
+
+
 def transform_request_body(
     body: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
     transformer: Transformer,
@@ -181,51 +254,58 @@ def transform_request_body(
         transformer (Transformer): pyproj Transformer object
     """
 
-    def transform_geom(
-        transformer: Transformer, geom: GeojsonGeomNoGeomCollection
-    ) -> None:
+    def transform_geom(geom: GeojsonGeomNoGeomCollection) -> None:
+        callback = get_transform_callback(transformer)
         geom.coordinates = traverse_geojson_coordinates(
-            geom.coordinates, callback=get_transform_callback(transformer)
+            geom.coordinates, callback=callback
         )
+        if geom.bbox is not None:
+            geom.bbox = get_bbox(geom)
 
     if isinstance(body, Feature):
         feature = cast(Feature, body)
-        transform_feature(transformer, transform_geom, feature)
+        transform_feature(transform_geom, feature)
+        if feature.bbox is not None:
+            feature.bbox = get_bbox(feature)
     elif isinstance(body, FeatureCollection):
         fc_body: FeatureCollection = body
         features: Iterable[Feature] = fc_body.features
         for feature in features:
-            transform_feature(transformer, transform_geom, feature)
+            transform_feature(transform_geom, feature)
+        if fc_body.bbox is not None:
+            fc_body.bbox = get_bbox(fc_body)
     elif isinstance(body, _GeometryBase):
         geom = cast(GeojsonGeomNoGeomCollection, body)
-        transform_geom(transformer, geom)
+        transform_geom(geom)
     elif isinstance(body, GeometryCollection):
         gc = cast(GeometryCollection, body)
-        transform_geometry_collection(transformer, transform_geom, gc)
+        transform_geometry_collection(transform_geom, gc)
 
 
 def transform_geometry_collection(
-    transformer: Transformer,
-    transform_geom: Callable[[Transformer, GeojsonGeomNoGeomCollection], None],
+    transform_geom: Callable[[GeojsonGeomNoGeomCollection], None],
     gc: GeometryCollection,
 ) -> None:
     geometries: list[Geometry] = gc.geometries
     for g in geometries:
         geom = cast(GeojsonGeomNoGeomCollection, g)
-        transform_geom(transformer, geom)
+        transform_geom(geom)
+    if gc.bbox is not None:
+        gc.bbox = get_bbox(gc)
 
 
 def transform_feature(
-    transformer: Transformer,
-    transform_geom: Callable[[Transformer, GeojsonGeomNoGeomCollection], None],
+    transform_geom: Callable[[GeojsonGeomNoGeomCollection], None],
     feature: Feature,
 ) -> None:
     if isinstance(feature.geometry, GeometryCollection):
         gc = cast(GeometryCollection, feature.geometry)
-        transform_geometry_collection(transformer, transform_geom, gc)
+        transform_geometry_collection(transform_geom, gc)
     else:
         geom = cast(GeojsonGeomNoGeomCollection, feature.geometry)
-        transform_geom(transformer, geom)
+        transform_geom(geom)
+    if feature.bbox is not None:
+        feature.bbox = get_bbox(feature)
 
 
 def init_oas() -> Tuple[dict, str, str, dict]:
