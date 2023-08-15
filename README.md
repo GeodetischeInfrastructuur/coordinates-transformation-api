@@ -85,6 +85,12 @@ To run debug session in VS Code install the package with `pip` with the `--edita
 pip install --editable .
 ```
 
+Also install mypy as follows
+
+```sh
+mypy --install-types
+```
+
 Check test coverage (install `coverage` with `pip install coverage`):
 
 ```sh
