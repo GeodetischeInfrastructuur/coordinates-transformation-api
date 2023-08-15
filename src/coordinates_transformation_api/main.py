@@ -164,7 +164,6 @@ async def transform(
     target_crs: str = Query(alias="target-crs"),
 ):
     validate_crss(source_crs, target_crs, PROJS_AXIS_INFO)
-
     transformer = get_transformer(source_crs, target_crs)
 
     transform_request_body(body, transformer)

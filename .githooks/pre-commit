@@ -34,7 +34,7 @@ command_available() {
 }
 command_available "mypy"
 print_message "pre-commit - running mypy static type checking" 1 "" true
-if ! mypy coordinates_transformation_api;then
+if ! mypy src;then
     print_message "mypy static type check failed - commit aborted" 1 "ERROR" true
     exit 1
 fi
