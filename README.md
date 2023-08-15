@@ -79,6 +79,18 @@ Install enable precommit hook with:
 git config --local core.hooksPath .githooks
 ```
 
+To run debug session in VS Code install the package with `pip` with the `--editable` flag:
+
+```sh
+pip install --editable .
+```
+
+Check test coverage (install `coverage` with `pip install coverage`):
+
+```sh
+coverage run --source=src/coordinates_transformation_api -m pytest -v tests && coverage report -m
+```
+
 ## Install
 
 ```bash
