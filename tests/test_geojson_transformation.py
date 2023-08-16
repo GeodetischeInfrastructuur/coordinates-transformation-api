@@ -1,10 +1,11 @@
 import json
 
-from geojson_pydantic import Feature, FeatureCollection
+from geojson_pydantic import Feature
 from geojson_pydantic.geometries import GeometryCollection, parse_geometry_obj
 from pydantic_core import ValidationError
 from pyproj import Transformer
 
+from coordinates_transformation_api.models import CrsFeatureCollection
 from coordinates_transformation_api.util import transform_request_body
 
 
@@ -79,27 +80,28 @@ def test_transform_feature():
 def test_transform_featurecollection():
     with open("tests/data/polygons.json") as f:
         data = json.load(f)
-        fc = FeatureCollection(**data)
-        fc_original = FeatureCollection(**data)
+        fc = CrsFeatureCollection(**data)
+        fc_original = CrsFeatureCollection(**data)
         transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
         transform_request_body(fc, transformer)
-
         fc_dict = json.loads(fc.model_dump_json())
         # check if input is actually transformed
         assert fc != fc_original
+        # check if crs is updated in transformed output
+        assert fc.crs.properties.name != fc_original.crs.properties.name
         try:
-            FeatureCollection(**fc_dict)
+            CrsFeatureCollection(**fc_dict)
         except ValidationError as exc:
             assert (
                 False
-            ), f"could not convert output of transform_request_body to type FeatureCollection: {exc}"
+            ), f"could not convert output of transform_request_body to type CrsFeatureCollection: {exc}"
 
 
 def test_transform_featurecollection_geometrycollection():
     with open("tests/data/feature-collection-geometry-collection.json") as f:
         data = json.load(f)
-        fc = FeatureCollection(**data)
-        fc_original = FeatureCollection(**data)
+        fc = CrsFeatureCollection(**data)
+        fc_original = CrsFeatureCollection(**data)
         transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
         transform_request_body(fc, transformer)
 
@@ -107,11 +109,11 @@ def test_transform_featurecollection_geometrycollection():
         # check if input is actually transformed
         assert fc != fc_original
         try:
-            FeatureCollection(**fc_dict)
+            CrsFeatureCollection(**fc_dict)
         except ValidationError as exc:
             assert (
                 False
-            ), f"could not convert output of transform_request_body to type FeatureCollection: {exc}"
+            ), f"could not convert output of transform_request_body to type CrsFeatureCollection: {exc}"
 
 
 def test_transform_geometrycollection():
