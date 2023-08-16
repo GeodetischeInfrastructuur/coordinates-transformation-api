@@ -1,4 +1,77 @@
-# EXAMPLE REQUESTS
+## Example operations
+
+> **TODO:** Clean up example operations/API calls and add documentation
+
+```bash
+# Landingpage
+curl "https://api.nsgi.nl/coordinatestransformation/v2/"
+# Conformance
+curl "https://api.nsgi.nl/coordinatestransformation/v2/conformance"
+# OAS 3.0 Spec
+curl "https://api.nsgi.nl/coordinatestransformation/v2/openapi"
+```
+
+```bash
+# Transformation with GET operation
+# Inputs through query parameters will return a GeoJSON respons
+curl "https://api.nsgi.nl/coordinatestransformation/v2/transform?f=json&source-csr=EPSG:7415&target-crs=EPSG:7931&coordinates=194174.00,465887.33,42.1"
+```
+
+```bash
+# Transformation with POST operation
+# Input as POST body will return the same (if supported) object type.
+# In this case GeoJSON as input will return GeoJSON as output
+curl --request POST 'https://api.nsgi.nl/coordinatestransformation/v2/transform?f=json&source-csr=EPSG:7415&target-crs=EPSG:7931'
+--header 'Content-Type: application/geo+json'
+--data-raw '{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [194174.00, 465887.33]
+  },
+  "properties": {
+    "name": "de Brug"
+  }
+}'
+```
+
+```bash
+# Transformatie with POST operation
+# In this case CityJSON as input will return CityJSON as output
+curl --request POST 'https://api.nsgi.nl/coordinatestransformation/v2/source-csr=EPSG:7415&target-crs=EPSG:7931'
+--header 'Content-Type: application/city+json'
+--data-raw '{
+  "type": "CityJSON",
+  "version": "1.1",
+  "transform": {
+    "scale": [1.0, 1.0, 1.0],
+    "translate": [0.0, 0.0, 0.0]
+  },
+  "CityObjects": {},
+  "vertices": []
+}'
+```
+
+```bash
+# The source-crs is optional with POST operations, but if not present then it should be defined in the object.
+curl --request POST 'http://api.nsgi.nl/coordinatestransformation/v2?f=json&target-crs=EPSG:7931'
+--header 'Content-Type: application/city+json'
+--data-raw '{
+  "type": "CityJSON",
+  "version": "1.1",
+  "transform": {
+    "scale": [1.0, 1.0, 1.0],
+    "translate": [0.0, 0.0, 0.0]
+  },
+  "metadata": {
+    "referenceSystem": "https://www.opengis.net/def/crs/EPSG/0/7415"
+  },
+  "CityObjects": {},
+  "vertices": []
+}'
+```
+
+--- 
 
 ```sh
 curl -X 'POST' 'http://localhost:8000/transform?source-crs=EPSG:28992&target-crs=EPSG:4326' -H 'Content-Type: application/json' -d @feature-geometry-collection.json
@@ -45,7 +118,7 @@ curl -X 'POST' 'http://localhost:8000/transform?source-crs=OGC:CRS84&target-crs=
 
 
 ```sh
-curl -X 'POST' 'http://localhost:8000/transform?source-crs=EPSG:28992&target-crs=EPSG:4326' \
+curl -X 'POST' 'http://localhost:8000/transform?target-crs=EPSG:4326' \
   -H 'Content-Type: application/json' \
   -d @tests/data/geometry.json
 ```
