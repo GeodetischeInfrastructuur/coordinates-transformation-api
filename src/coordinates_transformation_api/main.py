@@ -44,7 +44,7 @@ if not app_settings.debug:  # suppres pyproj warnings in prod
 OPEN_API_SPEC: dict = {}
 API_VERSION: str = ""
 PROJS_AXIS_INFO: dict = {}
-OPEN_API_SPEC, API_VERSION, API_TITLE, PROJS_AXIS_INFO = init_oas()
+OPEN_API_SPEC, API_TITLE, API_VERSION, PROJS_AXIS_INFO = init_oas()
 BASE_DIR: str = os.path.dirname(__file__)
 
 
