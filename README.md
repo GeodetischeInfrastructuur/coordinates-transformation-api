@@ -1,12 +1,12 @@
 # Coordinates transformation API
 
-RESTful coordinates transformation API offering NSGI approved transformations for the Netherlands. Build on top of pyproj and FastAPI. 
+RESTful coordinates transformation API offering NSGI approved transformations for the Netherlands. Build on top of pyproj and FastAPI.
 
 ## Assumptions
 
 - API metadata, documentation and source code is in English
 - Easily accessible, but correct
-- Conforms (as much is possible) to the [OGC API Common](https://ogcapi.ogc.org/common/) and the [NL API Design rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/) 
+- Conforms (as much is possible) to the [OGC API Common](https://ogcapi.ogc.org/common/) and the [NL API Design rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/)
 
 ## pyproj
 
