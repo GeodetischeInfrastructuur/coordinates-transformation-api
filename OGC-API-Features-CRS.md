@@ -29,10 +29,9 @@
 | --- | --- | --- |
 | /rec/crs/crs-format-model | :x: | see requirement `/req/crs/crs-uri` |
 | /rec/crs/fc-md-coordinateEpoch | :x: | No spatial feature collection is stored on the server |
-|
 
 ## Permission
 
 | recommendation | applicable | description |
 | --- | --- | --- |
-| /per/crs/fc-crs-action | :x: | Np features or feature resources are available |
+| /per/crs/fc-crs-action | :x: | No features or feature resources are available |
