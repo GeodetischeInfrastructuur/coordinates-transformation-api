@@ -240,7 +240,7 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/crs"
-      default: EPSG:4937
+      default: EPSG:7931
 
     coordinates:
       description: Coordinates of the query point as comma seperated list, see `source-crs` parameter for order and required number of the coordinates
@@ -381,6 +381,7 @@ components:
         - EPSG:4258
         - EPSG:4937
         - EPSG:7415
+        - EPSG:7931
         - EPSG:4326
         - EPSG:3857
         - OGC:CRS84
