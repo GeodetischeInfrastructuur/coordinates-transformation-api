@@ -1,6 +1,6 @@
 # NL API
 
-https://gitdocumentatie.logius.nl/publicatie/api/adr/
+<https://gitdocumentatie.logius.nl/publicatie/api/adr/>
 
 ## Normative Design Rules
 
