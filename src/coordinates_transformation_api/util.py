@@ -17,6 +17,8 @@ from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
 
+from coordinates_transformation_api.models import CrsFeatureCollection
+
 GeojsonGeomNoGeomCollection = Union[
     Point,
     MultiPoint,
@@ -146,7 +148,6 @@ def get_transformer(source_crs: str, target_crs: str):
     source_crs_crs = CRS.from_authority(*source_crs.split(":"))
     target_crs_crs = CRS.from_authority(*target_crs.split(":"))
     transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
-
     return transformer
 
 
@@ -210,6 +211,55 @@ def get_bbox_from_coordinates(coordinates) -> BBox:
         )
 
 
+def get_source_crs_body(
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection]
+) -> str:
+    if isinstance(body, CrsFeatureCollection) and body.crs is not None:
+        source_crs = body.get_crs_auth_code()
+        if source_crs is None:
+            raise ValueError(
+                f"could not retrieve crs from CrsFeatureCollection: {body.model_dump_json()}"
+            )
+    elif isinstance(body, CrsFeatureCollection) and body.crs is None:
+        # raise validation error missing paramater when request body type is geometry, geometrycollection, or feature
+        raise RequestValidationError(
+            errors=(
+                ValidationError.from_exception_data(
+                    "ValueError",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "missing",
+                                f"Field (source-crs) required in query, or supplied as Named CRS in crs member in FeatureCollection",
+                            ),
+                            loc=("query", "source-crs"),
+                            input="",
+                        ),
+                    ],
+                )
+            ).errors()
+        )
+    else:
+        raise RequestValidationError(
+            errors=(
+                ValidationError.from_exception_data(
+                    "ValueError",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "missing",
+                                f"Field (source-crs) required in query when request body is of type Feature, Geometry or GeometryCollection",
+                            ),
+                            loc=("query", "source-crs"),
+                            input="",
+                        )
+                    ],
+                )
+            ).errors()
+        )
+    return source_crs
+
+
 def get_bbox(
     item: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
 ) -> BBox:
@@ -244,7 +294,7 @@ def get_coordinates_from_geometry(
 
 
 def transform_request_body(
-    body: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
+    body: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection,
     transformer: Transformer,
 ) -> None:
     """transform coordinates of request body in place
@@ -267,13 +317,18 @@ def transform_request_body(
         transform_feature(transform_geom, feature)
         if feature.bbox is not None:
             feature.bbox = get_bbox(feature)
-    elif isinstance(body, FeatureCollection):
-        fc_body: FeatureCollection = body
+    elif isinstance(body, CrsFeatureCollection):
+        fc_body: CrsFeatureCollection = body
         features: Iterable[Feature] = fc_body.features
         for feature in features:
             transform_feature(transform_geom, feature)
         if fc_body.bbox is not None:
             fc_body.bbox = get_bbox(fc_body)
+        if fc_body.crs is not None:
+            target_crs = cast(
+                CRS, transformer.target_crs
+            )  # transformer always has a target_crs
+            fc_body.set_crs_auth_code(target_crs.to_string())
     elif isinstance(body, _GeometryBase):
         geom = cast(GeojsonGeomNoGeomCollection, body)
         transform_geom(geom)
