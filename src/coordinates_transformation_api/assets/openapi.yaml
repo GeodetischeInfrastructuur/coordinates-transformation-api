@@ -181,6 +181,17 @@ paths:
         - $ref: "#/components/parameters/target-crs"
       requestBody:
         required: true
+        description: |
+          FeatureCollection objects may contain a `crs` member containing a named CRS, to indicate the source-crs. The crs `properties.name` value should conform to the OGC URN scheme:
+          ```
+          "crs": {
+            "type": "name",
+            "properties": {
+              "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+            }
+          }
+          ```
+          > **Note:** The `crs` member is not part of the [FeatureCollection schema](https://geojson.org/schema/FeatureCollection.json).
         content:
           application/json:
             schema:
@@ -188,7 +199,7 @@ paths:
                 - $ref: https://geojson.org/schema/Feature.json
                 - $ref: https://geojson.org/schema/FeatureCollection.json
                 - $ref: https://geojson.org/schema/Geometry.json
-                - $ref: https://geojson.org/schema/GeometryCollection.json         
+                - $ref: https://geojson.org/schema/GeometryCollection.json
             example: >
               {"type": "Feature", "geometry": {"type": "Point", "coordinates": [66080.2628, 531539.0239, 73.2384]}, "properties": {"id": 1}}
       responses:
@@ -275,7 +286,7 @@ components:
           $ref: "#/components/headers/API-Version"
 
     "406":
-      description: Not Acceptable. Currently the API can only return `application/json` 
+      description: Not Acceptable. Currently the API can only return `application/json`
       content:
         application/problem+json:
           schema:
@@ -349,7 +360,7 @@ components:
       example: "POINT Z (52.763875 4.069801 115.904857)"
       headers:
         API-Version:
-          $ref: "#/components/headers/API-Version"      
+          $ref: "#/components/headers/API-Version"
 
     ConformanceDeclaration:
       description: |-

@@ -10,18 +10,20 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
-from geojson_pydantic import Feature, FeatureCollection
+from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection
 
 from coordinates_transformation_api import assets
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
 from coordinates_transformation_api.limit_middleware.middleware import (
     ContentSizeLimitMiddleware, TimeoutMiddleware)
-from coordinates_transformation_api.models import (Conformance, LandingPage,
-                                                   Link,
+from coordinates_transformation_api.models import (Conformance,
+                                                   CrsFeatureCollection,
+                                                   LandingPage, Link,
                                                    TransformGetAcceptHeaders)
 from coordinates_transformation_api.settings import app_settings
-from coordinates_transformation_api.util import (get_transform_callback,
+from coordinates_transformation_api.util import (get_source_crs_body,
+                                                 get_transform_callback,
                                                  get_transformer, init_oas,
                                                  transform_request_body,
                                                  traverse_geojson_coordinates,
@@ -159,13 +161,14 @@ async def transform(
 
 @app.post("/transform")  # type: ignore
 async def transform(
-    body: Union[Feature, FeatureCollection, Geometry, GeometryCollection],
-    source_crs: str = Query(alias="source-crs"),
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    source_crs: str | None = Query(alias="source-crs", default=None),
     target_crs: str = Query(alias="target-crs"),
 ):
+    if source_crs is None:
+        source_crs = get_source_crs_body(body)
     validate_crss(source_crs, target_crs, PROJS_AXIS_INFO)
     transformer = get_transformer(source_crs, target_crs)
-
     transform_request_body(body, transformer)
     return body
 
