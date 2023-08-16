@@ -28,7 +28,7 @@
 | /core/http-methods | :heavy_check_mark: | Applicable, only `GET` and `POST` operations are supported |
 | /core/doc-openapi | :heavy_check_mark: | The API has a OAS 3.0.3 document |
 | /core/uri-version | :heavy_check_mark: | The API will have a `/v2` in the URI |
-| /core/no-trailing-slash | :x: | **Needs fixing** |
+| /core/no-trailing-slash | :heavy_check_mark: | Applicable |
 | /core/publish-openapi | :heavy_check_mark: | The OAS 3.0.3 document is available on `/openapi.json` endpoint |
 | /core/semver | :heavy_check_mark: | Applicable |
 | /core/version-header | :heavy_check_mark: | Applicable |
