@@ -32,6 +32,14 @@ command_available() {
         exit 1
     fi
 }
+
+
+BRANCH_NAME=$(git branch | grep '*' | sed 's/* //')
+if [[ $BRANCH_NAME == *"no branch"* ]]
+then
+  exit 0
+fi
+
 command_available "mypy"
 print_message "pre-commit - running mypy static type checking" 1 "" true
 if ! mypy src;then

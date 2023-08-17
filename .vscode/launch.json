@@ -17,9 +17,10 @@
             "env": {
                 "LOG_LEVEL": "DEBUG",
                 "DEBUG": "true",
+                "MAX_SIZE_REQUEST_BODY": "5000000",
             },
             "jinja": true,
-            "justMyCode": true
+            "justMyCode": false
         }
     ]
 }

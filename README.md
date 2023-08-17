@@ -103,3 +103,31 @@ docker build -t nsgi/coordinatestransformation-api .
 ```bash
 docker run --rm -d -p 8000:8000 --name ct-api nsgi/coordinatestransformation-api
 ```
+
+## CityJSON
+
+### Generate CityJSON models
+
+```sh
+wget --no-parent  --recursive https://3d.bk.tudelft.nl/schemas/cityjson/1.1.3/
+pip install datamodel-code-generator
+datamodel-codegen  --input  3d.bk.tudelft.nl/schemas/cityjson/1.1.3/metadata.schema.json  --input-file-type jsonschema --output cityjson.py
+```
+
+
+### Working with CityJSON (with cjio cli)
+
+Download test/sample data from [www.cityjson.org/datasets/](https://www.cityjson.org/datasets/).
+
+Creating a subset of CityJSON file (for - for example - testing purposes):
+
+```sh
+cjio DenHaag_01.city.json subset --random 10 save test_10.city.json
+```
+
+CRS transformation with `cjio`:
+
+```sh
+cjio test_1.city.json crs_reproject 4937 save test_1_4937.city.json
+```
+
