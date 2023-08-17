@@ -17,7 +17,7 @@ from coordinates_transformation_api import assets
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
 from coordinates_transformation_api.limit_middleware.middleware import (
     ContentSizeLimitMiddleware, TimeoutMiddleware)
-from coordinates_transformation_api.models import (Conformance,
+from coordinates_transformation_api.models import (Conformance, Crs,
                                                    CrsFeatureCollection,
                                                    LandingPage, Link,
                                                    TransformGetAcceptHeaders)
@@ -41,10 +41,10 @@ if not app_settings.debug:  # suppres pyproj warnings in prod
     logging.getLogger("pyproj").setLevel(logging.ERROR)
 
 
-OPEN_API_SPEC: dict = {}
-API_VERSION: str = ""
-PROJS_AXIS_INFO: dict = {}
-OPEN_API_SPEC, API_TITLE, API_VERSION, PROJS_AXIS_INFO = init_oas()
+OPEN_API_SPEC: dict
+API_VERSION: str
+CRS_LIST: list[Crs]
+OPEN_API_SPEC, API_TITLE, API_VERSION, CRS_LIST = init_oas()
 BASE_DIR: str = os.path.dirname(__file__)
 
 
@@ -123,6 +123,21 @@ async def landingpage():
     )
 
 
+@app.get("/crss", response_model=list[Crs])
+async def crss():
+    return CRS_LIST
+
+
+@app.get("/crss/{crs_id}", response_model=Crs)
+async def crs(crs_id: str):
+    gen = (crs for crs in CRS_LIST if crs.crs_auth_identifier == crs_id)
+    result = next(gen)
+    if result == None:
+        # TODO: return not found 404
+        return result
+    return result
+
+
 @app.get("/conformance", response_model=Conformance)
 async def conformance():
     return Conformance(conformsTo={"mekker", "blaat"})
@@ -135,8 +150,8 @@ async def transform(
     coordinates: str = Query(alias="coordinates"),
     accept: str = Header(default=TransformGetAcceptHeaders.json),
 ):
-    validate_crss(source_crs, target_crs, PROJS_AXIS_INFO)
-    validate_coords_source_crs(coordinates, source_crs, PROJS_AXIS_INFO)
+    validate_crss(source_crs, target_crs, CRS_LIST)
+    validate_coords_source_crs(coordinates, source_crs, CRS_LIST)
 
     transformer = get_transformer(source_crs, target_crs)
 
@@ -167,7 +182,7 @@ async def transform(
 ):
     if source_crs is None:
         source_crs = get_source_crs_body(body)
-    validate_crss(source_crs, target_crs, PROJS_AXIS_INFO)
+    validate_crss(source_crs, target_crs, CRS_LIST)
     transformer = get_transformer(source_crs, target_crs)
     transform_request_body(body, transformer)
     return body

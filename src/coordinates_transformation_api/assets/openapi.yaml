@@ -52,7 +52,7 @@ paths:
     get:
       tags:
         - Common
-      summery: Landing page
+      summary: Landing page
       description: >
         Landing page describing what the capabilities are of this
         service.
@@ -78,7 +78,7 @@ paths:
     get:
       tags:
         - Common
-      summery: This document
+      summary: This document
       description: The Open API Spec document for this service.
       parameters:
         - $ref: "#/components/parameters/contentType"
@@ -101,7 +101,7 @@ paths:
     get:
       tags:
         - Common
-      summery: Conformance page
+      summary: Conformance page
       description: >
         Conformance page describing what the capabilities are of this
         service.
@@ -125,12 +125,51 @@ paths:
           $ref: "#/components/responses/406"
         500:
           $ref: "#/components/responses/500"
+  /crss:
+    get:
+      summary: Get all supported CRSs in the transformation API
+      description: Endpoint that returns all available coordinate reference system (CRS) in the transformation API.
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Crs'
+                type: array
+                title: CRS List
+  /crss/{crsId}:
+    get:
+      summary: Get a single CRS
+      description: >
+        Endpoint that returns a single coordiante reference system (CRS) by `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
+      parameters:
+        - name: "crsId"
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/crs-enum'
+            title: CRS Id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Crs'
+        400:
+          $ref: "#/components/responses/400"
+        406:
+          $ref: "#/components/responses/406"
+        500:
+          $ref: "#/components/responses/500"
 
   /transform:
     get:
       tags:
         - Transform
-      summery: >
+      summary: >
         Transforms the given coordinates of a point from the source CRS to the
         target CRS.
       description: >
@@ -140,6 +179,7 @@ paths:
         lon/lat with or without a third height dimension.
       parameters:
         - $ref: "#/components/parameters/source-crs"
+          default: EPSG:28992
         - $ref: "#/components/parameters/target-crs"
         - $ref: "#/components/parameters/coordinates"
       responses:
@@ -154,6 +194,7 @@ paths:
             text/plain:
               schema:
                 $ref: "#/components/responses/wktSchema"
+              example: "POINT Z (52.763875 4.069801 115.904857)"
           headers:
             API-Version:
               $ref: "#/components/headers/API-Version"
@@ -168,7 +209,7 @@ paths:
     post:
       tags:
         - Transform
-      summery: >
+      summary: >
         Transforms the given geometries from the source CRS to the
         target CRS.
       description: >
@@ -239,19 +280,19 @@ components:
         Source Coordinate Reference System
       in: query
       name: source-crs
+      example: EPSG:28992
       required: true
       schema:
-        $ref: "#/components/schemas/crs"
-      default: EPSG:7415
+        $ref: "#/components/schemas/crs-enum"
 
     target-crs:
       description: Target Coordinate Reference System
       in: query
       name: target-crs
+      example: EPSG:7415
       required: true
       schema:
-        $ref: "#/components/schemas/crs"
-      default: EPSG:7931
+        $ref: "#/components/schemas/crs-enum"
 
     coordinates:
       description: Coordinates of the query point as comma seperated list, see `source-crs` parameter for order and required number of the coordinates
@@ -275,6 +316,15 @@ components:
         type: string
 
   responses:
+    "200":
+      description: Bad request. The request body does not contain valid GeoJSON or the query is not supported by the API.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Error"
+      headers:
+        API-Version:
+          $ref: "#/components/headers/API-Version"
     "400":
       description: Bad request. The request body does not contain valid GeoJSON or the query is not supported by the API.
       content:
@@ -317,47 +367,18 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/landingPage"
-      example:
-        title: Coordinatetransformation API
-        description: >
-          Landing page of the Coordinatetransformation API
-        links:
-          - href: "http://data.example.org/"
-            rel: self
-            type: application/json
-            title: this document
-          - href: "http://data.example.org/api"
-            rel: service-desc
-            type: application/vnd.oai.openapi+json;version=3.0
-            title: the API definition
-          - href: "http://data.example.org/api.html"
-            rel: service-doc
-            type: text/html
-            title: the API documentation
-          - href: "http://data.example.org/conformance"
-            rel: conformance
-            type: application/json
-            title: OGC API conformance classes implemented by this server
-          - href: "http://data.example.org/collections"
-            rel: data
-            type: application/json
-            title: Information about the feature collections
       headers:
         API-Version:
           $ref: "#/components/headers/API-Version"
 
     htmlSchema:
       description: HTML representation
-      type: string
-      example: "<html>...<html>"
       headers:
         API-Version:
           $ref: "#/components/headers/API-Version"
 
     wktSchema:
       description: WKT representation of a point as POINT (...) or POINT Z (...)
-      type: string
-      example: "POINT Z (52.763875 4.069801 115.904857)"
       headers:
         API-Version:
           $ref: "#/components/headers/API-Version"
@@ -374,18 +395,75 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/confClasses"
-      example:
-        conformsTo:
-          - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core"
-          - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30"
-          - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/html"
-          - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson"
       headers:
         API-Version:
           $ref: "#/components/headers/API-Version"
 
   schemas:
-    crs:
+    Axis:
+      properties:
+        name:
+          type: string
+          title: Name
+        abbrev:
+          type: string
+          title: Abbrev
+        direction:
+          type: string
+          title: Direction
+        unit_conversion_factor:
+          type: number
+          title: Unit Conversion Factor
+        unit_name:
+          type: string
+          title: Unit Name
+        unit_auth_code:
+          type: string
+          title: Unit Auth Code
+        unit_code:
+          type: string
+          title: Unit Code
+      type: object
+      required:
+        - name
+        - abbrev
+        - direction
+        - unit_conversion_factor
+        - unit_name
+        - unit_auth_code
+        - unit_code
+      title: Axis
+    Crs:
+      properties:
+        name:
+          type: string
+          title: Name
+        type_name:
+          type: string
+          title: Type Name
+        crs_auth_identifier:
+          $ref: "#/components/schemas/crs-enum"
+          title: CRS Auth Identifier
+        authority:
+          type: string
+          title: Authority
+        identifier:
+          type: string
+          title: Identifier
+        axes:
+          items:
+            $ref: '#/components/schemas/Axis'
+          type: array
+          title: Axes
+      type: object
+      required:
+        - name
+        - type_name
+        - authority
+        - identifier
+        - axes
+      title: CRS
+    crs-enum:
       type: string
       enum:
         - EPSG:28992
@@ -401,7 +479,7 @@ components:
       type: array
       nullable: false
       items:
-        type: float
+        type: number
       minItems: 2
       maxItems: 3
       default: [66080.2628, 531539.0239, 73.2384]

@@ -1,6 +1,6 @@
 from importlib import resources as impresources
 from itertools import chain
-from typing import Any, Callable, Iterable, Tuple, Union, cast
+from typing import Any, Callable, Iterable, Tuple, TypedDict, Union, cast
 
 import yaml
 from fastapi.exceptions import RequestValidationError
@@ -17,6 +17,8 @@ from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
 
+from coordinates_transformation_api.models import Axis
+from coordinates_transformation_api.models import Crs as MyCrs
 from coordinates_transformation_api.models import CrsFeatureCollection
 
 GeojsonGeomNoGeomCollection = Union[
@@ -108,14 +110,37 @@ def validate_input_crs(value, name, projections_axis_info):
         )
 
 
-def get_projs_axis_info(proj_strings):
-    result = {}
+class AxisInfo(TypedDict):
+    axis_labels: list[str]
+    dimensions: int
+
+
+def get_projs_axis_info(proj_strings) -> list[MyCrs]:
+    result: list[MyCrs] = []
     for proj_string in proj_strings:
-        crs = CRS.from_authority(*proj_string.split(":"))
-        nr_dim = len(crs.axis_info)
-        axis_labels = list(map(lambda x: f"{x.abbrev} ({x.unit_name})", crs.axis_info))
-        axis_info_summary = {"dimensions": nr_dim, "axis_labels": axis_labels}
-        result[proj_string] = axis_info_summary
+        auth, identifier = proj_string.split(":")
+        crs = CRS.from_authority(auth, identifier)
+        axes = [
+            Axis(
+                name=a.name,
+                abbrev=a.abbrev,
+                direction=a.direction,
+                unit_conversion_factor=a.unit_conversion_factor,
+                unit_name=a.unit_name,
+                unit_auth_code=a.unit_auth_code,
+                unit_code=a.unit_code,
+            )
+            for a in crs.axis_info
+        ]
+        my_crs = MyCrs(
+            name=crs.name,
+            type_name=crs.type_name,
+            crs_auth_identifier=crs.srs,
+            axes=axes,
+            authority=auth,
+            identifier=identifier,
+        )
+        result.append(my_crs)
     return result
 
 
@@ -363,7 +388,7 @@ def transform_feature(
         feature.bbox = get_bbox(feature)
 
 
-def init_oas() -> Tuple[dict, str, str, dict]:
+def init_oas() -> Tuple[dict, str, str, list[MyCrs]]:
     """initialize open api spec:
     - enrich crs parameters with description generated from pyproj
     - extract api verion string from oas
@@ -376,11 +401,11 @@ def init_oas() -> Tuple[dict, str, str, dict]:
 
     with oas_filepath.open("rb") as oas_file:
         oas = yaml.load(oas_file, yaml.SafeLoader)
-        crs_identifiers = oas["components"]["schemas"]["crs"]["enum"]
-        projs_axis_info = get_projs_axis_info(crs_identifiers)
+        crs_identifiers = oas["components"]["schemas"]["crs-enum"]["enum"]
+        crs_list = get_projs_axis_info(crs_identifiers)
         crs_param_description = ""
-        for key in projs_axis_info.keys():
-            crs_param_description += f"* `{key}`: format: `{', '.join(projs_axis_info[key]['axis_labels'])}`, dimensions: {projs_axis_info[key]['dimensions']}\n"  # ,
+        for crs in crs_list:
+            crs_param_description += f"* `{crs.crs_auth_identifier}`: format: `{crs.get_axis_label()}`, dimensions: {crs.nr_of_dimensions}\n"  # ,
         oas["components"]["parameters"]["source-crs"][
             "description"
         ] = f"Source Coordinate Reference System\n{crs_param_description}"
@@ -389,4 +414,4 @@ def init_oas() -> Tuple[dict, str, str, dict]:
         ] = f"Target Coordinate Reference System\n{crs_param_description}"
     api_version = oas["info"]["version"]
     api_title = oas["info"]["title"]
-    return (oas, api_title, api_version, projs_axis_info)
+    return (oas, api_title, api_version, crs_list)
