@@ -21,12 +21,12 @@
 | /geo/geojson-response | :grey_exclamation: | nonapplicable |
 | /geo/embed-geojson-geometry-response | :grey_exclamation: | nonapplicable |
 | /geo/crs-list | :x: | **Needs to be implemented** |
-| /geo/storage-crs | grey_exclamation: | nonapplicable, we don't store data |
-| /geo/default-crs | grey_exclamation: | nonapplicable, the service is build around RDNAPTRANS(r), so the default is EPSG:7415 not CRS84 |
+| /geo/storage-crs | :grey_exclamation: | nonapplicable, we don't store data |
+| /geo/default-crs | :grey_exclamation: | nonapplicable, the service is build around RDNAPTRANS(r), so the default is EPSG:7415 not CRS84 |
 | /geo/preferred-crs | :heavy_check_mark: | We return data in RD and ETRS89 |
 | /geo/ensemble-member-crs | :grey_exclamation: | nonapplicable |
 | /geo/bbox-crs-query-parameter | :grey_exclamation: | nonapplicable |
 | /geo/filter-crs-query-parameter | :grey_exclamation: | nonapplicable |
-| /geo/content-crs-request-header | :X: | Content CRS is now negotiated through query parameters and the feature it self. Adding a third option would bloat the API. |
-| /geo/crs-query-paramete | :X: | We don't use the CRS query parameter because we need 2 CRS for our API. Using a named one like source-crs and target-crs makes it clear what the purpose is |
+| /geo/content-crs-request-header | :x: | Content CRS is now negotiated through query parameters and the feature it self. Adding a third option would bloat the API. |
+| /geo/crs-query-paramete | :x: | We don't use the CRS query parameter because we need 2 CRS for our API. Using a named one like source-crs and target-crs makes it clear what the purpose is |
 | /geo/content-crs-response-header | :grey_exclamation: | nonapplicable, response crs is know through the requested target-crs |
