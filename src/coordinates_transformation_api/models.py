@@ -2,7 +2,37 @@ from enum import Enum
 from typing import List, Literal, Optional
 
 from geojson_pydantic import FeatureCollection
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
+
+
+class Axis(BaseModel):
+    name: str
+    abbrev: str
+    direction: str
+    unit_conversion_factor: float
+    unit_name: str
+    unit_auth_code: str
+    unit_code: str
+
+
+class Crs(BaseModel):
+    name: str
+    type_name: str
+    crs_auth_identifier: str
+
+    authority: str
+    identifier: str
+
+    @computed_field  # type: ignore
+    @property
+    def nr_of_dimensions(self) -> int:
+        return len(self.axes)
+
+    axes: list[Axis]
+
+    def get_axis_label(self) -> str:
+        axes: list[Axis] = self.axes
+        return ", ".join(list(map(lambda x: f"{x.abbrev} ({x.unit_name})", axes)))
 
 
 class Link(BaseModel):
@@ -28,7 +58,7 @@ class TransformGetAcceptHeaders(Enum):
 
 
 class GeoJsonCrsProp(BaseModel):
-    # OGC URN scheme
+    # OGC URN scheme - 8.2 in OGC 05-103
     # urn:ogc:def:crs:{crs_auth}:{crs_version}:{crs_identifier}
     name: str = Field(pattern=r"^urn:ogc:def:crs:.*?:.*?:.*?$")
 
