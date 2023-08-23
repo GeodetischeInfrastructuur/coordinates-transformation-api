@@ -177,9 +177,15 @@ paths:
         and transforms it to the provided target CRS. The input coordinates are
         a comma sperated list of numbers that can represent the xy, lat/lon or
         lon/lat with or without a third height dimension.
+
+
+        Source CRS and target CRS can be defined through oneOf the query parameters
+        or the headers. When both are provided then the query parameters takes precedence.
       parameters:
         - $ref: "#/components/parameters/source-crs"
         - $ref: "#/components/parameters/target-crs"
+        - $ref: "#/components/parameters/contentCrs"
+        - $ref: "#/components/parameters/acceptCrs"
         - $ref: "#/components/parameters/coordinates"
       responses:
         200:
@@ -197,6 +203,8 @@ paths:
           headers:
             API-Version:
               $ref: "#/components/headers/API-Version"
+            Content-crs:
+              $ref: "#/components/parameters/contentCrs"              
 
         400:
           $ref: "#/components/responses/400"
@@ -212,13 +220,17 @@ paths:
         Transforms the given geometries from the source CRS to the
         target CRS.
       description: >
-        A simple GET endpoint that accepts coordinates of a given source CRS
-        and transforms it to the provided target CRS. The input coordinates are
-        a comma sperated list of numbers that can represent the xy, lat/lon or
-        lon/lat with or without a third height dimension.
+        A POST endpoint that accepts a file of a given source CRS
+        and transforms it to the provided target CRS. The input can be a GeoJSON Feature, FeatureCollection, Geometry or GeometryCollection or a CityJSON object.
+
+
+        When provided in the request the source CRS will be determined based on the content of the data. When empty then the source CRS and target CRS can be defined through oneOf the query parameters
+        or the headers. When both are provided then the data takes precedences over the query parameters and the query parameters will take precedence over the headers.
       parameters:
         - $ref: "#/components/parameters/source-crs"
         - $ref: "#/components/parameters/target-crs"
+        - $ref: "#/components/parameters/contentCrs"
+        - $ref: "#/components/parameters/acceptCrs"
       requestBody:
         required: true
         description: |
@@ -258,6 +270,8 @@ paths:
           headers:
             API-Version:
               $ref: "#/components/headers/API-Version"
+            Content-crs:
+              $ref: "#/components/parameters/contentCrs"
 
         400:
           $ref: "#/components/responses/400"
@@ -280,7 +294,7 @@ components:
       in: query
       name: source-crs
       example: EPSG:7415
-      required: true
+      required: false
       schema:
         $ref: "#/components/schemas/crs-enum"
 
@@ -289,7 +303,7 @@ components:
       in: query
       name: target-crs
       example: EPSG:7931
-      required: true
+      required: false
       schema:
         $ref: "#/components/schemas/crs-enum"
 
@@ -313,6 +327,24 @@ components:
         enum:
           - application/json
         type: string
+
+    contentCrs:
+      description: Source CRS
+      in: header
+      name: content-crs
+      required: false
+      schema:
+        default: EPSG:7415
+        $ref: "#/components/schemas/crs-enum"
+
+    acceptCrs:
+      description: Target CRS
+      in: header
+      name: accept-crs
+      required: false
+      schema:
+        default: EPSG:7931
+        $ref: "#/components/schemas/crs-enum"       
 
   responses:
     "200":

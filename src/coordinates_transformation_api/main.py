@@ -7,7 +7,7 @@ from typing import Union
 import uvicorn
 from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geojson_pydantic import Feature
@@ -158,11 +158,19 @@ async def conformance():
 
 @app.get("/transform")
 async def transform(
-    source_crs: str = Query(alias="source-crs"),
-    target_crs: str = Query(alias="target-crs"),
+    source_crs: str = Query(alias="source-crs", default=None),
+    target_crs: str = Query(alias="target-crs", default=None),
     coordinates: str = Query(alias="coordinates"),
     accept: str = Header(default=TransformGetAcceptHeaders.json),
+    content_crs: str = Header(alias="content-crs", default=None),
+    accept_crs: str = Header(alias="accept-crs", default=None),
 ):
+    if source_crs is None and content_crs != None:
+        source_crs = content_crs
+
+    if target_crs is None and accept_crs != None:
+        target_crs = accept_crs
+
     validate_crss(source_crs, target_crs, CRS_LIST)
     validate_coords_source_crs(coordinates, source_crs, CRS_LIST)
 
@@ -177,22 +185,35 @@ async def transform(
     if accept == str(TransformGetAcceptHeaders.wkt.value):
         if len(transformed_coordinates) == 3:
             return PlainTextResponse(
-                f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})"
+                f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})",
+                headers={"content-crs": target_crs},
             )
 
         return PlainTextResponse(
-            f"POINT({' '.join([str(x) for x in transformed_coordinates])})"
+            f"POINT({' '.join([str(x) for x in transformed_coordinates])})",
+            headers={"content-crs": target_crs},
         )
     else:  # default case serve json
-        return {"type": "Point", "coordinates": transformed_coordinates}
+        return JSONResponse(
+            content={"type": "Point", "coordinates": transformed_coordinates},
+            headers={"content-crs": target_crs},
+        )
 
 
 @app.post("/transform")  # type: ignore
 async def transform(
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
-    source_crs: str | None = Query(alias="source-crs", default=None),
-    target_crs: str = Query(alias="target-crs"),
+    source_crs: str = Query(alias="source-crs", default=None),
+    target_crs: str = Query(alias="target-crs", default=None),
+    content_crs: str = Header(alias="content-crs", default=None),
+    accept_crs: str = Header(alias="accept-crs", default=None),
 ):
+    if source_crs is None and content_crs != None:
+        source_crs = content_crs
+
+    if target_crs is None and accept_crs != None:
+        target_crs = accept_crs
+
     if source_crs is None:
         source_crs = get_source_crs_body(body)
     validate_crss(source_crs, target_crs, CRS_LIST)
