@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
 
+from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.models import Axis
 from coordinates_transformation_api.models import Crs as MyCrs
 from coordinates_transformation_api.models import CrsFeatureCollection
@@ -276,13 +277,27 @@ def get_bbox_from_coordinates(coordinates) -> BBox:
 
 
 def get_source_crs_body(
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection]
+    body: Union[
+        Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
+    ]
 ) -> str:
     if isinstance(body, CrsFeatureCollection) and body.crs is not None:
         source_crs = body.get_crs_auth_code()
         if source_crs is None:
-            raise ValueError(
-                f"could not retrieve crs from CrsFeatureCollection: {body.model_dump_json()}"
+            raise RequestValidationError(
+                errors=ValidationError.from_exception_data(
+                    "ValueError",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "missing",
+                                f"crs field missing in FeatureCollection request body",
+                            ),
+                            loc=("body", "crs"),
+                            input="",
+                        ),
+                    ],
+                ).errors()
             )
     elif isinstance(body, CrsFeatureCollection) and body.crs is None:
         # raise validation error missing paramater when request body type is geometry, geometrycollection, or feature
@@ -301,6 +316,33 @@ def get_source_crs_body(
                         ),
                     ],
                 )
+            ).errors()
+        )
+    elif (
+        isinstance(body, CityjsonV113)
+        and body.metadata is not None
+        and body.metadata.referenceSystem is not None
+    ):
+        ref_system: str = body.metadata.referenceSystem
+        crs_auth = ref_system.split("/")[-3]
+        crs_id = ref_system.split("/")[-1]
+        source_crs = f"{crs_auth}:{crs_id}"
+    elif isinstance(body, CityjsonV113) and (
+        body.metadata is None or body.metadata.referenceSystem is None
+    ):
+        raise RequestValidationError(
+            errors=ValidationError.from_exception_data(
+                "ValueError",
+                [
+                    InitErrorDetails(
+                        type=PydanticCustomError(
+                            "missing",
+                            f"metadata.referenceSystem field missing in CityJSON request body",
+                        ),
+                        loc=("body", "metadata.referenceSystem"),
+                        input="",
+                    ),
+                ],
             ).errors()
         )
     else:

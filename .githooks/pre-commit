@@ -33,7 +33,7 @@ command_available() {
     fi
 }
 
-
+# DO NOT RUN PRE-COMMIT HOOK WHEN REBASING
 BRANCH_NAME=$(git branch | grep '*' | sed 's/* //')
 if [[ $BRANCH_NAME == *"no branch"* ]]
 then

@@ -620,7 +620,9 @@ class Metadata(BaseModel):
     referenceSystem: Optional[
         Annotated[
             str | None,
-            StringConstraints(pattern=r"^(http|https)://www.opengis.net/def/crs/"),
+            StringConstraints(
+                pattern=r"^(http|https)://www.opengis.net/def/crs/.+/.+/.+"
+            ),
         ]
     ] = None
 
