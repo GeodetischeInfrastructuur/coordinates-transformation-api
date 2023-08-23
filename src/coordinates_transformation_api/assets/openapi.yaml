@@ -179,7 +179,6 @@ paths:
         lon/lat with or without a third height dimension.
       parameters:
         - $ref: "#/components/parameters/source-crs"
-          default: EPSG:28992
         - $ref: "#/components/parameters/target-crs"
         - $ref: "#/components/parameters/coordinates"
       responses:
@@ -280,7 +279,7 @@ components:
         Source Coordinate Reference System
       in: query
       name: source-crs
-      example: EPSG:28992
+      example: EPSG:7415
       required: true
       schema:
         $ref: "#/components/schemas/crs-enum"
@@ -289,7 +288,7 @@ components:
       description: Target Coordinate Reference System
       in: query
       name: target-crs
-      example: EPSG:7415
+      example: EPSG:7931
       required: true
       schema:
         $ref: "#/components/schemas/crs-enum"
