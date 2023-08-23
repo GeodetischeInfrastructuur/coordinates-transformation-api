@@ -10,10 +10,12 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
-from geojson_pydantic import Feature
+from geojson_pydantic import Feature, FeatureCollection
 from geojson_pydantic.geometries import Geometry, GeometryCollection
+from pyproj import network
 
 from coordinates_transformation_api import assets
+from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
 from coordinates_transformation_api.limit_middleware.middleware import (
     ContentSizeLimitMiddleware, TimeoutMiddleware)
@@ -47,6 +49,7 @@ CRS_LIST: list[Crs]
 OPEN_API_SPEC, API_TITLE, API_VERSION, CRS_LIST = init_oas()
 BASE_DIR: str = os.path.dirname(__file__)
 
+network.set_network_enabled(True)  # TODO: remove before commit
 
 app: FastAPI = FastAPI(docs_url=None)
 # note: order of adding middleware is required for it to work
@@ -187,18 +190,28 @@ async def transform(
         return {"type": "Point", "coordinates": transformed_coordinates}
 
 
-@app.post("/transform")  # type: ignore
+@app.post("/transform", response_model=Union[Feature, FeatureCollection, Geometry, GeometryCollection, CityjsonV113], response_model_exclude_none=True)  # type: ignore
 async def transform(
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    body: Union[Feature, FeatureCollection, Geometry, GeometryCollection, CityjsonV113],
     source_crs: str | None = Query(alias="source-crs", default=None),
     target_crs: str = Query(alias="target-crs"),
 ):
     if source_crs is None:
         source_crs = get_source_crs_body(body)
-    validate_crss(source_crs, target_crs, CRS_LIST)
+    validate_crss(
+        source_crs, target_crs, CRS_LIST
+    )  # TODO: add check for crs's in combination with CityJSON (should only allow 3D CRS)
     transformer = get_transformer(source_crs, target_crs)
-    transform_request_body(body, transformer)
-    return body
+    if isinstance(body, CityjsonV113):
+        callback = get_transform_callback(transformer, precision=6)
+        body.crs_transform(callback, target_crs)
+        return Response(
+            content=body.model_dump_json(exclude_none=True),
+            media_type="application/city+json",
+        )
+    else:
+        transform_request_body(body, transformer)
+        return body
 
 
 app.openapi = lambda: OPEN_API_SPEC  # type: ignore

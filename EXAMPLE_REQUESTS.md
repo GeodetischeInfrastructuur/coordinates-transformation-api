@@ -38,11 +38,11 @@ curl --request POST 'https://api.nsgi.nl/coordinatestransformation/v2/transform?
 ```bash
 # Transformatie with POST operation
 # In this case CityJSON as input will return CityJSON as output
-curl --request POST 'https://api.nsgi.nl/coordinatestransformation/v2/source-csr=EPSG:7415&target-crs=EPSG:7931'
---header 'Content-Type: application/city+json'
+curl --request POST 'http://localhost:8000/transform?source-crs=EPSG:7415&target-crs=EPSG:7931' \
+--header 'Content-Type: application/city+json' \
 --data-raw '{
   "type": "CityJSON",
-  "version": "1.1",
+  "version": "1.3",
   "transform": {
     "scale": [1.0, 1.0, 1.0],
     "translate": [0.0, 0.0, 0.0]
