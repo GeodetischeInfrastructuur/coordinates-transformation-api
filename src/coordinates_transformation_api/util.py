@@ -46,9 +46,19 @@ from coordinates_transformation_api import assets
 logger = logging.getLogger(__name__)
 
 
-def validate_crs_transformation(source_crs, target_crs, projections_axis_info):
-    source_crs_dims = projections_axis_info[source_crs]["dimensions"]
-    target_crs_dims = projections_axis_info[target_crs]["dimensions"]
+def validate_crs_transformation(
+    source_crs, target_crs, projections_axis_info: list[MyCrs]
+):
+    source_crs_dims = [
+        crs.nr_of_dimensions
+        for crs in projections_axis_info
+        if crs.crs_auth_identifier == source_crs
+    ][0]
+    target_crs_dims = [
+        crs.nr_of_dimensions
+        for crs in projections_axis_info
+        if crs.crs_auth_identifier == target_crs
+    ][0]
 
     if source_crs_dims < target_crs_dims:
         raise RequestValidationError(
@@ -62,6 +72,7 @@ def validate_crs_transformation(source_crs, target_crs, projections_axis_info):
                                 f"number of dimensions of target-crs should be equal or less then that of the source-crs\n * source-crs: {source_crs}, dimensions: {source_crs_dims}\n * target-crs {target_crs}, dimensions: {target_crs_dims}",
                             ),
                             loc=("query", "target-crs"),
+                            input=(source_crs, target_crs),
                         )
                     ],
                 )
@@ -69,8 +80,14 @@ def validate_crs_transformation(source_crs, target_crs, projections_axis_info):
         )
 
 
-def validate_coords_source_crs(coordinates, source_crs, projections_axis_info):
-    source_crs_dims = projections_axis_info[source_crs]["dimensions"]
+def validate_coords_source_crs(
+    coordinates, source_crs, projections_axis_info: list[MyCrs]
+):
+    source_crs_dims = [
+        crs.nr_of_dimensions
+        for crs in projections_axis_info
+        if crs.crs_auth_identifier == source_crs
+    ][0]
     if source_crs_dims != len(coordinates.split(",")):
         raise RequestValidationError(
             errors=(
@@ -83,6 +100,7 @@ def validate_coords_source_crs(coordinates, source_crs, projections_axis_info):
                                 "number of coordinates must match number of dimensions of source-crs",
                             ),
                             loc=("query", "coordinates"),
+                            input=source_crs,
                         )
                     ],
                 )
@@ -90,8 +108,10 @@ def validate_coords_source_crs(coordinates, source_crs, projections_axis_info):
         )
 
 
-def validate_input_crs(value, name, projections_axis_info):
-    if value not in projections_axis_info.keys():
+def validate_input_crs(value, name, projections_axis_info: list[MyCrs]):
+    if not any(
+        crs for crs in projections_axis_info if crs.crs_auth_identifier == value
+    ):
         raise RequestValidationError(
             errors=(
                 ValidationError.from_exception_data(
@@ -100,9 +120,10 @@ def validate_input_crs(value, name, projections_axis_info):
                         InitErrorDetails(
                             type=PydanticCustomError(
                                 "value_error",
-                                f"{name} should be one of {', '.join(projections_axis_info.keys())}",
+                                f"{name} should be one of {', '.join([str(x.crs_auth_identifier) for x in projections_axis_info])}",
                             ),
                             loc=("query", name),
+                            input=value,
                         )
                     ],
                 )
@@ -163,7 +184,7 @@ def traverse_geojson_coordinates(geojson_coordinates, callback):
         ]
 
 
-def validate_crss(source_crs: str, target_crs: str, projections_axis_info: dict):
+def validate_crss(source_crs: str, target_crs: str, projections_axis_info):
     validate_input_crs(source_crs, "source-crs", projections_axis_info)
     validate_input_crs(target_crs, "target_crs", projections_axis_info)
     validate_crs_transformation(source_crs, target_crs, projections_axis_info)
