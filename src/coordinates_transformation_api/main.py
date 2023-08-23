@@ -131,10 +131,23 @@ async def crss():
 @app.get("/crss/{crs_id}", response_model=Crs)
 async def crs(crs_id: str):
     gen = (crs for crs in CRS_LIST if crs.crs_auth_identifier == crs_id)
-    result = next(gen)
+    result = next(gen, None)
+
     if result == None:
         # TODO: return not found 404
-        return result
+
+        return Response(
+            content=json.dumps(
+                {
+                    "type": "unknown-crs",
+                    "title": "Crs Not Found",
+                    "status": 404,
+                    "detail": crs_id,
+                }
+            ),
+            status_code=404,
+            media_type="application/problem+json",
+        )
     return result
 
 
