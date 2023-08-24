@@ -179,6 +179,7 @@ paths:
         lon/lat with or without a third height dimension.
       parameters:
         - $ref: "#/components/parameters/source-crs"
+          default: EPSG:28992
         - $ref: "#/components/parameters/target-crs"
         - $ref: "#/components/parameters/coordinates"
       responses:

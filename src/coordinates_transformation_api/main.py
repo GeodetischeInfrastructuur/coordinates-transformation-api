@@ -203,8 +203,10 @@ async def transform(
     )  # TODO: add check for crs's in combination with CityJSON (should only allow 3D CRS)
     transformer = get_transformer(source_crs, target_crs)
     if isinstance(body, CityjsonV113):
-        callback = get_transform_callback(transformer, precision=6)
-        body.crs_transform(callback, target_crs)
+        callback = get_transform_callback(transformer)
+
+
+        body.crs_transform(callback, source_crs ,target_crs)
         return Response(
             content=body.model_dump_json(exclude_none=True),
             media_type="application/city+json",

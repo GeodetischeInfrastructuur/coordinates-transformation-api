@@ -12,8 +12,8 @@ def test_cityjson_transformed():
         cj = CityjsonV113.model_validate(data)
         cj_original = CityjsonV113.model_validate(data)
         transformer = Transformer.from_crs("EPSG:7415", "EPSG:9928")
-        callback = get_transform_callback(transformer, precision=6)
-        cj.crs_transform(callback, "EPSG:9928")
+        callback = get_transform_callback(transformer)
+        cj.crs_transform(callback, "EPSG:7415", "EPSG:9928")
         assert cj.metadata.geographicalExtent != cj_original.metadata.geographicalExtent
         assert cj.vertices != cj_original.vertices
         assert (

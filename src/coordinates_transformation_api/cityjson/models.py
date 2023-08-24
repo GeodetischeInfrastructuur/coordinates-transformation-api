@@ -11,6 +11,17 @@ from enum import Enum
 from typing import Annotated, Any, Callable, Dict, List, Optional, Union, cast
 
 from pydantic import AnyUrl, BaseModel, EmailStr, Field, StringConstraints
+from pyproj import CRS
+
+from coordinates_transformation_api.models import Crs
+
+CityJSONBoundary = Union[
+    List[List[List[int]]],
+    List[List[List[List[int]]]],
+    List[List[List[List[List[int]]]]],
+    List[int],
+    List[List[int]],
+]
 
 
 class Type(Enum):
@@ -943,6 +954,78 @@ class Building(FieldAbstractBuilding):
     type: Type15
 
 
+CityObject = Union[
+    Bridge,
+    BridgeConstructiveElement,
+    BridgeFurniture,
+    BridgeInstallation,
+    BridgePart,
+    BridgeRoom,
+    Building,
+    BuildingConstructiveElement,
+    BuildingFurniture,
+    BuildingInstallation,
+    BuildingPart,
+    BuildingRoom,
+    BuildingStorey,
+    BuildingUnit,
+    CityFurniture,
+    CityObjectGroup,
+    ExtensionObject,
+    LandUse,
+    OtherConstruction,
+    PlantCover,
+    Railway,
+    Road,
+    SolitaryVegetationObject,
+    TINRelief,
+    TransportSquare,
+    Tunnel,
+    TunnelConstructiveElement,
+    TunnelFurniture,
+    TunnelHollowSpace,
+    TunnelInstallation,
+    TunnelPart,
+    WaterBody,
+    Waterway,
+]
+
+CityObjectWithGeometry = Union[
+    Bridge,
+    BridgeConstructiveElement,
+    BridgeFurniture,
+    BridgeInstallation,
+    BridgePart,
+    BridgeRoom,
+    Building,
+    BuildingConstructiveElement,
+    BuildingFurniture,
+    BuildingInstallation,
+    BuildingPart,
+    BuildingRoom,
+    BuildingStorey,
+    BuildingUnit,
+    CityFurniture,
+    CityObjectGroup,
+    LandUse,
+    OtherConstruction,
+    PlantCover,
+    Railway,
+    Road,
+    SolitaryVegetationObject,
+    TINRelief,
+    TransportSquare,
+    Tunnel,
+    TunnelConstructiveElement,
+    TunnelFurniture,
+    TunnelHollowSpace,
+    TunnelInstallation,
+    TunnelPart,
+    WaterBody,
+    Waterway,
+]
+
+
 class CityjsonV113(BaseModel):
     """CityJSON 1.1.3 Pydantic class, generated with:
 
@@ -960,44 +1043,7 @@ class CityjsonV113(BaseModel):
 
     metadata: Optional[Metadata] = None
     extensions: Optional[Dict[str, Extensions]] = None
-    CityObjects: Dict[
-        str,
-        Union[
-            Bridge,
-            BridgeConstructiveElement,
-            BridgeFurniture,
-            BridgeInstallation,
-            BridgePart,
-            BridgeRoom,
-            Building,
-            BuildingConstructiveElement,
-            BuildingFurniture,
-            BuildingInstallation,
-            BuildingPart,
-            BuildingRoom,
-            BuildingStorey,
-            BuildingUnit,
-            CityFurniture,
-            CityObjectGroup,
-            ExtensionObject,
-            LandUse,
-            OtherConstruction,
-            PlantCover,
-            Railway,
-            Road,
-            SolitaryVegetationObject,
-            TINRelief,
-            TransportSquare,
-            Tunnel,
-            TunnelConstructiveElement,
-            TunnelFurniture,
-            TunnelHollowSpace,
-            TunnelInstallation,
-            TunnelPart,
-            WaterBody,
-            Waterway,
-        ],
-    ]
+    CityObjects: Dict[str, CityObject]
     vertices: list[list[float | int]]
     transform: Transform
     appearance: Optional[Appearance] = None
@@ -1046,16 +1092,18 @@ class CityjsonV113(BaseModel):
             self.metadata.geographicalExtent = bbox
 
     def remove_duplicate_vertices(self: CityjsonV113):
-        def update_geom_indices(a, newids):
+        def update_geom_indices(a: CityJSONBoundary, newids: list[int]):
             for i, each in enumerate(a):
                 if isinstance(each, list):
                     update_geom_indices(each, newids)
                 else:
-                    a[i] = newids[each]
+                    a_list = cast(list[int], a)
+                    each_int = cast(int, each)
+                    a_list[i] = newids[each_int]
 
         totalinput = len(self.vertices)
         h: Dict[str, int] = {}
-        newids = [-1] * len(self.vertices)
+        newids: list[int] = [-1] * len(self.vertices)
         newvertices: list[str] = []
         for i, v in enumerate(self.vertices):
             s = "{x} {y} {z}".format(x=v[0], y=v[1], z=v[2])
@@ -1084,188 +1132,70 @@ class CityjsonV113(BaseModel):
 
     def _get_cityobject_without_extension(
         self,
-        c_object: Union[
-            Bridge,
-            BridgeConstructiveElement,
-            BridgeFurniture,
-            BridgeInstallation,
-            BridgePart,
-            BridgeRoom,
-            Building,
-            BuildingConstructiveElement,
-            BuildingFurniture,
-            BuildingInstallation,
-            BuildingPart,
-            BuildingRoom,
-            BuildingStorey,
-            BuildingUnit,
-            CityFurniture,
-            CityObjectGroup,
-            ExtensionObject,
-            LandUse,
-            OtherConstruction,
-            PlantCover,
-            Railway,
-            Road,
-            SolitaryVegetationObject,
-            TINRelief,
-            TransportSquare,
-            Tunnel,
-            TunnelConstructiveElement,
-            TunnelFurniture,
-            TunnelHollowSpace,
-            TunnelInstallation,
-            TunnelPart,
-            WaterBody,
-            Waterway,
-        ],
-    ):
+        c_object: CityObject,
+    ) -> CityObjectWithGeometry | None:
         if isinstance(c_object, ExtensionObject):
             return None
             # only process objects with geometries
         return cast(
-            Bridge
-            | BridgeConstructiveElement
-            | BridgeFurniture
-            | BridgeInstallation
-            | BridgePart
-            | BridgeRoom
-            | Building
-            | BuildingConstructiveElement
-            | BuildingFurniture
-            | BuildingInstallation
-            | BuildingPart
-            | BuildingRoom
-            | BuildingStorey
-            | BuildingUnit
-            | CityFurniture
-            | CityObjectGroup
-            | LandUse
-            | OtherConstruction
-            | PlantCover
-            | Railway
-            | Road
-            | SolitaryVegetationObject
-            | TINRelief
-            | TransportSquare
-            | Tunnel
-            | TunnelConstructiveElement
-            | TunnelFurniture
-            | TunnelHollowSpace
-            | TunnelInstallation
-            | TunnelPart
-            | WaterBody
-            | Waterway,
+            CityObjectWithGeometry,
             c_object,
         )
 
     def remove_orphan_vertices(self: CityjsonV113):
-        def visit_geom(a, oldnewids, newvertices):
-            for i, each in enumerate(a):
+        def visit_geom(
+            a: CityJSONBoundary,
+            old_new_index_map: dict[int, int],
+            new_vertex_indices: list[int],
+        ):
+            for _, each in enumerate(a):
                 if isinstance(each, list):
-                    visit_geom(each, oldnewids, newvertices)
-                else:
-                    if each not in oldnewids:
-                        oldnewids[each] = len(newvertices)
-                        newvertices.append(each)
+                    visit_geom(each, old_new_index_map, new_vertex_indices)
+                elif isinstance(each, int):
+                    if each not in old_new_index_map:
+                        old_new_index_map[each] = len(new_vertex_indices)
+                        new_vertex_indices.append(each)
 
-        def update_face(a, oldnewids):
-            for i, each in enumerate(a):
+        def update_face(
+            boundary: CityJSONBoundary,
+            old_new_index_map: dict[int, int],
+        ):
+            for i, each in enumerate(boundary):
                 if isinstance(each, list):
-                    update_face(each, oldnewids)
+                    update_face(each, old_new_index_map)
                 else:
-                    a[i] = oldnewids[each]
+                    boundary_int = cast(list[int], boundary)
+                    each_int = cast(int, each)
+                    boundary_int[i] = old_new_index_map[each_int]
 
         totalinput: int = len(self.vertices)
-        oldnewids: Dict[str, int] = {}
+        old_new_index_map: dict[int, int] = {}
         new_vertex_indices: list[int] = []
 
-        for theid in self.CityObjects:
-            if isinstance(self.CityObjects[theid], ExtensionObject):
+        for obj_id in self.CityObjects:
+            if isinstance(self.CityObjects[obj_id], ExtensionObject):
                 continue
             # only process objects with geometries
             c_object = cast(
-                Bridge
-                | BridgeConstructiveElement
-                | BridgeFurniture
-                | BridgeInstallation
-                | BridgePart
-                | BridgeRoom
-                | Building
-                | BuildingConstructiveElement
-                | BuildingFurniture
-                | BuildingInstallation
-                | BuildingPart
-                | BuildingRoom
-                | BuildingStorey
-                | BuildingUnit
-                | CityFurniture
-                | CityObjectGroup
-                | LandUse
-                | OtherConstruction
-                | PlantCover
-                | Railway
-                | Road
-                | SolitaryVegetationObject
-                | TINRelief
-                | TransportSquare
-                | Tunnel
-                | TunnelConstructiveElement
-                | TunnelFurniture
-                | TunnelHollowSpace
-                | TunnelInstallation
-                | TunnelPart
-                | WaterBody
-                | Waterway,
-                self.CityObjects[theid],
+                CityObjectWithGeometry,
+                self.CityObjects[obj_id],
             )
             if c_object.geometry is not None:
                 for g in c_object.geometry:
-                    visit_geom(g.boundaries, oldnewids, new_vertex_indices)
+                    visit_geom(g.boundaries, old_new_index_map, new_vertex_indices)
 
         # -- update the faces ids
-        for theid in self.CityObjects:
-            if isinstance(self.CityObjects[theid], ExtensionObject):
+        for obj_id in self.CityObjects:
+            if isinstance(self.CityObjects[obj_id], ExtensionObject):
                 continue
             # only process objects with geometries
             c_object = cast(
-                Bridge
-                | BridgeConstructiveElement
-                | BridgeFurniture
-                | BridgeInstallation
-                | BridgePart
-                | BridgeRoom
-                | Building
-                | BuildingConstructiveElement
-                | BuildingFurniture
-                | BuildingInstallation
-                | BuildingPart
-                | BuildingRoom
-                | BuildingStorey
-                | BuildingUnit
-                | CityFurniture
-                | CityObjectGroup
-                | LandUse
-                | OtherConstruction
-                | PlantCover
-                | Railway
-                | Road
-                | SolitaryVegetationObject
-                | TINRelief
-                | TransportSquare
-                | Tunnel
-                | TunnelConstructiveElement
-                | TunnelFurniture
-                | TunnelHollowSpace
-                | TunnelInstallation
-                | TunnelPart
-                | WaterBody
-                | Waterway,
-                self.CityObjects[theid],
+                CityObjectWithGeometry,
+                self.CityObjects[obj_id],
             )
             if c_object.geometry is not None:
                 for g in c_object.geometry:
-                    update_face(g.boundaries, oldnewids)
+                    update_face(g.boundaries, old_new_index_map)
 
         # -- replace the vertices, innit?
         newv2: list[list[float | int]] = []
@@ -1316,7 +1246,7 @@ class CityjsonV113(BaseModel):
         self.remove_orphan_vertices()
 
     def update_bbox_each_cityobjects(self: CityjsonV113, addifmissing=False):
-        def recusionvisit(a, vs):
+        def recusionvisit(a: CityJSONBoundary, vs: list[int]):
             for each in a:
                 if isinstance(each, list):
                     recusionvisit(each, vs)
@@ -1360,23 +1290,58 @@ class CityjsonV113(BaseModel):
                                 ) + self.transform.translate[i]
                         self.CityObjects[co].geographicalExtent = bbox
 
+    def get_x_unit_crs(self, crs_str: str) -> str:
+        target_crs_crs = CRS.from_authority(*crs_str.split(":"))
+        axe = next(
+            (
+                x
+                for x in target_crs_crs.axis_info
+                if x.abbrev.lower() in ["x", "e", "lon"]
+            ),
+            None,
+        )
+        if axe is None:
+            raise ValueError(
+                f"unable to retrieve unit x axis (x, e, lon) CRS {crs_str}"
+            )
+        unit_name = axe.unit_name
+        if unit_name not in ["degree", "metre"]:
+            raise ValueError(
+                f"Unexpected unit in x axis (x, e, lon) CRS {crs_str} - expected values: degree, meter, actual value: {unit_name}"
+            )
+        return unit_name
+
     def crs_transform(
         self: CityjsonV113,
         callback: Callable[
             [Union[tuple[float, float], tuple[float, float, float]]],
             Union[tuple[float, float], tuple[float, float, float]],
         ],
-        target_crs_auth_identifier: str,
+        source_crs: str,
+        target_crs: str,
     ):
         imp_digits = math.ceil(abs(math.log(self.transform.scale[0], 10)))
         self.decompress()
-        # callback = get_transform_callback(transformer)
         self.vertices = [
             list(callback(vertex))
             for vertex in cast(list[tuple[float, float, float]], self.vertices)
         ]
-        self.vertices = [list(vertex) for vertex in self.vertices]
-        self.set_epsg(target_crs_auth_identifier)
+        self.vertices = [
+            list(vertex) for vertex in self.vertices
+        ]  # convert result to list since, callback function to transform coordinates returns tuples
+        self.set_epsg(target_crs)
         self.update_bbox()
+
+        src_unit = self.get_x_unit_crs(source_crs)
+        target_unit = self.get_x_unit_crs(target_crs)
+
+        # 0.00001 degree ~= 1 meter
+        if src_unit == "metre" and target_unit == "degree":
+            imp_digits += 5
+        elif src_unit == "degree" and target_unit == "metre":
+            imp_digits -= 5
+        else:  # src_unit == target_unit
+            pass  # imp_digits unchanged
+
         self.compress(imp_digits)
         self.update_bbox_each_cityobjects(False)
