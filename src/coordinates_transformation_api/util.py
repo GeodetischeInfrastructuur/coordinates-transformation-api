@@ -257,52 +257,37 @@ def get_bbox_from_coordinates(coordinates) -> BBox:
         )
 
 
+def raise_validation_error(message: str, location):
+    raise RequestValidationError(
+        errors=(
+            ValidationError.from_exception_data(
+                "ValueError",
+                [
+                    InitErrorDetails(
+                        type=PydanticCustomError(
+                            "missing",
+                            message,
+                        ),
+                        loc=location,
+                        input="",
+                    ),
+                ],
+            )
+        ).errors()
+    )
+
+
 def get_source_crs_body(
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection]
-) -> str:
+) -> str | None:
     if isinstance(body, CrsFeatureCollection) and body.crs is not None:
         source_crs = body.get_crs_auth_code()
         if source_crs is None:
-            raise ValueError(
-                f"could not retrieve crs from CrsFeatureCollection: {body.model_dump_json()}"
-            )
+            return None
     elif isinstance(body, CrsFeatureCollection) and body.crs is None:
-        # raise validation error missing paramater when request body type is geometry, geometrycollection, or feature
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "missing",
-                                f"Field (source-crs) required in query, or supplied as Named CRS in crs member in FeatureCollection",
-                            ),
-                            loc=("query", "source-crs"),
-                            input="",
-                        ),
-                    ],
-                )
-            ).errors()
-        )
+        return None
     else:
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "missing",
-                                f"Field (source-crs) required in query when request body is of type Feature, Geometry or GeometryCollection",
-                            ),
-                            loc=("query", "source-crs"),
-                            input="",
-                        )
-                    ],
-                )
-            ).errors()
-        )
+        return None
     return source_crs
 
 
