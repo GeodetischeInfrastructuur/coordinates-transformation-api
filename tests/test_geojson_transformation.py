@@ -1,12 +1,14 @@
 import json
 
 from geojson_pydantic import Feature
-from geojson_pydantic.geometries import GeometryCollection, parse_geometry_obj
+from geojson_pydantic.geometries import (Geometry, GeometryCollection,
+                                         parse_geometry_obj)
 from pydantic_core import ValidationError
 from pyproj import Transformer
 
 from coordinates_transformation_api.models import CrsFeatureCollection
-from coordinates_transformation_api.util import transform_request_body
+from coordinates_transformation_api.util import (get_transformer,
+                                                 transform_request_body)
 
 
 def test_bbox_transformed():
@@ -25,12 +27,20 @@ def test_bbox_transformed():
 def test_transform_geometry():
     with open("tests/data/geometry.json") as f:
         data = json.load(f)
-        geometry = parse_geometry_obj(data)
-        geometry_original = parse_geometry_obj(data)
-        transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
-        transform_request_body(geometry, transformer)
+        geometry: Geometry = parse_geometry_obj(data)
+        geometry_original: Geometry = parse_geometry_obj(data)
+        geometry_crs84: Geometry = parse_geometry_obj(data)
 
+        transformer = get_transformer("EPSG:28992", "EPSG:4326")
+        transform_request_body(geometry, transformer)
         geometry_dict = json.loads(geometry.model_dump_json())
+
+        transformer = get_transformer("EPSG:28992", "OGC:CRS84")
+        transform_request_body(geometry_crs84, transformer)
+
+        # since axis order is always x,y OGC:CRS84==EPSG:4326 in GeoJSON
+        assert geometry == geometry_crs84
+
         # check if input is actually transformed
         assert geometry != geometry_original
         try:
@@ -44,8 +54,9 @@ def test_transform_geometry():
 def test_transform_feature_geometrycollection():
     with open("tests/data/feature-geometry-collection.json") as f:
         data = json.load(f)
-        feature = Feature(**data)
-        feature_original = Feature(**data)
+
+        feature = Feature.model_validate(data)
+        feature_original = Feature.model_validate(data)
         transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
         transform_request_body(feature, transformer)
         feature_dict = json.loads(feature.model_dump_json())

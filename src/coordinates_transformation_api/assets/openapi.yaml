@@ -183,6 +183,7 @@ paths:
         or the headers. When both are provided then the query parameters takes precedence.
       parameters:
         - $ref: "#/components/parameters/source-crs"
+          default: EPSG:28992
         - $ref: "#/components/parameters/target-crs"
         - $ref: "#/components/parameters/contentCrs"
         - $ref: "#/components/parameters/acceptCrs"
@@ -505,6 +506,7 @@ components:
         - EPSG:4326
         - EPSG:3857
         - OGC:CRS84
+        - EPSG:9928
 
     coords:
       type: array

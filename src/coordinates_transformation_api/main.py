@@ -10,10 +10,12 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
-from geojson_pydantic import Feature
+from geojson_pydantic import Feature, FeatureCollection
 from geojson_pydantic.geometries import Geometry, GeometryCollection
+from pyproj import network
 
 from coordinates_transformation_api import assets
+from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
 from coordinates_transformation_api.limit_middleware.middleware import (
     ContentSizeLimitMiddleware, TimeoutMiddleware)
@@ -48,6 +50,7 @@ CRS_LIST: list[Crs]
 OPEN_API_SPEC, API_TITLE, API_VERSION, CRS_LIST = init_oas()
 BASE_DIR: str = os.path.dirname(__file__)
 
+network.set_network_enabled(True)  # TODO: remove before commit
 
 app: FastAPI = FastAPI(docs_url=None)
 # note: order of adding middleware is required for it to work
@@ -215,7 +218,7 @@ async def transform(
         )
 
 
-@app.post("/transform", response_model=Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection])  # type: ignore
+@app.post("/transform", response_model=Union[Feature, FeatureCollection, Geometry, GeometryCollection, CityjsonV113], response_model_exclude_none=True)  # type: ignore
 async def transform(
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
     source_crs: str = Query(alias="source-crs", default=None),
@@ -237,6 +240,18 @@ async def transform(
                 "No source CRS found in request. Defining a source CRS is required through the provided object a query parameter source-crs or header content-crs",
                 ("body", "crs", "query", "source-crs", "header", "content-crs"),
             )
+        elif isinstance(body, CityjsonV113):
+            raise_validation_error(
+                "metadata.referenceSystem field missing in CityJSON request body",
+                (
+                    "body",
+                    "metadata.referenceSystem",
+                    "query",
+                    "source-crs",
+                    "header",
+                    "content-crs",
+                ),
+            )
         else:
             raise_validation_error(
                 "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
@@ -256,10 +271,19 @@ async def transform(
     validate_crss(s_crs, t_crs, CRS_LIST)
     transformer = get_transformer(s_crs, t_crs)
     transform_request_body(body, transformer)
+    if isinstance(body, CityjsonV113):
+        callback = get_transform_callback(transformer)
 
-    return JSONResponse(
-        content=body.model_dump(exclude_none=True), headers={"content-crs": t_crs}
-    )
+        body.crs_transform(callback, s_crs, t_crs)
+        return Response(
+            content=body.model_dump_json(exclude_none=True),
+            media_type="application/city+json",
+        )
+    else:
+        transform_request_body(body, transformer)
+        return JSONResponse(
+            content=body.model_dump(exclude_none=True), headers={"content-crs": t_crs}
+        )
 
 
 app.openapi = lambda: OPEN_API_SPEC  # type: ignore

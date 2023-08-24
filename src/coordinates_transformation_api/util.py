@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
 
+from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.models import Axis
 from coordinates_transformation_api.models import Crs as MyCrs
 from coordinates_transformation_api.models import CrsFeatureCollection
@@ -165,7 +166,13 @@ def get_projs_axis_info(proj_strings) -> list[MyCrs]:
     return result
 
 
-def traverse_geojson_coordinates(geojson_coordinates, callback):
+def traverse_geojson_coordinates(
+    geojson_coordinates: Union[list[list], list[float], list[int]],
+    callback: Callable[
+        [Union[tuple[float, float], tuple[float, float, float], list[float]]],
+        tuple[float, ...],
+    ],
+):
     """traverse GeoJSON coordinates object and apply callback function to coordinates-nodes
 
     Args:
@@ -176,11 +183,11 @@ def traverse_geojson_coordinates(geojson_coordinates, callback):
         GeoJSON coordinates object
     """
     if all(isinstance(x, float) or isinstance(x, int) for x in geojson_coordinates):
-        return callback(geojson_coordinates)
-    elif isinstance(geojson_coordinates, list):
+        return callback(cast(list[float], geojson_coordinates))
+    else:
+        coords = cast(list[list], geojson_coordinates)
         return [
-            traverse_geojson_coordinates(elem, callback=callback)
-            for elem in geojson_coordinates
+            traverse_geojson_coordinates(elem, callback=callback) for elem in coords
         ]
 
 
@@ -193,18 +200,27 @@ def validate_crss(source_crs: str, target_crs: str, projections_axis_info):
 def get_transformer(source_crs: str, target_crs: str):
     source_crs_crs = CRS.from_authority(*source_crs.split(":"))
     target_crs_crs = CRS.from_authority(*target_crs.split(":"))
-    transformer = Transformer.from_crs(source_crs_crs, target_crs_crs)
+    transformer = Transformer.from_crs(source_crs_crs, target_crs_crs, always_xy=True)
     return transformer
 
 
 def get_transform_callback(
-    transformer: Transformer,
+    transformer: Transformer, precision: int | None = None
 ) -> Callable[
-    [Union[Tuple[float, float], Tuple[float, float, float]]], Tuple[float, ...]
+    [Union[tuple[float, float], tuple[float, float, float], list[float]]],
+    tuple[float, ...],
 ]:
+    """TODO: improve type annotation/handling geojson/cityjson transformation, with the current implementation mypy is not complaining"""
+
+    def my_round(val, precision: int | None):
+        if precision is None:
+            return val
+        else:
+            return round(val, precision)
+
     def callback(
-        val: Union[Tuple[float, float], Tuple[float, float, float]]
-    ) -> Tuple[float, ...]:
+        val: Union[tuple[float, float], tuple[float, float, float], list[float]]
+    ) -> tuple[float, ...]:
         if transformer.target_crs is None:
             raise ValueError("transformer.target_crs is None")
         dim = len(transformer.target_crs.axis_info)
@@ -215,10 +231,13 @@ def get_transform_callback(
                 raise ValueError(
                     f"number of dimensions of target-crs should be 2 or 3, is {dim}"
                 )
-            val = cast(
-                Union[Tuple[float, float], Tuple[float, float, float]], val[0:dim]
-            )
-        return tuple([float(round(x, 6)) for x in transformer.transform(*val)])
+        val = cast(Union[Tuple[float, float], Tuple[float, float, float]], val[0:dim])
+
+        # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
+        # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
+        return tuple(
+            [float(my_round(x, precision)) for x in transformer.transform(*val)]
+        )
 
     return callback
 
@@ -286,6 +305,19 @@ def get_source_crs_body(
             return None
     elif isinstance(body, CrsFeatureCollection) and body.crs is None:
         return None
+    elif (
+        isinstance(body, CityjsonV113)
+        and body.metadata is not None
+        and body.metadata.referenceSystem is not None
+    ):
+        ref_system: str = body.metadata.referenceSystem
+        crs_auth = ref_system.split("/")[-3]
+        crs_id = ref_system.split("/")[-1]
+        source_crs = f"{crs_auth}:{crs_id}"
+    elif isinstance(body, CityjsonV113) and (
+        body.metadata is None or body.metadata.referenceSystem is None
+    ):
+        return None
     else:
         return None
     return source_crs
@@ -336,9 +368,10 @@ def transform_request_body(
     """
 
     def transform_geom(geom: GeojsonGeomNoGeomCollection) -> None:
-        callback = get_transform_callback(transformer)
+        callback = get_transform_callback(transformer, 6)
         geom.coordinates = traverse_geojson_coordinates(
-            geom.coordinates, callback=callback
+            cast(list[list[Any]] | list[float] | list[int], geom.coordinates),
+            callback=callback,
         )
         if geom.bbox is not None:
             geom.bbox = get_bbox(geom)

@@ -1,12 +1,15 @@
 # Coordinates transformation API
 
-RESTful coordinates transformation API offering NSGI approved transformations for the Netherlands. Build on top of pyproj and FastAPI.
+RESTful coordinates transformation API offering NSGI approved transformations
+for the Netherlands. Build on top of pyproj and FastAPI.
 
 ## Assumptions
 
 - API metadata, documentation and source code is in English
 - Easily accessible, but correct
-- Conforms (as much is possible) to the [OGC API Common](https://ogcapi.ogc.org/common/) and the [NL API Design rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/)
+- Conforms (as much is possible) to the [OGC API
+  Common](https://ogcapi.ogc.org/common/) and the [NL API Design
+  rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/)
 
 ## pyproj
 
@@ -60,7 +63,8 @@ Install enable pre-commit hook with:
 git config --local core.hooksPath .githooks
 ```
 
-To run debug session in VS Code install the package with `pip` with the `--editable` flag:
+To run debug session in VS Code install the package with `pip` with the
+`--editable` flag:
 
 ```sh
 pip install --editable .
@@ -102,4 +106,31 @@ docker build -t nsgi/coordinatestransformation-api .
 
 ```bash
 docker run --rm -d -p 8000:8000 --name ct-api nsgi/coordinatestransformation-api
+```
+
+## CityJSON
+
+### Generate CityJSON models
+
+```sh
+wget --no-parent  --recursive https://3d.bk.tudelft.nl/schemas/cityjson/1.1.3/
+pip install datamodel-code-generator
+datamodel-codegen  --input  3d.bk.tudelft.nl/schemas/cityjson/1.1.3/metadata.schema.json  --input-file-type jsonschema --output cityjson.py
+```
+
+### Working with CityJSON (with cjio cli)
+
+Download test/sample data from
+[www.cityjson.org/datasets/](https://www.cityjson.org/datasets/).
+
+Creating a subset of CityJSON file (for - for example - testing purposes):
+
+```sh
+cjio DenHaag_01.city.json subset --random 10 save test_10.city.json
+```
+
+CRS transformation with `cjio`:
+
+```sh
+cjio test_1.city.json crs_reproject 4937 save test_1_4937.city.json
 ```
