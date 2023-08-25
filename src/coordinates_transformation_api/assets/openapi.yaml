@@ -502,6 +502,30 @@ components:
           items:
             $ref: "#/components/schemas/link"
 
+    link:
+      type: object
+      required:
+        - href
+        - rel
+      properties:
+        href:
+          type: string
+          example: http://www.opengis.net/def/crs/EPSG/0/28992
+        rel:
+          type: string
+          example: alternate
+        type:
+          type: string
+          example: application/json
+        hreflang:
+          type: string
+          example: en
+        title:
+          type: string
+          example: EPSG:28992
+        length:
+          type: integer
+
     confClasses:
       type: object
       required:
