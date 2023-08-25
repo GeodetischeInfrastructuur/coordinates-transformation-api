@@ -24,7 +24,8 @@ from coordinates_transformation_api.models import (Conformance, Crs,
                                                    LandingPage, Link,
                                                    TransformGetAcceptHeaders)
 from coordinates_transformation_api.settings import app_settings
-from coordinates_transformation_api.util import (get_source_crs_body,
+from coordinates_transformation_api.util import (extract_authority_code,
+                                                 get_source_crs_body,
                                                  get_transform_callback,
                                                  get_transformer, init_oas,
                                                  raise_validation_error,
@@ -189,6 +190,9 @@ async def transform(
             ("query", "target-crs", "header", "accept-crs"),
         )
 
+    s_crs = extract_authority_code(s_crs)
+    t_crs = extract_authority_code(t_crs)
+
     validate_crss(s_crs, t_crs, CRS_LIST)
     validate_coords_source_crs(coordinates, s_crs, CRS_LIST)
 
@@ -267,6 +271,9 @@ async def transform(
             "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
             ("query", "target-crs", "header", "accept-crs"),
         )
+
+    s_crs = extract_authority_code(s_crs)
+    t_crs = extract_authority_code(t_crs)
 
     validate_crss(s_crs, t_crs, CRS_LIST)
     transformer = get_transformer(s_crs, t_crs)

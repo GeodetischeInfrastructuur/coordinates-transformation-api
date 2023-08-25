@@ -1,3 +1,4 @@
+import re
 from importlib import resources as impresources
 from itertools import chain
 from typing import Any, Callable, Iterable, Tuple, TypedDict, Union, cast
@@ -189,6 +190,14 @@ def traverse_geojson_coordinates(
         return [
             traverse_geojson_coordinates(elem, callback=callback) for elem in coords
         ]
+
+
+def extract_authority_code(crs: str) -> str:
+    r = re.search("^(http://www.opengis.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
+    if r is not None:
+        return str(r[2] + ":" + r[4])
+
+    return crs
 
 
 def validate_crss(source_crs: str, target_crs: str, projections_axis_info):
