@@ -200,6 +200,11 @@ def extract_authority_code(crs: str) -> str:
     return crs
 
 
+def format_as_uri(crs: str) -> str:
+    # TODO the /0/ is a placeholder and should be based on the epsg database
+    return "http://www.opengis.net/def/crs/{}/0/{}".format(*crs.split(":"))
+
+
 def validate_crss(source_crs: str, target_crs: str, projections_axis_info):
     validate_input_crs(source_crs, "source-crs", projections_axis_info)
     validate_input_crs(target_crs, "target_crs", projections_axis_info)

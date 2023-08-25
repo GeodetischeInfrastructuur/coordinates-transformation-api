@@ -25,6 +25,7 @@ from coordinates_transformation_api.models import (Conformance, Crs,
                                                    TransformGetAcceptHeaders)
 from coordinates_transformation_api.settings import app_settings
 from coordinates_transformation_api.util import (extract_authority_code,
+                                                 format_as_uri,
                                                  get_source_crs_body,
                                                  get_transform_callback,
                                                  get_transformer, init_oas,
@@ -208,17 +209,17 @@ async def transform(
         if len(transformed_coordinates) == 3:
             return PlainTextResponse(
                 f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})",
-                headers={"content-crs": t_crs},
+                headers={"content-crs": format_as_uri(t_crs)},
             )
 
         return PlainTextResponse(
             f"POINT({' '.join([str(x) for x in transformed_coordinates])})",
-            headers={"content-crs": t_crs},
+            headers={"content-crs": format_as_uri(t_crs)},
         )
     else:  # default case serve json
         return JSONResponse(
             content={"type": "Point", "coordinates": transformed_coordinates},
-            headers={"content-crs": t_crs},
+            headers={"content-crs": format_as_uri(t_crs)},
         )
 
 
@@ -289,7 +290,8 @@ async def transform(
     else:
         transform_request_body(body, transformer)
         return JSONResponse(
-            content=body.model_dump(exclude_none=True), headers={"content-crs": t_crs}
+            content=body.model_dump(exclude_none=True),
+            headers={"content-crs": format_as_uri(t_crs)},
         )
 
 
