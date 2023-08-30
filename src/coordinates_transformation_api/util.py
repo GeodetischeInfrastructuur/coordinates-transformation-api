@@ -1,3 +1,4 @@
+from __future__ import annotations
 import re
 from importlib import resources as impresources
 from itertools import chain
@@ -17,11 +18,18 @@ from geojson_pydantic.types import (BBox, LineStringCoords,
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS, Transformer
+from coordinates_transformation_api.callback import get_transform_callback
 
-from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.models import Axis
 from coordinates_transformation_api.models import Crs as MyCrs
 from coordinates_transformation_api.models import CrsFeatureCollection
+from coordinates_transformation_api.settings import app_settings
+
+
+from typing import TYPE_CHECKING
+
+from coordinates_transformation_api.cityjson.models import CityjsonV113
+
 
 GeojsonGeomNoGeomCollection = Union[
     Point,
@@ -138,6 +146,14 @@ class AxisInfo(TypedDict):
     dimensions: int
 
 
+def get_precision(target_crs_crs: MyCrs):
+    precision = app_settings.precision
+    unit = target_crs_crs.get_x_unit_crs()
+    if unit == "degree":
+        precision += 5
+    return precision
+
+
 def get_projs_axis_info(proj_strings) -> list[MyCrs]:
     result: list[MyCrs] = []
     for proj_string in proj_strings:
@@ -209,51 +225,6 @@ def validate_crss(source_crs: str, target_crs: str, projections_axis_info):
     validate_input_crs(source_crs, "source-crs", projections_axis_info)
     validate_input_crs(target_crs, "target_crs", projections_axis_info)
     validate_crs_transformation(source_crs, target_crs, projections_axis_info)
-
-
-def get_transformer(source_crs: str, target_crs: str):
-    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
-    target_crs_crs = CRS.from_authority(*target_crs.split(":"))
-    transformer = Transformer.from_crs(source_crs_crs, target_crs_crs, always_xy=True)
-    return transformer
-
-
-def get_transform_callback(
-    transformer: Transformer, precision: int | None = None
-) -> Callable[
-    [Union[tuple[float, float], tuple[float, float, float], list[float]]],
-    tuple[float, ...],
-]:
-    """TODO: improve type annotation/handling geojson/cityjson transformation, with the current implementation mypy is not complaining"""
-
-    def my_round(val, precision: int | None):
-        if precision is None:
-            return val
-        else:
-            return round(val, precision)
-
-    def callback(
-        val: Union[tuple[float, float], tuple[float, float, float], list[float]]
-    ) -> tuple[float, ...]:
-        if transformer.target_crs is None:
-            raise ValueError("transformer.target_crs is None")
-        dim = len(transformer.target_crs.axis_info)
-        if dim != None and dim != len(val):
-            if (
-                2 > dim > 3
-            ):  # check so we can safely cast to Tuple[float, float], Tuple[float, float, float]
-                raise ValueError(
-                    f"number of dimensions of target-crs should be 2 or 3, is {dim}"
-                )
-        val = cast(Union[Tuple[float, float], Tuple[float, float, float]], val[0:dim])
-
-        # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
-        # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
-        return tuple(
-            [float(my_round(x, precision)) for x in transformer.transform(*val)]
-        )
-
-    return callback
 
 
 def explode(coords):
@@ -372,7 +343,9 @@ def get_coordinates_from_geometry(
 
 def transform_request_body(
     body: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection,
-    transformer: Transformer,
+    source_crs: str,
+    target_crs :str,
+    csr_list: list[MyCrs]
 ) -> None:
     """transform coordinates of request body in place
 
@@ -381,8 +354,11 @@ def transform_request_body(
         transformer (Transformer): pyproj Transformer object
     """
 
+    target_crs_crs: MyCrs = next((x for x in csr_list if x.crs_auth_identifier == target_crs)) # target_crs_crs should be found
+    precision = get_precision(target_crs_crs)
+
     def transform_geom(geom: GeojsonGeomNoGeomCollection) -> None:
-        callback = get_transform_callback(transformer, 6)
+        callback = get_transform_callback(source_crs, target_crs, precision)
         geom.coordinates = traverse_geojson_coordinates(
             cast(list[list[Any]] | list[float] | list[int], geom.coordinates),
             callback=callback,
@@ -403,10 +379,7 @@ def transform_request_body(
         if fc_body.bbox is not None:
             fc_body.bbox = get_bbox(fc_body)
         if fc_body.crs is not None:
-            target_crs = cast(
-                CRS, transformer.target_crs
-            )  # transformer always has a target_crs
-            fc_body.set_crs_auth_code(target_crs.to_string())
+            fc_body.set_crs_auth_code(target_crs)
     elif isinstance(body, _GeometryBase):
         geom = cast(GeojsonGeomNoGeomCollection, body)
         transform_geom(geom)

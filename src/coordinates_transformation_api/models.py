@@ -34,6 +34,25 @@ class Crs(BaseModel):
         axes: list[Axis] = self.axes
         return ", ".join(list(map(lambda x: f"{x.abbrev} ({x.unit_name})", axes)))
 
+    def get_x_unit_crs(self) -> str:
+        axe = next(
+            (
+                x
+                for x in self.axes
+                if x.abbrev.lower() in ["x", "e", "lon"]
+            ),
+            None,
+        )
+        if axe is None:
+            raise ValueError(
+                f"unable to retrieve unit x axis (x, e, lon) CRS {self.crs_auth_identifier}"
+            )
+        unit_name = axe.unit_name
+        if unit_name not in ["degree", "metre"]:
+            raise ValueError(
+                f"Unexpected unit in x axis (x, e, lon) CRS {self.crs_auth_identifier} - expected values: degree, meter, actual value: {unit_name}"
+            )
+        return unit_name
 
 class Link(BaseModel):
     title: str

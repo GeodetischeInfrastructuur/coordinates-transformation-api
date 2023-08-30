@@ -19,6 +19,11 @@ class AppSettings(BaseSettings):
         default=False,
         description="when debug=true, error message in http response are more verbose",
     )
+    precision: int = Field(
+        alias="PRECISION",
+        default=2,
+        description="precision for output coordinates in GeoJSON format for CRS in meters, precision for degrees based CRS is PRECISION+5",
+    )
 
 
 app_settings = AppSettings()
