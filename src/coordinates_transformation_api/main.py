@@ -12,28 +12,36 @@ from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geojson_pydantic import Feature, FeatureCollection
 from geojson_pydantic.geometries import Geometry, GeometryCollection
-from pyproj import network
+from pyproj import CRS, network
 
 from coordinates_transformation_api import assets
+from coordinates_transformation_api.callback import get_transform_callback
 from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
 from coordinates_transformation_api.limit_middleware.middleware import (
-    ContentSizeLimitMiddleware, TimeoutMiddleware)
-from coordinates_transformation_api.models import (Conformance, Crs,
-                                                   CrsFeatureCollection,
-                                                   LandingPage, Link,
-                                                   TransformGetAcceptHeaders)
+    ContentSizeLimitMiddleware,
+    TimeoutMiddleware,
+)
+from coordinates_transformation_api.models import (
+    Conformance,
+    Crs,
+    CrsFeatureCollection,
+    LandingPage,
+    Link,
+    TransformGetAcceptHeaders,
+)
 from coordinates_transformation_api.settings import app_settings
-from coordinates_transformation_api.util import (extract_authority_code,
-                                                 format_as_uri,
-                                                 get_source_crs_body,
-                                                 get_transform_callback,
-                                                 get_transformer, init_oas,
-                                                 raise_validation_error,
-                                                 transform_request_body,
-                                                 traverse_geojson_coordinates,
-                                                 validate_coords_source_crs,
-                                                 validate_crss)
+from coordinates_transformation_api.util import (
+    extract_authority_code,
+    format_as_uri,
+    get_precision,
+    get_source_crs_body,
+    init_oas,
+    raise_validation_error,
+    transform_request_body,
+    validate_coords_source_crs,
+    validate_crss,
+)
 
 assets_resources = impresources.files(assets)
 logging_conf = assets_resources.joinpath("logging.conf")
@@ -166,7 +174,9 @@ async def conformance():
 async def transform(
     source_crs: str = Query(alias="source-crs", default=None),
     target_crs: str = Query(alias="target-crs", default=None),
-    coordinates: str = Query(alias="coordinates"),
+    coordinates: str = Query(
+        alias="coordinates", regex=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"
+    ),
     accept: str = Header(default=TransformGetAcceptHeaders.json),
     content_crs: str = Header(alias="content-crs", default=None),
     accept_crs: str = Header(alias="accept-crs", default=None),
@@ -197,13 +207,16 @@ async def transform(
     validate_crss(s_crs, t_crs, CRS_LIST)
     validate_coords_source_crs(coordinates, s_crs, CRS_LIST)
 
-    transformer = get_transformer(s_crs, t_crs)
-
-    coordinates_list: list = [float(x) for x in coordinates.split(",")]
-
-    transformed_coordinates = traverse_geojson_coordinates(
-        coordinates_list, callback=get_transform_callback(transformer)
+    target_crs_crs = next(
+        (x for x in CRS_LIST if x.crs_auth_identifier == target_crs), None
     )
+    precision = get_precision(target_crs_crs)
+
+    coordinates_list: tuple[float, ...] = tuple(
+        float(x) for x in coordinates.split(",")
+    )
+    callback = get_transform_callback(source_crs, target_crs, precision=precision)
+    transformed_coordinates = callback(coordinates_list)
 
     if accept == str(TransformGetAcceptHeaders.wkt.value):
         if len(transformed_coordinates) == 3:
@@ -223,9 +236,11 @@ async def transform(
         )
 
 
-@app.post("/transform", response_model=Union[Feature, FeatureCollection, Geometry, GeometryCollection, CityjsonV113], response_model_exclude_none=True)  # type: ignore
+@app.post("/transform", response_model=Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113], response_model_exclude_none=True)  # type: ignore
 async def transform(
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    body: Union[
+        Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
+    ],
     source_crs: str = Query(alias="source-crs", default=None),
     target_crs: str = Query(alias="target-crs", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
@@ -277,18 +292,15 @@ async def transform(
     t_crs = extract_authority_code(t_crs)
 
     validate_crss(s_crs, t_crs, CRS_LIST)
-    transformer = get_transformer(s_crs, t_crs)
-    transform_request_body(body, transformer)
-    if isinstance(body, CityjsonV113):
-        callback = get_transform_callback(transformer)
 
-        body.crs_transform(callback, s_crs, t_crs)
+    if isinstance(body, CityjsonV113):
+        body.crs_transform(s_crs, t_crs)
         return Response(
             content=body.model_dump_json(exclude_none=True),
             media_type="application/city+json",
         )
     else:
-        transform_request_body(body, transformer)
+        transform_request_body(body, s_crs, t_crs, CRS_LIST)
         return JSONResponse(
             content=body.model_dump(exclude_none=True),
             headers={"content-crs": format_as_uri(t_crs)},

@@ -8,10 +8,12 @@ import math
 import re
 from datetime import date
 from enum import Enum
-from typing import Annotated, Any, Callable, Dict, List, Optional, Union, cast
+from typing import Annotated, Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import AnyUrl, BaseModel, EmailStr, Field, StringConstraints
 from pyproj import CRS
+
+from coordinates_transformation_api.callback import get_transform_callback
 
 CityJSONBoundary = Union[
     List[List[List[int]]],
@@ -1311,28 +1313,23 @@ class CityjsonV113(BaseModel):
 
     def crs_transform(
         self: CityjsonV113,
-        callback: Callable[
-            [Union[tuple[float, float], tuple[float, float, float]]],
-            Union[tuple[float, float], tuple[float, float, float]],
-        ],
         source_crs: str,
         target_crs: str,
     ):
+        callback = get_transform_callback(source_crs, target_crs)
         imp_digits = math.ceil(abs(math.log(self.transform.scale[0], 10)))
         self.decompress()
         self.vertices = [
             list(callback(vertex))
-            for vertex in cast(list[tuple[float, float, float]], self.vertices)
+            for vertex in cast(list[Tuple[float, float, float]], self.vertices)
         ]
         self.vertices = [
             list(vertex) for vertex in self.vertices
         ]  # convert result to list since, callback function to transform coordinates returns tuples
         self.set_epsg(target_crs)
         self.update_bbox()
-
         src_unit = self.get_x_unit_crs(source_crs)
         target_unit = self.get_x_unit_crs(target_crs)
-
         # 0.00001 degree ~= 1 meter
         if src_unit == "metre" and target_unit == "degree":
             imp_digits += 5
@@ -1340,6 +1337,5 @@ class CityjsonV113(BaseModel):
             imp_digits -= 5
         else:  # src_unit == target_unit
             pass  # imp_digits unchanged
-
         self.compress(imp_digits)
         self.update_bbox_each_cityobjects(False)

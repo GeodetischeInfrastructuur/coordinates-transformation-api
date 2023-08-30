@@ -7,17 +7,17 @@ from pydantic_core import ValidationError
 from pyproj import Transformer
 
 from coordinates_transformation_api.models import CrsFeatureCollection
-from coordinates_transformation_api.util import (get_transformer,
+from coordinates_transformation_api.util import (init_oas,
                                                  transform_request_body)
 
+_,_,_, CRS_LIST = init_oas()
 
 def test_bbox_transformed():
     with open("tests/data/geometry.json") as f:
         data = json.load(f)
         geometry = parse_geometry_obj(data)
         geometry_original = parse_geometry_obj(data)
-        transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
-        transform_request_body(geometry, transformer)
+        transform_request_body(geometry, "EPSG:28992", "EPSG:4326", CRS_LIST)
         assert geometry_original.bbox is not None
         assert geometry.bbox is not None
         assert len(geometry_original.bbox) == len(geometry.bbox)
@@ -31,13 +31,9 @@ def test_transform_geometry():
         geometry_original: Geometry = parse_geometry_obj(data)
         geometry_crs84: Geometry = parse_geometry_obj(data)
 
-        transformer = get_transformer("EPSG:28992", "EPSG:4326")
-        transform_request_body(geometry, transformer)
+        transform_request_body(geometry, "EPSG:28992", "EPSG:4326",CRS_LIST )
         geometry_dict = json.loads(geometry.model_dump_json())
-
-        transformer = get_transformer("EPSG:28992", "OGC:CRS84")
-        transform_request_body(geometry_crs84, transformer)
-
+        transform_request_body(geometry_crs84, "EPSG:28992", "OGC:CRS84",CRS_LIST )
         # since axis order is always x,y OGC:CRS84==EPSG:4326 in GeoJSON
         assert geometry == geometry_crs84
 
@@ -57,8 +53,8 @@ def test_transform_feature_geometrycollection():
 
         feature = Feature.model_validate(data)
         feature_original = Feature.model_validate(data)
-        transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
-        transform_request_body(feature, transformer)
+
+        transform_request_body(feature, "EPSG:28992", "EPSG:4326", CRS_LIST)
         feature_dict = json.loads(feature.model_dump_json())
         # check if input is actually transformed
         assert feature != feature_original
@@ -75,8 +71,7 @@ def test_transform_feature():
         data = json.load(f)
         feature = Feature(**data)
         feature_original = Feature(**data)
-        transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
-        transform_request_body(feature, transformer)
+        transform_request_body(feature, "EPSG:28992", "EPSG:4326", CRS_LIST)
         feature_dict = json.loads(feature.model_dump_json())
         # check if input is actually transformed
         assert feature != feature_original
@@ -93,8 +88,7 @@ def test_transform_featurecollection():
         data = json.load(f)
         fc = CrsFeatureCollection(**data)
         fc_original = CrsFeatureCollection(**data)
-        transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
-        transform_request_body(fc, transformer)
+        transform_request_body(fc, "EPSG:28992", "EPSG:4326", CRS_LIST)
         fc_dict = json.loads(fc.model_dump_json())
         # check if input is actually transformed
         assert fc != fc_original
@@ -113,8 +107,8 @@ def test_transform_featurecollection_geometrycollection():
         data = json.load(f)
         fc = CrsFeatureCollection(**data)
         fc_original = CrsFeatureCollection(**data)
-        transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
-        transform_request_body(fc, transformer)
+
+        transform_request_body(fc, "EPSG:28992", "EPSG:4326", CRS_LIST)
 
         fc_dict = json.loads(fc.model_dump_json())
         # check if input is actually transformed
@@ -132,8 +126,7 @@ def test_transform_geometrycollection():
         data = json.load(f)
         gc = GeometryCollection(**data)
         gc_original = GeometryCollection(**data)
-        transformer = Transformer.from_crs("EPSG:28992", "EPSG:4326")
-        transform_request_body(gc, transformer)
+        transform_request_body(gc, "EPSG:28992", "EPSG:4326", CRS_LIST)
 
         gc_dict = json.loads(gc.model_dump_json())
         # check if input is actually transformed
