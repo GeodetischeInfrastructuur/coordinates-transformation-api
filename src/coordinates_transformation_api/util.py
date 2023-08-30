@@ -3,6 +3,7 @@ import re
 from importlib import resources as impresources
 from itertools import chain
 from typing import Any, Callable, Iterable, Tuple, TypedDict, Union, cast
+from fastapi import Request
 
 import yaml
 from fastapi.exceptions import RequestValidationError
@@ -341,6 +342,14 @@ def get_coordinates_from_geometry(
         return chain(*[explode(y.coordinates) for y in geometries])
 
 
+def accept_html(request: Request) -> bool:
+    if "accept" in request.headers.keys():
+        accept_header = request.headers["accept"]
+        if "text/html" in accept_header:
+            return True
+    return False
+
+
 def transform_request_body(
     body: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection,
     source_crs: str,
@@ -438,6 +447,7 @@ def init_oas() -> Tuple[dict, str, str, list[MyCrs]]:
         oas["components"]["parameters"]["target-crs"][
             "description"
         ] = f"Target Coordinate Reference System\n{crs_param_description}"
+        oas["servers"][0]["url"]= app_settings.base_url
     api_version = oas["info"]["version"]
     api_title = oas["info"]["title"]
     return (oas, api_title, api_version, crs_list)
