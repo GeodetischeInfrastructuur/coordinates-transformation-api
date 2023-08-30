@@ -1,3 +1,4 @@
+import re
 from importlib import resources as impresources
 from itertools import chain
 from typing import Any, Callable, Iterable, Tuple, TypedDict, Union, cast
@@ -191,6 +192,19 @@ def traverse_geojson_coordinates(
         ]
 
 
+def extract_authority_code(crs: str) -> str:
+    r = re.search("^(http://www.opengis.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
+    if r is not None:
+        return str(r[2] + ":" + r[4])
+
+    return crs
+
+
+def format_as_uri(crs: str) -> str:
+    # TODO the /0/ is a placeholder and should be based on the epsg database
+    return "http://www.opengis.net/def/crs/{}/0/{}".format(*crs.split(":"))
+
+
 def validate_crss(source_crs: str, target_crs: str, projections_axis_info):
     validate_input_crs(source_crs, "source-crs", projections_axis_info)
     validate_input_crs(target_crs, "target_crs", projections_axis_info)
@@ -276,48 +290,35 @@ def get_bbox_from_coordinates(coordinates) -> BBox:
         )
 
 
+def raise_validation_error(message: str, location):
+    raise RequestValidationError(
+        errors=(
+            ValidationError.from_exception_data(
+                "ValueError",
+                [
+                    InitErrorDetails(
+                        type=PydanticCustomError(
+                            "missing",
+                            message,
+                        ),
+                        loc=location,
+                        input="",
+                    ),
+                ],
+            )
+        ).errors()
+    )
+
+
 def get_source_crs_body(
-    body: Union[
-        Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
-    ]
-) -> str:
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection]
+) -> str | None:
     if isinstance(body, CrsFeatureCollection) and body.crs is not None:
         source_crs = body.get_crs_auth_code()
         if source_crs is None:
-            raise RequestValidationError(
-                errors=ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "missing",
-                                f"crs field missing in FeatureCollection request body",
-                            ),
-                            loc=("body", "crs"),
-                            input="",
-                        ),
-                    ],
-                ).errors()
-            )
+            return None
     elif isinstance(body, CrsFeatureCollection) and body.crs is None:
-        # raise validation error missing paramater when request body type is geometry, geometrycollection, or feature
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "missing",
-                                f"Field (source-crs) required in query, or supplied as Named CRS in crs member in FeatureCollection",
-                            ),
-                            loc=("query", "source-crs"),
-                            input="",
-                        ),
-                    ],
-                )
-            ).errors()
-        )
+        return None
     elif (
         isinstance(body, CityjsonV113)
         and body.metadata is not None
@@ -330,39 +331,9 @@ def get_source_crs_body(
     elif isinstance(body, CityjsonV113) and (
         body.metadata is None or body.metadata.referenceSystem is None
     ):
-        raise RequestValidationError(
-            errors=ValidationError.from_exception_data(
-                "ValueError",
-                [
-                    InitErrorDetails(
-                        type=PydanticCustomError(
-                            "missing",
-                            f"metadata.referenceSystem field missing in CityJSON request body",
-                        ),
-                        loc=("body", "metadata.referenceSystem"),
-                        input="",
-                    ),
-                ],
-            ).errors()
-        )
+        return None
     else:
-        raise RequestValidationError(
-            errors=(
-                ValidationError.from_exception_data(
-                    "ValueError",
-                    [
-                        InitErrorDetails(
-                            type=PydanticCustomError(
-                                "missing",
-                                f"Field (source-crs) required in query when request body is of type Feature, Geometry or GeometryCollection",
-                            ),
-                            loc=("query", "source-crs"),
-                            input="",
-                        )
-                    ],
-                )
-            ).errors()
-        )
+        return None
     return source_crs
 
 

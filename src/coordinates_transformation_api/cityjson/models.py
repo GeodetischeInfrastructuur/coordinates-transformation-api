@@ -13,8 +13,6 @@ from typing import Annotated, Any, Callable, Dict, List, Optional, Union, cast
 from pydantic import AnyUrl, BaseModel, EmailStr, Field, StringConstraints
 from pyproj import CRS
 
-from coordinates_transformation_api.models import Crs
-
 CityJSONBoundary = Union[
     List[List[List[int]]],
     List[List[List[List[int]]]],

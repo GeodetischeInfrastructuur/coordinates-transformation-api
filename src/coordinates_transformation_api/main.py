@@ -7,7 +7,7 @@ from typing import Union
 import uvicorn
 from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geojson_pydantic import Feature, FeatureCollection
@@ -24,9 +24,12 @@ from coordinates_transformation_api.models import (Conformance, Crs,
                                                    LandingPage, Link,
                                                    TransformGetAcceptHeaders)
 from coordinates_transformation_api.settings import app_settings
-from coordinates_transformation_api.util import (get_source_crs_body,
+from coordinates_transformation_api.util import (extract_authority_code,
+                                                 format_as_uri,
+                                                 get_source_crs_body,
                                                  get_transform_callback,
                                                  get_transformer, init_oas,
+                                                 raise_validation_error,
                                                  transform_request_body,
                                                  traverse_geojson_coordinates,
                                                  validate_coords_source_crs,
@@ -161,15 +164,40 @@ async def conformance():
 
 @app.get("/transform")
 async def transform(
-    source_crs: str = Query(alias="source-crs"),
-    target_crs: str = Query(alias="target-crs"),
+    source_crs: str = Query(alias="source-crs", default=None),
+    target_crs: str = Query(alias="target-crs", default=None),
     coordinates: str = Query(alias="coordinates"),
     accept: str = Header(default=TransformGetAcceptHeaders.json),
+    content_crs: str = Header(alias="content-crs", default=None),
+    accept_crs: str = Header(alias="accept-crs", default=None),
 ):
-    validate_crss(source_crs, target_crs, CRS_LIST)
-    validate_coords_source_crs(coordinates, source_crs, CRS_LIST)
+    if source_crs is not None:
+        s_crs = source_crs
+    elif source_crs is None and content_crs is not None:
+        s_crs = content_crs
+    else:
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
+            ("query", "source-crs", "header", "content-crs"),
+        )
 
-    transformer = get_transformer(source_crs, target_crs)
+    if target_crs is not None:
+        t_crs = target_crs
+    elif target_crs is None and accept_crs is not None:
+        t_crs = accept_crs
+    else:
+        raise_validation_error(
+            "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
+            ("query", "target-crs", "header", "accept-crs"),
+        )
+
+    s_crs = extract_authority_code(s_crs)
+    t_crs = extract_authority_code(t_crs)
+
+    validate_crss(s_crs, t_crs, CRS_LIST)
+    validate_coords_source_crs(coordinates, s_crs, CRS_LIST)
+
+    transformer = get_transformer(s_crs, t_crs)
 
     coordinates_list: list = [float(x) for x in coordinates.split(",")]
 
@@ -180,40 +208,91 @@ async def transform(
     if accept == str(TransformGetAcceptHeaders.wkt.value):
         if len(transformed_coordinates) == 3:
             return PlainTextResponse(
-                f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})"
+                f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})",
+                headers={"content-crs": format_as_uri(t_crs)},
             )
 
         return PlainTextResponse(
-            f"POINT({' '.join([str(x) for x in transformed_coordinates])})"
+            f"POINT({' '.join([str(x) for x in transformed_coordinates])})",
+            headers={"content-crs": format_as_uri(t_crs)},
         )
     else:  # default case serve json
-        return {"type": "Point", "coordinates": transformed_coordinates}
+        return JSONResponse(
+            content={"type": "Point", "coordinates": transformed_coordinates},
+            headers={"content-crs": format_as_uri(t_crs)},
+        )
 
 
 @app.post("/transform", response_model=Union[Feature, FeatureCollection, Geometry, GeometryCollection, CityjsonV113], response_model_exclude_none=True)  # type: ignore
 async def transform(
-    body: Union[Feature, FeatureCollection, Geometry, GeometryCollection, CityjsonV113],
-    source_crs: str | None = Query(alias="source-crs", default=None),
-    target_crs: str = Query(alias="target-crs"),
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    source_crs: str = Query(alias="source-crs", default=None),
+    target_crs: str = Query(alias="target-crs", default=None),
+    content_crs: str = Header(alias="content-crs", default=None),
+    accept_crs: str = Header(alias="accept-crs", default=None),
 ):
-    if source_crs is None:
-        source_crs = get_source_crs_body(body)
-    validate_crss(
-        source_crs, target_crs, CRS_LIST
-    )  # TODO: add check for crs's in combination with CityJSON (should only allow 3D CRS)
-    transformer = get_transformer(source_crs, target_crs)
+    crs_from_body = get_source_crs_body(body)
+
+    if crs_from_body is not None:
+        s_crs = crs_from_body
+    elif crs_from_body is None and source_crs is not None:
+        s_crs = source_crs
+    elif crs_from_body is None and source_crs is None and content_crs is not None:
+        s_crs = content_crs
+    else:
+        if isinstance(body, CrsFeatureCollection):
+            raise_validation_error(
+                "No source CRS found in request. Defining a source CRS is required through the provided object a query parameter source-crs or header content-crs",
+                ("body", "crs", "query", "source-crs", "header", "content-crs"),
+            )
+        elif isinstance(body, CityjsonV113):
+            raise_validation_error(
+                "metadata.referenceSystem field missing in CityJSON request body",
+                (
+                    "body",
+                    "metadata.referenceSystem",
+                    "query",
+                    "source-crs",
+                    "header",
+                    "content-crs",
+                ),
+            )
+        else:
+            raise_validation_error(
+                "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
+                ("query", "source-crs", "header", "content-crs"),
+            )
+
+    if target_crs is not None:
+        t_crs = target_crs
+    elif target_crs is None and accept_crs is not None:
+        t_crs = accept_crs
+    else:
+        raise_validation_error(
+            "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
+            ("query", "target-crs", "header", "accept-crs"),
+        )
+
+    s_crs = extract_authority_code(s_crs)
+    t_crs = extract_authority_code(t_crs)
+
+    validate_crss(s_crs, t_crs, CRS_LIST)
+    transformer = get_transformer(s_crs, t_crs)
+    transform_request_body(body, transformer)
     if isinstance(body, CityjsonV113):
         callback = get_transform_callback(transformer)
 
-
-        body.crs_transform(callback, source_crs ,target_crs)
+        body.crs_transform(callback, s_crs, t_crs)
         return Response(
             content=body.model_dump_json(exclude_none=True),
             media_type="application/city+json",
         )
     else:
         transform_request_body(body, transformer)
-        return body
+        return JSONResponse(
+            content=body.model_dump(exclude_none=True),
+            headers={"content-crs": format_as_uri(t_crs)},
+        )
 
 
 app.openapi = lambda: OPEN_API_SPEC  # type: ignore
