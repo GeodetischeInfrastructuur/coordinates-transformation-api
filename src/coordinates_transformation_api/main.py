@@ -7,7 +7,7 @@ from typing import Union
 import uvicorn
 from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geojson_pydantic import Feature, FeatureCollection
@@ -26,12 +26,11 @@ from coordinates_transformation_api.models import (
     Conformance,
     Crs,
     CrsFeatureCollection,
-    LandingPage,
-    Link,
     TransformGetAcceptHeaders,
 )
 from coordinates_transformation_api.settings import app_settings
 from coordinates_transformation_api.util import (
+    accept_html,
     extract_authority_code,
     format_as_uri,
     get_precision,
@@ -77,7 +76,6 @@ app.mount(
     name="static",
 )
 
-
 @app.middleware("http")
 async def add_api_version(request: Request, call_next):
     response_body = {
@@ -121,20 +119,21 @@ async def swagger_ui_html():
     )
 
 
-@app.get("/", response_model=LandingPage)
-async def landingpage():
-    self = Link(
-        title="This document as JSON",
-        rel="self",
-        href="http://localhost:8000/?f=json",
-        type="application/json",
-    )
+@app.get("/")
+async def landingpage(request: Request, format: str = Query(alias="f", default=None)):
 
-    return LandingPage(
-        title="Coordinatetransformation API",
-        description="Landing page describing what the capabilities are of this service",
-        links=[self],
-    )
+    if format == "html" or (accept_html(request) and format != "json"): # return html when format=html, return json when format=json, but return html when accept header accepts html
+        return get_swagger_ui_html(
+            openapi_url="/openapi.json",
+            title=f"{API_TITLE} - Swagger UI",
+            swagger_favicon_url="https://www.nsgi.nl/o/iv-kadaster-business-theme/images/favicon.ico",
+        )
+    else: # by default return JSON
+        return JSONResponse(
+                        content=app.openapi(),
+                        status_code=200,
+                        media_type="application/json",
+                    )
 
 
 @app.get("/crss", response_model=list[Crs])
