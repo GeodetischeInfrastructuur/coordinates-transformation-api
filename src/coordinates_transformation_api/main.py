@@ -36,10 +36,12 @@ from coordinates_transformation_api.util import (
     get_precision,
     get_source_crs_body,
     init_oas,
+    raise_response_validation_error,
     raise_validation_error,
     transform_request_body,
     validate_coords_source_crs,
     validate_crss,
+    validate_response,
 )
 
 assets_resources = impresources.files(assets)
@@ -217,6 +219,9 @@ async def transform(
     callback = get_transform_callback(source_crs, target_crs, precision=precision)
     transformed_coordinates = callback(coordinates_list)
 
+    if float('inf') in [abs(x) for x in transformed_coordinates]:
+        raise_response_validation_error("Out of range float values are not JSON compliant", ["responseBody"])
+
     if accept == str(TransformGetAcceptHeaders.wkt.value):
         if len(transformed_coordinates) == 3:
             return PlainTextResponse(
@@ -300,6 +305,7 @@ async def transform(
         )
     else:
         transform_request_body(body, s_crs, t_crs, CRS_LIST)
+        validate_response(body)
         return JSONResponse(
             content=body.model_dump(exclude_none=True),
             headers={"content-crs": format_as_uri(t_crs)},

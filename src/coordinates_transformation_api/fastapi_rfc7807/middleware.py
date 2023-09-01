@@ -7,7 +7,7 @@ from typing import (Any, Awaitable, Callable, Dict, Mapping, Optional,
                     Sequence, Union)
 
 from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
 # from fastapi.openapi.utils import get_openapi
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -49,6 +49,8 @@ class ProblemResponse(Response):
             p = from_http_exception(content)
         elif isinstance(content, RequestValidationError):
             p = from_request_validation_error(content)
+        elif isinstance(content, ResponseValidationError):
+            p = from_response_validation_error(content)
         elif isinstance(content, Exception):
             p = from_exception(content)
         else:
@@ -220,6 +222,28 @@ def from_http_exception(exc: HTTPException) -> Problem:
         detail=exc.detail,
     )
 
+
+def from_response_validation_error(exc: ResponseValidationError) -> Problem:
+    """Create a new Problem instance from a RequestValidationError.
+
+    The Problem will take on a status code of 400 Bad Request, indicating that
+    the user provided data which the server will not process. The title will
+    be "Validation Error". The specifics of which fields failed validation
+    checks are included as additional Problem context.
+
+    Args:
+        exc: The RequestValidationError to convert into a Problem exception.
+
+    Returns:
+         A new Problem instance populated from the RequestValidationError.
+    """
+
+    return Problem(
+        title="Response Validation Error",
+        status=400,
+        detail="The transformed coordinates contain one or more out-of-range float values (inf), which cannot be expressed in GeoJSON", # only error we check for
+        errors=exc.errors(),
+    )
 
 def from_request_validation_error(exc: RequestValidationError) -> Problem:
     """Create a new Problem instance from a RequestValidationError.

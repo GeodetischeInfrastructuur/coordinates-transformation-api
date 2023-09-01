@@ -6,7 +6,7 @@ from typing import Any, Callable, Iterable, Tuple, TypedDict, Union, cast
 from fastapi import Request
 
 import yaml
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from geojson_pydantic import (Feature, FeatureCollection, LineString,
                               MultiLineString, MultiPoint, MultiPolygon, Point,
                               Polygon)
@@ -261,6 +261,25 @@ def get_bbox_from_coordinates(coordinates) -> BBox:
             f"expected length of coordinate tuple is either 2 or 3, got {len(coordinate_tuples)}"
         )
 
+def raise_response_validation_error(message: str, location):
+    raise ResponseValidationError(
+        errors=(
+            ValidationError.from_exception_data(
+                "ValueError",
+                [
+                    InitErrorDetails(
+                        type=PydanticCustomError(
+                            "value-error",
+                            message,
+                        ),
+                        loc=location,
+                        input="",
+                    ),
+                ],
+            )
+        ).errors()
+    )
+
 
 def raise_validation_error(message: str, location):
     raise RequestValidationError(
@@ -348,6 +367,29 @@ def accept_html(request: Request) -> bool:
         if "text/html" in accept_header:
             return True
     return False
+
+
+def validate_response(item: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection):
+    def coords_has_inf(coordinates):
+        gen = (x for x in explode(coordinates) if  abs(x[0]) == float('inf') or abs(x[1]) == float('inf'))
+        return next(gen, None) != None
+
+    if isinstance(item, _GeometryBase) or isinstance(item, GeometryCollection):
+        coordinates = get_coordinates_from_geometry(item)
+    elif isinstance(item, Feature):
+        geometry = cast(Geometry, item.geometry)
+        coordinates = get_coordinates_from_geometry(geometry)
+    elif isinstance(item, FeatureCollection):
+        features: Iterable[Feature] = item.features
+        coordinates = [
+            get_coordinates_from_geometry(cast(Geometry, ft.geometry))
+            for ft in features
+        ]
+
+    has_inf_val = coords_has_inf(coordinates)
+    if has_inf_val:
+        raise_response_validation_error("Out of range float values are not JSON compliant", ["responseBody"])
+
 
 
 def transform_request_body(
