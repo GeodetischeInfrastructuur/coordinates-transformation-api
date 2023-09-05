@@ -489,7 +489,10 @@ def init_oas() -> Tuple[dict, str, str, list[MyCrs]]:
         oas["components"]["parameters"]["target-crs"][
             "description"
         ] = f"Target Coordinate Reference System\n{crs_param_description}"
-        oas["servers"][0]["url"]= app_settings.base_url
+        servers = [
+            {"url":app_settings.base_url}
+        ]
+        oas["servers"] = servers
     api_version = oas["info"]["version"]
     api_title = oas["info"]["title"]
     return (oas, api_title, api_version, crs_list)

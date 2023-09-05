@@ -21,7 +21,7 @@ class AppSettings(BaseSettings):
     )
     precision: int = Field(
         alias="PRECISION",
-        default=2,
+        default=4,
         description="precision for output coordinates in GeoJSON format for CRS in meters, precision for degrees based CRS is PRECISION+5",
     )
     base_url:  str = Field(
