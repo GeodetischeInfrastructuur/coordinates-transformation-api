@@ -4,36 +4,8 @@ info:
   title: Coordinates Transformation API
   version: 2.0.0
   description: >
-    The Coordinates Transformation API is a service for transformation between
-    different coordinate reference systems (CRS), using the official RDNAPTRANS™
+    The Coordinates Transformation API performs coordinate transformations on GeoJSON and CityJSON files using the official RDNAPTRANS™
     transformation procedure.
-
-    Currently supported coordinate reference systems:
-      - 2D RD (EPSG:28992)
-      - 3D RD&NAP (EPSG:7415), which is a compound CRS of RD (EPSG:28992) and
-        NAP (EPSG:5709).
-      - 3D ETRS89 realisation ETRF2000 (EPSG:7931), which has a 2D equivalent
-        (EPSG:9067) and is a member of the datum ensemble 3D ETRS89 (EPSG:4937)
-        with 2D equivalent (EPSG:4258).
-
-    When using the input for (or using the output as) an ITRS realisation like
-    2D WGS84 (EPSG:4326) instead of the ETRS89 realisation 3D ETRF2000
-    (EPSG:7931),this gives an approximation of about 1 metre.
-
-    When the input contains 3D coordinates outside the bounds of the
-    quasi-geoid grid or 2D coordinates, this will result in a 2D transformation
-    for these coordinates.
-
-    Next to the transformation of coordinates, the Transformation API checks
-    the maximum length of line segments. When the input contains line segments
-    longer than allowed for the user specified value for the accepted deviation
-    of long line segments (input property: acceptDeviationLongLineSegments),
-    this will result in a bad request with the following message: "The input
-    contains one or more line segments of more than ___ km. To guarantee an
-    accuracy within the accepted deviation of ___ m for long line segments,
-    this is not allowed. Please insert additional vertices according to the
-    intended trajectory, e.g. a geodesic, a loxodrome, a straight line in RD or
-    a straight line in another map projection."
   contact:
     name: NSGI
     email: info@nsgi.nl
@@ -44,8 +16,9 @@ info:
     - api
     - transformations
 
-servers:
-  - url: http://localhost:8000/
+# inserted in code
+# servers:
+#   - url: ""
 
 paths:
   /:

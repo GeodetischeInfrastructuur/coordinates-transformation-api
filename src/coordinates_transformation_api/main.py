@@ -168,7 +168,7 @@ async def crs(crs_id: str):
 
 @app.get("/conformance", response_model=Conformance)
 async def conformance():
-    return Conformance(conformsTo={"mekker", "blaat"})
+    return Conformance(conformsTo={"https://docs.ogc.org/is/19-072/19-072.html", "https://gitdocumentatie.logius.nl/publicatie/api/adr/"})
 
 
 @app.get("/transform")
