@@ -7,7 +7,7 @@ from typing import Callable, Union
 import uvicorn
 from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geojson_pydantic import Feature
@@ -15,7 +15,10 @@ from geojson_pydantic.geometries import Geometry, GeometryCollection
 from pyproj import network
 
 from coordinates_transformation_api import assets
-from coordinates_transformation_api.callback import get_transform_callback
+from coordinates_transformation_api.callback import (
+    coordinates_type,
+    get_transform_callback,
+)
 from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
 from coordinates_transformation_api.limit_middleware.middleware import (
@@ -26,12 +29,17 @@ from coordinates_transformation_api.models import (
     Conformance,
     Crs,
     CrsFeatureCollection,
+    DensityCheckReport,
+    LandingPage,
+    Link,
     TransformGetAcceptHeaders,
 )
 from coordinates_transformation_api.settings import app_settings
 from coordinates_transformation_api.util import (
-    THREE_DIM,
+    THREE_DIMENSIONAL,
     accept_html,
+    densify_request_body,
+    density_check_request_body,
     extract_authority_code,
     format_as_uri,
     get_precision,
@@ -112,18 +120,11 @@ async def add_api_version(request: Request, call_next: Callable) -> Response:
     return response
 
 
+
+
 @app.get("/openapi", include_in_schema=False)
 @app.get("/openapi.html", include_in_schema=False)
-async def swagger_ui_html() -> Response:
-    return get_swagger_ui_html(
-        openapi_url="/openapi.json",
-        title=f"{API_TITLE} - Swagger UI",
-        swagger_favicon_url="https://www.nsgi.nl/o/iv-kadaster-business-theme/images/favicon.ico",
-    )
-
-
-@app.get("/")
-async def landingpage(
+async def openapi(
     request: Request, format: str = Query(alias="f", default=None)
 ) -> Response:
     if format == "html" or (
@@ -140,6 +141,42 @@ async def landingpage(
             status_code=200,
             media_type="application/json",
         )
+
+
+@app.get("/", response_model=LandingPage)
+async def landingpage():
+    self = Link(
+        title="API Landing Page",
+        rel="self",
+        href=f"{app_settings.base_url}/?f=json",
+        type="application/json",
+    )
+
+    oas = Link(
+        title="Open API Specification as JSON",
+        rel="service-desc",
+        href=f"{app_settings.base_url}/openapi?f=json",
+        type="application/openapi+json",
+    )
+
+    oas_html = Link(
+        title="Open API Specification as HTML",
+        rel="service-desc",
+        href=f"{app_settings.base_url}/openapi?f=html",
+        type="text/html",
+    )
+
+    conformance = Link(
+        title="Conformance Declaration as JSON",
+        rel="http://www.opengis.net/def/rel/ogc/1.0/conformance",
+        href=f"{app_settings.base_url}/conformance",
+        type="application/json",
+    )
+    return LandingPage(
+        title=API_TITLE,
+        description="Landing page describing the capabilities of this service",
+        links=[self, oas, oas_html, conformance],
+    )
 
 
 @app.get("/crss", response_model=list[Crs])
@@ -221,12 +258,14 @@ async def transform(  # noqa: PLR0913
         (x for x in CRS_LIST if x.crs_auth_identifier == target_crs), None
     )
     if target_crs_crs is None:
-        raise ValueError(f"could not instantiate CRS object for CRS: {target_crs}")
+        raise ValueError(
+            f"could not instantiate CRS object for CRS with id {target_crs}"
+        )
     precision = get_precision(target_crs_crs)
 
-    coordinates_list: tuple[float, ...] = tuple(
+    coordinates_list: coordinates_type = list(
         float(x) for x in coordinates.split(",")
-    )
+    )  # convert to list since we do not know dimensionality of coordinates
     callback = get_transform_callback(source_crs, target_crs, precision=precision)
     # TODO: fix following type ignore
     transformed_coordinates = callback(coordinates_list)  # type: ignore
@@ -237,7 +276,7 @@ async def transform(  # noqa: PLR0913
         )
 
     if accept == str(TransformGetAcceptHeaders.wkt.value):
-        if len(transformed_coordinates) == THREE_DIM:
+        if len(transformed_coordinates) == THREE_DIMENSIONAL:
             return PlainTextResponse(
                 f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})",
                 headers={"content-crs": format_as_uri(t_crs)},
@@ -252,6 +291,69 @@ async def transform(  # noqa: PLR0913
             content={"type": "Point", "coordinates": transformed_coordinates},
             headers={"content-crs": format_as_uri(t_crs)},
         )
+
+
+@app.post("/densify", response_model=Union[Feature, CrsFeatureCollection, Geometry], response_model_exclude_none=True)  # type: ignore
+async def densify(
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    source_crs: str = Query(alias="source-crs", default=None),
+    content_crs: str = Header(alias="content-crs", default=None),
+    max_segment_length: int = Query(alias="max-segment-length", default=1000, ge=200),
+):
+    crs_from_body = get_source_crs_body(body)
+
+    if crs_from_body is not None:
+        s_crs = crs_from_body
+    elif crs_from_body is None and source_crs is not None:
+        s_crs = source_crs
+    elif crs_from_body is None and source_crs is None and content_crs is not None:
+        s_crs = content_crs
+    elif isinstance(body, CrsFeatureCollection):
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required in the FeatureCollection request body, the source-crs query parameter or the content-crs header",
+            ("body", "crs", "query", "source-crs", "header", "content-crs"),
+        )
+    else:
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
+            ("query", "source-crs", "header", "content-crs"),
+        )
+    densify_request_body(body, s_crs, max_segment_length)
+    return JSONResponse(
+        content=body.model_dump(exclude_none=True),
+        headers={"content-crs": format_as_uri(s_crs)},
+    )
+
+
+@app.post("/density-check", response_model=DensityCheckReport, response_model_exclude_none=True)  # type: ignore
+async def density_check(
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    source_crs: str = Query(alias="source-crs", default=None),
+    content_crs: str = Header(alias="content-crs", default=None),
+    max_segment_length: int = Query(alias="max-segment-length", default=1000, ge=200),
+):
+    crs_from_body = get_source_crs_body(body)
+
+    if crs_from_body is not None:
+        s_crs = crs_from_body
+    elif crs_from_body is None and source_crs is not None:
+        s_crs = source_crs
+    elif crs_from_body is None and source_crs is None and content_crs is not None:
+        s_crs = content_crs
+    elif isinstance(body, CrsFeatureCollection):
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required in the FeatureCollection request body, the source-crs query parameter or the content-crs header",
+            ("body", "crs", "query", "source-crs", "header", "content-crs"),
+        )
+    else:
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
+            ("query", "source-crs", "header", "content-crs"),
+        )
+
+    report = density_check_request_body(body, s_crs, max_segment_length)
+    result = DensityCheckReport(passes_check=not len(report) > 0, report=report)
+    return result
 
 
 @app.post("/transform", response_model=Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113], response_model_exclude_none=True)  # type: ignore
@@ -319,7 +421,9 @@ async def post_transform(
         )
     else:
         transform_request_body(body, s_crs, t_crs, CRS_LIST)
-        validate_response(body)
+        validate_response(
+            body
+        )  # TODO: replace with try except block - saves an JSON serialization
         return JSONResponse(
             content=body.model_dump(exclude_none=True),
             headers={"content-crs": format_as_uri(t_crs)},

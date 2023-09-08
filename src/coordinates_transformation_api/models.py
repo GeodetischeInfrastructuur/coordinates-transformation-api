@@ -68,6 +68,11 @@ class Conformance(BaseModel):
     conformsTo: list[str] = []  # noqa: N815
 
 
+class DensityCheckReport(BaseModel):
+    passes_check: bool
+    report: Optional[list[tuple[list[int], float]]]
+
+
 class TransformGetAcceptHeaders(Enum):
     json = "application/json"
     wkt = "text/plain"

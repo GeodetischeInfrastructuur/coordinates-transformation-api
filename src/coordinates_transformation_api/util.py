@@ -5,11 +5,16 @@ import re
 from collections.abc import Iterable
 from importlib import resources as impresources
 from itertools import chain
-from typing import Any, Callable, TypedDict, Union, cast
+from typing import Any, Callable, TypedDict, cast
 
 import yaml
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
+from geodense.lib import (  # type: ignore
+    TRANSFORM_CRS,
+    check_density_geometry_coordinates,
+    densify_geometry_coordinates,
+)
 from geojson_pydantic import (
     Feature,
     FeatureCollection,
@@ -35,35 +40,34 @@ from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS
 
 from coordinates_transformation_api import assets
-from coordinates_transformation_api.callback import get_transform_callback
+from coordinates_transformation_api.callback import (
+    get_transform_callback,
+    get_transformer,
+)
 from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.models import Axis, CrsFeatureCollection
 from coordinates_transformation_api.models import Crs as MyCrs
 from coordinates_transformation_api.settings import app_settings
 
-GeojsonGeomNoGeomCollection = Union[
-    Point,
-    MultiPoint,
-    LineString,
-    MultiLineString,
-    Polygon,
-    MultiPolygon,
-]
+GeojsonGeomNoGeomCollection = (
+    Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon
+)
 
-GeojsonCoordinates = Union[
-    Position,
-    PolygonCoords,
-    LineStringCoords,
-    MultiPointCoords,
-    MultiLineStringCoords,
-    MultiPolygonCoords,
-]
+GeojsonCoordinates = (
+    Position
+    | PolygonCoords
+    | LineStringCoords
+    | MultiPointCoords
+    | MultiLineStringCoords
+    | MultiPolygonCoords
+)
 
 
 logger = logging.getLogger(__name__)
 
-TWO_DIM = 2
-THREE_DIM = 3
+coordinates_type = tuple[float, float] | tuple[float, float, float] | list[float]
+TWO_DIMENSIONAL = 2
+THREE_DIMENSIONAL = 3
 
 
 def validate_crs_transformation(
@@ -194,9 +198,9 @@ def get_projs_axis_info(proj_strings) -> list[MyCrs]:
 
 
 def traverse_geojson_coordinates(
-    geojson_coordinates: list[list] | (list[float] | list[int]),
+    geojson_coordinates: list[list] | list[float] | list[int],
     callback: Callable[
-        [tuple[float, float] | (tuple[float, float, float] | list[float])],
+        [coordinates_type],
         tuple[float, ...],
     ],
 ):
@@ -259,10 +263,10 @@ def explode(coords):
 def get_bbox_from_coordinates(coordinates) -> BBox:
     coordinate_tuples = list(zip(*list(explode(coordinates))))
 
-    if len(coordinate_tuples) == TWO_DIM:
+    if len(coordinate_tuples) == TWO_DIMENSIONAL:
         x, y = coordinate_tuples
         return min(x), min(y), max(x), max(y)
-    elif len(coordinate_tuples) == THREE_DIM:
+    elif len(coordinate_tuples) == THREE_DIMENSIONAL:
         x, y, z = coordinate_tuples
         return min(x), min(y), min(z), max(x), max(y), max(z)
     else:
@@ -312,7 +316,7 @@ def raise_validation_error(message: str, location):
 
 
 def get_source_crs_body(
-    body: Feature | (CrsFeatureCollection | (Geometry | GeometryCollection)),
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection | CityjsonV113,
 ) -> str | None:
     if isinstance(body, CrsFeatureCollection) and body.crs is not None:
         source_crs = body.get_crs_auth_code()
@@ -341,7 +345,7 @@ def get_source_crs_body(
 def get_bbox(
     item: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
 ) -> BBox:
-    if isinstance(item, (GeometryCollection, _GeometryBase)):
+    if isinstance(item, (_GeometryBase, GeometryCollection)):
         coordinates = get_coordinates_from_geometry(item)
     elif isinstance(item, Feature):
         geometry = cast(Geometry, item.geometry)
@@ -390,7 +394,7 @@ def validate_response(
         )
         return next(gen, None) is not None
 
-    if isinstance(item, (GeometryCollection, _GeometryBase)):
+    if isinstance(item, (_GeometryBase, GeometryCollection)):
         coordinates = get_coordinates_from_geometry(item)
     elif isinstance(item, Feature):
         geometry = cast(Geometry, item.geometry)
@@ -407,6 +411,93 @@ def validate_response(
         raise_response_validation_error(
             "Out of range float values are not JSON compliant", ["responseBody"]
         )
+
+
+# TODO: add support for geometrycollections, see densify_request_body implementation
+def density_check_request_body(
+    body: Feature | CrsFeatureCollection | Geometry,
+    source_crs: str,
+    max_segment_length: int,
+) -> list[tuple[list[int], float]]:
+    report: list[tuple[list[int], float]] = []
+    transformer = get_transformer(
+        source_crs, TRANSFORM_CRS
+    )  # TODO: fix source_crs, crs from header/param should override crs from featurecollection
+
+    if isinstance(body, Feature):
+        feature = cast(Feature, body)
+        coordinates = getattr(getattr(feature, "geometry", None), "coordinates", None)
+        check_density_geometry_coordinates(
+            coordinates, source_crs, max_segment_length, report, []
+        )
+    elif isinstance(body, _GeometryBase):
+        geom = cast(GeojsonGeomNoGeomCollection, body)
+        check_density_geometry_coordinates(
+            geom.coordinates, source_crs, max_segment_length, report, []
+        )
+    elif isinstance(body, CrsFeatureCollection):
+        fc_body: CrsFeatureCollection = body
+        features: Iterable[Feature] = fc_body.features
+
+        for i, ft in enumerate(features):
+            if ft.geometry is None:
+                raise ValueError(f"feature does not have a geometry, feature: {ft}")
+
+            check_density_geometry_coordinates(
+                ft.geometry.coordinates, transformer, max_segment_length, report, [i]
+            )
+    else:
+        raise ValueError(
+            "Cannot perform density-check on GeometryCollection geometry type"
+        )
+    return report
+
+
+# TODO: check if input body contans only linestring/polygon geometries
+def densify_request_body(
+    body: Feature | CrsFeatureCollection | Geometry,
+    source_crs: str,
+    max_segment_length: int,
+) -> None:
+    """transform coordinates of request body in place
+
+    Args:
+        body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
+        transformer (Transformer): pyproj Transformer object
+    """
+    # TODO: add check for geometry-type, cannot densify on point geometries
+    transformer = get_transformer(
+        source_crs, TRANSFORM_CRS
+    )  # TODO: fix source_crs, crs from header/param should override crs from featurecollection
+
+    def densify_geometry(geometry: Geometry):
+        geoms: list[Geometry] = []
+        if isinstance(geometry, _GeometryBase):
+            geoms = [geometry]
+        elif isinstance(geometry, GeometryCollection):
+            geoms = geometry.geometries
+
+        for g in geoms:
+            g_base = cast(_GeometryBase, g)
+            g_base.coordinates = densify_geometry_coordinates(
+                g_base.coordinates, transformer, max_segment_length, False
+            )
+
+    if isinstance(body, Feature):
+        feature = cast(Feature, body)
+        geom = cast(Geometry, feature.geometry)
+        densify_geometry(geom)
+
+    elif isinstance(body, FeatureCollection):
+        fc_body: CrsFeatureCollection = body
+        features: Iterable[Feature] = fc_body.features
+        for feature in features:
+            geom = cast(Geometry, feature.geometry)
+            densify_geometry(geom)
+
+    elif isinstance(body, (_GeometryBase, GeometryCollection)):
+        geom = cast(GeojsonGeomNoGeomCollection, body)
+        densify_geometry(geom)
 
 
 def transform_request_body(  # noqa: C901

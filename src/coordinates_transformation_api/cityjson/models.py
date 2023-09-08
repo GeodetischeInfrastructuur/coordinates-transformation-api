@@ -1220,9 +1220,9 @@ class CityjsonV113(BaseModel):
         self.remove_duplicate_vertices()
         self.remove_orphan_vertices()
 
-    def update_bbox_each_cityobjects(
+    def update_bbox_each_cityobjects( # noqa: C901, PLR0912
         self: CityjsonV113, addifmissing: bool = False
-    ) -> None:  # noqa: C901, PLR0912
+    ) -> None:
         def recusionvisit(a: CityJSONBoundary, vs: list[int]) -> None:
             for each in a:
                 if isinstance(each, list):
