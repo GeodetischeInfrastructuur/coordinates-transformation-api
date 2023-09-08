@@ -1222,7 +1222,7 @@ class CityjsonV113(BaseModel):
 
     def update_bbox_each_cityobjects(
         self: CityjsonV113, addifmissing: bool = False
-    ) -> None:  # noqa: C901, PLR0912
+    ) -> None:
         def recusionvisit(a: CityJSONBoundary, vs: list[int]) -> None:
             for each in a:
                 if isinstance(each, list):

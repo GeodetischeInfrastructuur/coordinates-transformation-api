@@ -9,20 +9,21 @@ print_message() {
     prepend_newline=${4:-false}
     case "$level" in
     "INFO")
-        color='\033[0;32m'
+        color='\033[1;32m'
         ;;
     "WARNING")
-        color='\033[0;33m'
+        color='\033[1;33m'
         ;;
     "ERROR")
-        color='\033[0;31m'
+        color='\033[1;31m'
         ;;
     *)
-        color='\033[0;37m'
+        color='\033[1;37m'
         ;;
     esac
-    if [[ $prepend_newline == true ]]; then echo ""; fi
-    printf "${color}%s %s\n\033[0;37m" $(printf "${padding_char}%.0s" $(seq 1 "$indent_level")) "pre-commit hook: ${message}"
+    if [[ $prepend_newline == true ]]; then printf '%b\n'; fi
+    printf "${color}%s %s\n\033[0;37m" "$(printf "${padding_char}%.0s" $(seq 1 "$indent_level"))" "pre-commit hook: ${message}"
+    printf '%b\n' # trailing newline
 }
 
 command_available() {
@@ -64,4 +65,4 @@ command_available "prettier"
 print_message "running prettier formatting" 1 "" true
 echo "$FILES" | grep -E ".*\.yaml$" | xargs prettier --ignore-unknown --stdin-filepath
 
-echo "$FILES" | xargs git add
+exit 0

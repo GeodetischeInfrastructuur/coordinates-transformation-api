@@ -50,15 +50,55 @@ GeojsonGeomNoGeomCollection = Union[
     MultiPolygon,
 ]
 
-GeojsonCoordinates = Union[
-    Position,
-    PolygonCoords,
+from geodense.lib import (  # type: ignore
+    TRANSFORM_CRS,
+)
+from geojson_pydantic import (
+    Feature,
+    FeatureCollection,
+    LineString,
+    MultiLineString,
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
+)
+from geojson_pydantic.geometries import Geometry, GeometryCollection, _GeometryBase
+from geojson_pydantic.types import (
+    BBox,
     LineStringCoords,
-    MultiPointCoords,
     MultiLineStringCoords,
+    MultiPointCoords,
     MultiPolygonCoords,
-]
+    PolygonCoords,
+    Position,
+)
+from pydantic import ValidationError
+from pydantic_core import InitErrorDetails, PydanticCustomError
+from pyproj import CRS
 
+from coordinates_transformation_api import assets
+from coordinates_transformation_api.callback import (
+    get_transform_callback,
+    get_transformer,
+)
+from coordinates_transformation_api.cityjson.models import CityjsonV113
+from coordinates_transformation_api.models import Axis, CrsFeatureCollection
+from coordinates_transformation_api.models import Crs as MyCrs
+from coordinates_transformation_api.settings import app_settings
+
+GeojsonGeomNoGeomCollection = (
+    Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon
+)
+
+GeojsonCoordinates = (
+    Position
+    | PolygonCoords
+    | LineStringCoords
+    | MultiPointCoords
+    | MultiLineStringCoords
+    | MultiPolygonCoords
+)
 
 logger = logging.getLogger(__name__)
 
@@ -312,7 +352,7 @@ def raise_validation_error(message: str, location):
 
 
 def get_source_crs_body(
-    body: Feature | (CrsFeatureCollection | (Geometry | GeometryCollection)),
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection | CityjsonV113,
 ) -> str | None:
     if isinstance(body, CrsFeatureCollection) and body.crs is not None:
         source_crs = body.get_crs_auth_code()
@@ -407,6 +447,17 @@ def validate_response(
         raise_response_validation_error(
             "Out of range float values are not JSON compliant", ["responseBody"]
         )
+
+
+# TODO: add support for geometrycollections
+def density_check_request_body(
+    body: Feature | CrsFeatureCollection | Geometry,
+    source_crs: str,
+    max_segment_length: int,
+) -> list[list[list[int] | float]]:
+    get_transformer(
+        source_crs, TRANSFORM_CRS
+    )  # TODO: fix source_crs, crs from header/param should override crs from featurecollection
 
 
 def transform_request_body(  # noqa: C901
