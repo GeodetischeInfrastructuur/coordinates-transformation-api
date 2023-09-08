@@ -1,7 +1,7 @@
 ---
 openapi: 3.0.3
 info:
-  title: Coordinates Transformation API
+  title: NSGI Coordinates Transformation API
   version: 2.0.0
   description: >
     The Coordinates Transformation API performs coordinate transformations on GeoJSON and CityJSON files using the official RDNAPTRANS™
@@ -16,70 +16,66 @@ info:
     - api
     - transformations
 
-# inserted in code
-# servers:
-#   - url: ""
+servers:
+  - url: "" # replaced in code
 
+tags:
+  - name: About
+  - name: CRS
+  - name: Density
+  - name: Transform
 paths:
   /:
     get:
+      operationId: "get-landing-page"
       tags:
-        - Common
-      summary: Landing page
-      description: >
-        Landing page describing what the capabilities are of this
-        service.
+      - About
+      summary: Landing Page
+      description: OGC Common API landing page
       responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/responses/LandingPage"
-            text/html:
-              schema:
-                $ref: "#/components/responses/htmlSchema"
-
-        400:
-          $ref: "#/components/responses/400"
-        406:
-          $ref: "#/components/responses/406"
-        500:
-          $ref: "#/components/responses/500"
-
+          "200":
+            description: OK
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/landingPage"
+                example:
+                  title: My API
+                  description: Landing page describing the capabilities of this API
+                  links:
+                    - title: OGC Common Landing Page
+                      type: application/json
+                      rel: self
+                      href: http://example.com/?f=json
+            headers:
+              api-version:
+                $ref: "#/components/headers/api-version"
   /openapi:
     get:
+      operationId: "get-oas"
       tags:
-        - Common
-      summary: This document
-      description: The Open API Spec document for this service.
-      parameters:
-        - $ref: "#/components/parameters/contentType"
+        - About
+      summary: OAS
+      description: The Open API Specification (OAS) document of this API.
       responses:
-        200:
-          description: OK
-          $ref: "#/components/responses/200"
-          headers:
-            API-Version:
-              $ref: "#/components/headers/API-Version"
-
-        400:
+        "200":
+          $ref: "#/components/responses/200-oas"
+        "400":
           $ref: "#/components/responses/400"
-        406:
+        "406":
           $ref: "#/components/responses/406"
-        500:
+        "500":
           $ref: "#/components/responses/500"
-
   /conformance:
     get:
+      operationId: "get-conformance"
       tags:
-        - Common
+        - About
       summary: Conformance page
       description: >
-        Conformance page describing what the capabilities are of this
-        service.
+        OGC API Common Conformance page describing the capabilities of this API
       responses:
-        200:
+        "200":
           description: OK
           content:
             application/json:
@@ -89,19 +85,22 @@ paths:
               schema:
                 $ref: "#/components/responses/htmlSchema"
           headers:
-            API-Version:
-              $ref: "#/components/headers/API-Version"
+            api-version:
+              $ref: "#/components/headers/api-version"
 
-        400:
+        "400":
           $ref: "#/components/responses/400"
-        406:
+        "406":
           $ref: "#/components/responses/406"
-        500:
+        "500":
           $ref: "#/components/responses/500"
   /crss:
     get:
+      operationId: "get-crss"
+      tags:
+        - CRS
       summary: Get all supported CRSs in the transformation API
-      description: Endpoint that returns all available coordinate reference system (CRS) in the transformation API.
+      description: Get all available coordinate reference system (CRS)
       responses:
         "200":
           description: Successful Response
@@ -112,18 +111,20 @@ paths:
                   $ref: '#/components/schemas/Crs'
                 type: array
                 title: CRS List
-  /crss/{crsId}:
+  /crss/{crs-id}:
     get:
+      operationId: "get-crs"
+      tags:
+      - CRS
       summary: Get a single CRS
       description: >
-        Endpoint that returns a single coordiante reference system (CRS) by `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
+        Endpoint that returns a single coordinate reference system (CRS) by `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
       parameters:
-        - name: "crsId"
+        - name: "crs-id"
           in: path
           required: true
           schema:
             $ref: '#/components/schemas/crs-enum'
-            title: CRS Id
       responses:
         "200":
           description: OK
@@ -131,15 +132,166 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Crs'
-        400:
+        "400":
           $ref: "#/components/responses/400"
-        406:
+        "406":
           $ref: "#/components/responses/406"
-        500:
+        "500":
+          $ref: "#/components/responses/500"
+  /density-check:
+    post:
+      operationId: "post-density-check"
+      tags:
+        - Density
+      summary: >
+        Check density of (multi)polygon and (multi)linestring geometries based on geodesic (ellipsoidal great-circle) distance
+        in ETRS89 (EPSG:4258).
+      description: "Check density of polygon and linestring geometries"
+      parameters:
+        - $ref: "#/components/parameters/source-crs"
+        - $ref: "#/components/parameters/contentCrs"
+        - $ref: "#/components/parameters/maxSegmentLength"
+
+      requestBody:
+        required: true
+        description: |
+          GeoJSON FeatureCollection objects may contain a `crs` member containing a named CRS, to indicate the source-crs. The crs `properties.name` value should conform to the OGC URN scheme:
+          ```
+          "crs": {
+            "type": "name",
+            "properties": {
+              "name": "urn:ogc:def:crs:OGC:1."3":CRS84"
+            }
+          }
+          ```
+          When `crs` is specified in the request body, the `source-crs` query parameter or `content-crs` request header may be omitted.
+          > **Note:** The `crs` member is not part of the [FeatureCollection schema](https://geojson.org/schema/FeatureCollection.json).
+        content:
+          application/json:
+            schema:
+              $ref: https://geojson.org/schema/FeatureCollection.json
+            example:
+              type: FeatureCollection
+              name: lijnen
+              crs:
+                type: name
+                properties:
+                  name: urn:ogc:def:crs:EPSG::28992
+              features:
+                - type: Feature
+                  properties: {}
+                  geometry:
+                    type: LineString
+                    coordinates:
+                      - - 156264.906359842570964
+                        - 601302.588919493253343
+                      - - 165681.964475793502061
+                        - 605544.313164469087496
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/densityCheckReport"
+
+
+          headers:
+            api-version:
+              $ref: "#/components/headers/api-version"
+        "400":
+          $ref: "#/components/responses/400"
+        "406":
+          $ref: "#/components/responses/406"
+        "500":
+          $ref: "#/components/responses/500"
+
+  /densify:
+    post:
+      operationId: "post-densify"
+      tags:
+        - Density
+      summary: >
+        Densify geometries using the geodetic great circle calculation for accurate CRS transformations.
+      description: >
+        A POST endpoint that accepts a GeoJSON object and densifies the geometries using the `max-segment-length` threshold.
+      parameters:
+        - $ref: "#/components/parameters/source-crs"
+        - $ref: "#/components/parameters/contentCrs"
+        - $ref: "#/components/parameters/maxSegmentLength"
+
+      requestBody:
+        required: true
+        description: |
+          GeoJSON FeatureCollection objects may contain a `crs` member containing a named CRS, to indicate the source-crs. The crs `properties.name` value should conform to the OGC URN scheme:
+          ```
+          "crs": {
+            "type": "name",
+            "properties": {
+              "name": "urn:ogc:def:crs:OGC:1."3":CRS84"
+            }
+          }
+          ```
+          > **Note:** The `crs` member is not part of the [FeatureCollection schema](https://geojson.org/schema/FeatureCollection.json).
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: https://geojson.org/schema/Feature.json
+                - $ref: https://geojson.org/schema/FeatureCollection.json
+                - $ref: https://geojson.org/schema/Geometry.json
+                - $ref: https://geojson.org/schema/GeometryCollection.json
+            example:
+              type: Feature
+              properties:
+                id: 1
+              geometry:
+                type: LineString
+                coordinates:
+                  - - 156264.90635984257
+                    - 601302.5889194933
+                  - - 165681.9644757935
+                    - 605544.3131644691
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: https://geojson.org/schema/FeatureCollection.json
+              example:
+                type: FeatureCollection
+                name: lijnen
+                crs:
+                  type: name
+                  properties:
+                    name: urn:ogc:def:crs:EPSG::28992
+                features:
+                  - type: Feature
+                    properties: {}
+                    geometry:
+                      type: LineString
+                      coordinates:
+                        - - 156264.906359842570964
+                          - 601302.588919493253343
+                        - - 165681.964475793502061
+                          - 605544.313164469087496
+          headers:
+            api-version:
+              $ref: "#/components/headers/api-version"
+            Content-crs:
+              $ref: "#/components/headers/content-crs"
+
+        "400":
+          $ref: "#/components/responses/400"
+        "406":
+          $ref: "#/components/responses/406"
+        "500":
           $ref: "#/components/responses/500"
 
   /transform:
     get:
+      operationId: "get-transform"
       tags:
         - Transform
       summary: >
@@ -156,38 +308,43 @@ paths:
         or the headers. When both are provided then the query parameters takes precedence.
       parameters:
         - $ref: "#/components/parameters/source-crs"
-          default: EPSG:28992
         - $ref: "#/components/parameters/target-crs"
         - $ref: "#/components/parameters/contentCrs"
         - $ref: "#/components/parameters/acceptCrs"
         - $ref: "#/components/parameters/coordinates"
       responses:
-        200:
+        "200":
           description: OK
           content:
             application/json:
               schema:
                 $ref: https://geojson.org/schema/Point.json
-              example: >
-                {"type": "Point", "coordinates": [52.763875, 4.069801, 115.904857]}
+              example:
+                type: Point
+                coordinates:
+                - 52.763875
+                - 4.069801
+                - 115.904857
             text/plain:
               schema:
-                $ref: "#/components/responses/wktSchema"
-              example: "POINT Z (52.763875 4.069801 115.904857)"
+                type: string
+                example: "POINT Z (52.763875 4.069801 115.904857)"
+                description: WKT representation of a point as POINT (...) or POINT Z (...)
           headers:
-            API-Version:
-              $ref: "#/components/headers/API-Version"
+            api-version:
+              $ref: "#/components/headers/api-version"
             Content-crs:
-              $ref: "#/components/parameters/contentCrs"
+              $ref: "#/components/headers/content-crs"
 
-        400:
+        "400":
           $ref: "#/components/responses/400"
-        406:
+        "406":
           $ref: "#/components/responses/406"
-        500:
+        "500":
           $ref: "#/components/responses/500"
 
     post:
+      operationId: "post-transform"
       tags:
         - Transform
       summary: >
@@ -228,10 +385,18 @@ paths:
                 - $ref: https://geojson.org/schema/FeatureCollection.json
                 - $ref: https://geojson.org/schema/Geometry.json
                 - $ref: https://geojson.org/schema/GeometryCollection.json
-            example: >
-              {"type": "Feature", "geometry": {"type": "Point", "coordinates": [66080.2628, 531539.0239, 73.2384]}, "properties": {"id": 1}}
+              example:
+                type: Feature
+                geometry:
+                  type: Point
+                  coordinates:
+                  - 66080.2628
+                  - 531539.0239
+                  - 73.2384
+                properties:
+                  id: 1
       responses:
-        200:
+        "200":
           description: OK
           content:
             application/json:
@@ -241,27 +406,42 @@ paths:
                   - $ref: https://geojson.org/schema/FeatureCollection.json
                   - $ref: https://geojson.org/schema/Geometry.json
                   - $ref: https://geojson.org/schema/GeometryCollection.json
-              example: >
-                {"type": "Feature", "geometry": {"type": "Point", "coordinates": [52.763875, 4.069801, 115.904857]}, "properties": {"id": 1}}
-          headers:
-            API-Version:
-              $ref: "#/components/headers/API-Version"
-            Content-crs:
-              $ref: "#/components/parameters/contentCrs"
+              example:
+                type: Feature
+                geometry:
+                  type: Point
+                  coordinates:
+                  - 52.763875
+                  - 4.069801
+                  - 115.904857
+                properties:
+                  id: 1
 
-        400:
+
+          headers:
+            api-version:
+              $ref: "#/components/headers/api-version"
+            Content-crs:
+              $ref: "#/components/headers/content-crs"
+
+        "400":
           $ref: "#/components/responses/400"
-        406:
+        "406":
           $ref: "#/components/responses/406"
-        500:
+        "500":
           $ref: "#/components/responses/500"
 
 components:
   headers:
-    API-Version:
+    api-version:
       description: Open API Specification version number
       schema:
         type: string
+    content-crs:
+      description: Source CRS
+      schema:
+        type: string
+
 
   parameters:
     source-crs:
@@ -309,8 +489,8 @@ components:
       in: header
       name: content-crs
       required: false
+      example: EPSG:7415
       schema:
-        default: EPSG:7415
         $ref: "#/components/schemas/crs-enum"
 
     acceptCrs:
@@ -318,20 +498,36 @@ components:
       in: header
       name: accept-crs
       required: false
+      example: EPSG:7931
       schema:
-        default: EPSG:7931
         $ref: "#/components/schemas/crs-enum"
 
+    maxSegmentLength:
+      description: Maximum segment length for densify and density-check
+      in: query
+      name: max-segment-length
+      required: false
+      schema:
+        default: 1000
+        type: number
+        minimum: 200
   responses:
-    "200":
-      description: Bad request. The request body does not contain valid GeoJSON or the query is not supported by the API.
+    "200-oas":
+      description: OK
       content:
-        application/problem+json:
+        application/openapi+json:
           schema:
-            $ref: "#/components/schemas/Error"
+        text/html:
+          schema:
       headers:
-        API-Version:
-          $ref: "#/components/headers/API-Version"
+        api-version:
+          $ref: "#/components/headers/api-version"
+
+    # "200":
+    #   description: OK
+    #   headers:
+    #     api-version:
+    #       $ref: "#/components/headers/api-version"
     "400":
       description: Bad request. The request body does not contain valid GeoJSON or the query is not supported by the API.
       content:
@@ -339,9 +535,8 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
       headers:
-        API-Version:
-          $ref: "#/components/headers/API-Version"
-
+        api-version:
+          $ref: "#/components/headers/api-version"
     "406":
       description: Not Acceptable. Currently the API can only return `application/json`
       content:
@@ -349,8 +544,8 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
       headers:
-        API-Version:
-          $ref: "#/components/headers/API-Version"
+        api-version:
+          $ref: "#/components/headers/api-version"
 
     "500":
       description: An internal error occurred in the server
@@ -359,36 +554,14 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
       headers:
-        API-Version:
-          $ref: "#/components/headers/API-Version"
+        api-version:
+          $ref: "#/components/headers/api-version"
 
-    LandingPage:
-      description: |-
-        The landing page provides links to the API definition
-        (link relations `service-desc` and `service-doc`),
-        the Conformance declaration (path `/conformance`,
-        link relation `conformance`), and the Coordinate
-        Transformation (path `/transform`, link relation
-        `transform`).
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/landingPage"
-      headers:
-        API-Version:
-          $ref: "#/components/headers/API-Version"
 
     htmlSchema:
       description: HTML representation
-      headers:
-        API-Version:
-          $ref: "#/components/headers/API-Version"
 
-    wktSchema:
-      description: WKT representation of a point as POINT (...) or POINT Z (...)
-      headers:
-        API-Version:
-          $ref: "#/components/headers/API-Version"
+
 
     ConformanceDeclaration:
       description: |-
@@ -398,13 +571,13 @@ components:
         OGC API Features implementations - and not "just" a specific
         API / server, the server declares the conformance
         classes it implements and conforms to.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/confClasses"
-      headers:
-        API-Version:
-          $ref: "#/components/headers/API-Version"
+      # content:
+      #   application/json:
+      #     schema:
+      #       $ref: "#/components/schemas/confClasses"
+      # headers:
+      #   api-version:
+      #     $ref: "#/components/headers/api-version"
 
   schemas:
     Axis:
@@ -450,7 +623,6 @@ components:
           title: Type Name
         crs_auth_identifier:
           $ref: "#/components/schemas/crs-enum"
-          title: CRS Auth Identifier
         authority:
           type: string
           title: Authority
@@ -470,6 +642,29 @@ components:
         - identifier
         - axes
       title: CRS
+      example:
+        name: Amersfoort / RD New
+        type_name: Projected CRS
+        crs_auth_identifier: EPSG:28992
+        authority: EPSG
+        identifier: "28992"
+        axes:
+          - name: Easting
+            abbrev: X
+            direction: east
+            unit_conversion_factor: 1
+            unit_name: metre
+            unit_auth_code: EPSG
+            unit_code: "9001"
+          - name: Northing
+            abbrev: "Y"
+            direction: north
+            unit_conversion_factor: 1
+            unit_name: metre
+            unit_auth_code: EPSG
+            unit_code: "9001"
+        nr_of_dimensions: 2
+
     crs-enum:
       type: string
       enum:
@@ -482,6 +677,7 @@ components:
         - EPSG:3857
         - OGC:CRS84
         - EPSG:9928
+      example: EPSG:28992
 
     coords:
       type: array
@@ -492,6 +688,27 @@ components:
       maxItems: 3
       default: [66080.2628, 531539.0239, 73.2384]
 
+    densityCheckReport:
+      type: object
+      properties:
+        checkPassed:
+          type: boolean
+        report:
+          type: array
+          items:
+            type: array
+            items:
+              anyOf:
+                - type: array
+                  items:
+                    type: integer
+                - type: number
+      example:
+                passesCheck: false
+                featuresReport:
+                  - - - 0
+                      - 0
+                    - 10327.96658923969
     landingPage:
       type: object
       required:
@@ -508,7 +725,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/link"
-
     link:
       type: object
       required:
@@ -533,16 +749,16 @@ components:
         length:
           type: integer
 
-    confClasses:
-      type: object
-      required:
-        - conformsTo
-      properties:
-        conformsTo:
-          type: array
-          items:
-            type: string
-            example: "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core"
+    # confClasses:
+    #   type: object
+    #   required:
+    #     - conformsTo
+    #   properties:
+    #     conformsTo:
+    #       type: array
+    #       items:
+    #         type: string
+    #         example: "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core"
 
     Error:
       type: object

@@ -29,9 +29,7 @@ class ProblemResponse(Response):
 
     media_type: str = "application/problem+json"
 
-    def __init__(
-        self: "ProblemResponse", *args, debug: bool = False, **kwargs
-    ) -> None:  # noqa: ANN002, ANN003
+    def __init__(self: "ProblemResponse", *args, debug: bool = False, **kwargs) -> None:
         self.debug: bool = debug
         super().__init__(*args, **kwargs)
 
@@ -450,7 +448,7 @@ def register(
     #     # Override the built-in OpenAPI docs generator with the wrapper.
     #     # This allows the RFC7807 Problem schema to be added in, so it can be
     #     # referenced in API route metadata.
-    #     def wrap_openapi() -> Dict:
+    #     def wrap_openapi() -> dict:
     #         if not app.openapi_schema:
     #             app.openapi_schema = get_openapi(
     #                 title=app.title,

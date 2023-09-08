@@ -4,7 +4,9 @@ from coordinates_transformation_api.models import CrsFeatureCollection
 from coordinates_transformation_api.util import init_oas, transform_request_body
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection, parse_geometry_obj
-from pydantic_core import ValidationError
+from pydantic import ValidationError
+
+from tests.util import not_raises
 
 _, _, _, CRS_LIST = init_oas()
 
@@ -36,12 +38,8 @@ def test_transform_geometry():
 
         # check if input is actually transformed
         assert geometry != geometry_original
-        try:
+        with not_raises(ValidationError, "could not convert output of transform_request_body to type Geometry: {exc}"):
             parse_geometry_obj(geometry_dict)
-        except ValidationError as exc:
-            raise AssertionError(
-                f"could not convert output of transform_request_body to type Geometry: {exc}"
-            ) from exc
 
 
 def test_transform_feature_geometrycollection():
@@ -55,12 +53,8 @@ def test_transform_feature_geometrycollection():
         feature_dict = json.loads(feature.model_dump_json())
         # check if input is actually transformed
         assert feature != feature_original
-        try:
+        with not_raises(ValidationError, "could not convert output of transform_request_body to type Feature: {exc}"):
             Feature(**feature_dict)
-        except ValidationError as exc:
-            raise AssertionError(
-                f"could not convert output of transform_request_body to type Feature: {exc}"
-            ) from exc
 
 
 def test_transform_feature():
@@ -72,12 +66,8 @@ def test_transform_feature():
         feature_dict = json.loads(feature.model_dump_json())
         # check if input is actually transformed
         assert feature != feature_original
-        try:
+        with not_raises(ValidationError, "could not convert output of transform_request_body to type Feature: {exc}"):
             Feature(**feature_dict)
-        except ValidationError as exc:
-            raise AssertionError(
-                f"could not convert output of transform_request_body to type Feature: {exc}"
-            ) from exc
 
 
 def test_transform_featurecollection():
@@ -91,12 +81,8 @@ def test_transform_featurecollection():
         assert fc != fc_original
         # check if crs is updated in transformed output
         assert fc.crs.properties.name != fc_original.crs.properties.name
-        try:
+        with not_raises(ValidationError, "could not convert output of transform_request_body to type CrsFeatureCollection: {exc}"):
             CrsFeatureCollection(**fc_dict)
-        except ValidationError as exc:
-            raise AssertionError(
-                f"could not convert output of transform_request_body to type CrsFeatureCollection: {exc}"
-            ) from exc
 
 
 def test_transform_featurecollection_geometrycollection():
@@ -110,12 +96,8 @@ def test_transform_featurecollection_geometrycollection():
         fc_dict = json.loads(fc.model_dump_json())
         # check if input is actually transformed
         assert fc != fc_original
-        try:
+        with not_raises(ValidationError, "could not convert output of transform_request_body to type CrsFeatureCollection: {exc}"):
             CrsFeatureCollection(**fc_dict)
-        except ValidationError as exc:
-            raise AssertionError(
-                f"could not convert output of transform_request_body to type CrsFeatureCollection: {exc}"
-            ) from exc
 
 
 def test_transform_geometrycollection():
@@ -128,9 +110,5 @@ def test_transform_geometrycollection():
         gc_dict = json.loads(gc.model_dump_json())
         # check if input is actually transformed
         assert gc != gc_original
-        try:  # check if output type of transform_request_body equals input type
+        with not_raises(ValidationError, "could not convert output of transform_request_body to type GeometryCollection: {exc}"):
             GeometryCollection(**gc_dict)
-        except ValidationError as exc:
-            raise AssertionError(
-                f"could not convert output of transform_request_body to type GeometryCollection: {exc}"
-            ) from exc
