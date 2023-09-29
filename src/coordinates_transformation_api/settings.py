@@ -24,11 +24,11 @@ class AppSettings(BaseSettings):
         default=4,
         description="precision for output coordinates in GeoJSON format for CRS in meters, precision for degrees based CRS is PRECISION+5",
     )
-    base_url:  str = Field(
+    base_url: str = Field(
         alias="BASE_URL",
         default="http://localhost:8000",
         description="base url on wich the API is served",
-        pattern="^((https?:\/\/)?[\w-]+(\.[\w-]+)*\.?(:\d+)?(\/\S*)?)" # adapted from https://codegolf.stackexchange.com/a/480
+        pattern=r"^((https?:\/\/)?[\w-]+(\.[\w-]+)*\.?(:\d+)?(\/\S*)?)",  # adapted from https://codegolf.stackexchange.com/a/480
     )
 
 

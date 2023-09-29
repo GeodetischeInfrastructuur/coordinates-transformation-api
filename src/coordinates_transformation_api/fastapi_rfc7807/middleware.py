@@ -3,11 +3,12 @@ import asyncio
 import http
 import json
 import logging
-from typing import (Any, Awaitable, Callable, Dict, Mapping, Optional,
-                    Sequence, Union)
+from collections.abc import Awaitable, Mapping, Sequence
+from typing import Any, Callable, Optional, Union
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
+
 # from fastapi.openapi.utils import get_openapi
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -28,20 +29,22 @@ class ProblemResponse(Response):
 
     media_type: str = "application/problem+json"
 
-    def __init__(self, *args, debug: bool = False, **kwargs) -> None:
+    def __init__(
+        self: "ProblemResponse", *args, debug: bool = False, **kwargs
+    ) -> None:  # noqa: ANN002, ANN003
         self.debug: bool = debug
-        super(ProblemResponse, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def init_headers(self, headers: Mapping[str, str] = None) -> None:  # type: ignore
+    def init_headers(self: "ProblemResponse", headers: Optional[Mapping[str, str]] = None) -> None:  # type: ignore
         h = dict(headers) if headers else {}
         if hasattr(self, "problem") and self.problem.headers:
             h.update(self.problem.headers)
 
-        super(ProblemResponse, self).init_headers(h)
+        super().init_headers(h)
 
-    def render(self, content: Any) -> bytes:
+    def render(self: "ProblemResponse", content: Any) -> bytes:  # noqa: ANN401
         """Render the provided content as an RFC-7807 Problem JSON-serialized bytes."""
-        if isinstance(content, Problem):
+        if isinstance(content, ProblemError):
             p = content
         elif isinstance(content, dict):
             p = from_dict(content)
@@ -58,7 +61,7 @@ class ProblemResponse(Response):
                 f"Got unexpected content when trying to generate error response. Content: {content}"
             )
             if app_settings.debug:  # if debug
-                p = Problem(
+                p = ProblemError(
                     status=500,
                     title="Application Error",
                     detail="Got unexpected content when trying to generate error response",
@@ -77,7 +80,7 @@ class ProblemResponse(Response):
         return p.to_bytes()
 
 
-class Problem(Exception):
+class ProblemError(Exception):
     """An RFC 7807 Problem exception.
 
     This models a "problem" as defined in RFC 7807 (https://tools.ietf.org/html/rfc7807).
@@ -93,29 +96,28 @@ class Problem(Exception):
     more granular control over how/when values are set.
     """
 
-    headers: Dict[str, str] = {}
-
-    def __init__(
-        self,
+    def __init__(  # noqa: PLR0913
+        self: "ProblemError",
         type: Optional[str] = None,
         title: Optional[str] = None,
         status: Optional[int] = None,
         detail: Optional[str] = None,
         instance: Optional[str] = None,
-        **kwargs,
+        **kwargs,  # noqa: ANN003
     ) -> None:
         self.type: str = type or "about:blank"
         self.status: int = status or 500
         self.title: str = title or http.HTTPStatus(self.status).phrase
         self.detail: Optional[str] = detail
         self.instance: Optional[str] = instance
-        self.kwargs: Dict = kwargs
+        self.kwargs: dict = kwargs
+        self.headers: dict[str, str] = {}
 
         # The debug flag determines whether or not the response JSON is pretty-printed,
         # making it easier for humans to read while debugging.
         self.debug: bool = False
 
-    def to_bytes(self) -> bytes:
+    def to_bytes(self: "ProblemError") -> bytes:
         """Render the Problem as JSON-serialized bytes.
 
         Returns:
@@ -137,7 +139,7 @@ class Problem(Exception):
                 separators=(",", ":"),
             ).encode("utf-8")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self: "ProblemError") -> dict[str, Any]:
         """Get a dictionary representation of the Problem response.
 
         Returns:
@@ -163,19 +165,19 @@ class Problem(Exception):
             d["instance"] = str(self.instance)
         return d
 
-    def __str__(self) -> str:
+    def __str__(self: "ProblemError") -> str:
         return str(f"Problem:<{self.to_dict()}>")
 
-    def __repr__(self) -> str:
+    def __repr__(self: "ProblemError") -> str:
         return str(self)
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Problem):
+    def __eq__(self: "ProblemError", other: object) -> bool:
+        if not isinstance(other, ProblemError):
             return False
         return self.__dict__ == other.__dict__
 
 
-def from_dict(data: Dict[str, Any]) -> Problem:
+def from_dict(data: dict[str, Any]) -> ProblemError:
     """Create a new Problem instance from a dictionary.
 
     This uses the dictionary as keyword arguments for the Problem constructor.
@@ -190,21 +192,21 @@ def from_dict(data: Dict[str, Any]) -> Problem:
     Returns:
         A new Problem instance populated from the dictionary fields.
     """
-    return Problem(
+    return ProblemError(
         **data,
     )
 
 
-def get_prod_500_problem() -> Problem:
+def get_prod_500_problem() -> ProblemError:
     """Create a HTTP 500 problem response for production use, to not leak implementation details to the client
 
     Returns:
         Problem: HTTP 500 Problem
     """
-    return Problem(title="Internal Server Error", status=500, type="about:blank")
+    return ProblemError(title="Internal Server Error", status=500, type="about:blank")
 
 
-def from_http_exception(exc: HTTPException) -> Problem:
+def from_http_exception(exc: HTTPException) -> ProblemError:
     """Create a new Problem instance from an HTTPException.
 
     The Problem will take on the status code of the HTTPException and generate
@@ -217,13 +219,13 @@ def from_http_exception(exc: HTTPException) -> Problem:
     Returns:
         A new Problem instance populated from the HTTPException.
     """
-    return Problem(
+    return ProblemError(
         status=exc.status_code,
         detail=exc.detail,
     )
 
 
-def from_response_validation_error(exc: ResponseValidationError) -> Problem:
+def from_response_validation_error(exc: ResponseValidationError) -> ProblemError:
     """Create a new Problem instance from a RequestValidationError.
 
     The Problem will take on a status code of 400 Bad Request, indicating that
@@ -238,14 +240,15 @@ def from_response_validation_error(exc: ResponseValidationError) -> Problem:
          A new Problem instance populated from the RequestValidationError.
     """
 
-    return Problem(
+    return ProblemError(
         title="Response Validation Error",
         status=400,
-        detail="The transformed coordinates contain one or more out-of-range float values (inf), which cannot be expressed in GeoJSON", # only error we check for
+        detail="The transformed coordinates contain one or more out-of-range float values (inf), which cannot be expressed in GeoJSON",  # only error we check for
         errors=exc.errors(),
     )
 
-def from_request_validation_error(exc: RequestValidationError) -> Problem:
+
+def from_request_validation_error(exc: RequestValidationError) -> ProblemError:
     """Create a new Problem instance from a RequestValidationError.
 
     The Problem will take on a status code of 400 Bad Request, indicating that
@@ -260,7 +263,7 @@ def from_request_validation_error(exc: RequestValidationError) -> Problem:
          A new Problem instance populated from the RequestValidationError.
     """
 
-    return Problem(
+    return ProblemError(
         title="Validation Error",
         status=400,
         detail="One or more user-provided parameters are invalid",
@@ -268,7 +271,7 @@ def from_request_validation_error(exc: RequestValidationError) -> Problem:
     )
 
 
-def from_exception(exc: Exception) -> Problem:
+def from_exception(exc: Exception) -> ProblemError:
     """Create a new Problem instance from a broad-class Exception.
 
     Converting a general Exception into a Problem is indicative of a server
@@ -291,7 +294,7 @@ def from_exception(exc: Exception) -> Problem:
     """
     logger.exception(exc, stack_info=True)
     if app_settings.debug:
-        return Problem(
+        return ProblemError(
             title="Unexpected Server Error",
             status=500,
             detail=str(exc),
@@ -342,7 +345,7 @@ def get_exception_handler(
 
 
 async def exec_hooks(
-    hooks: Optional[Sequence[Union[PreHook, PostHook]]], *args
+    hooks: Optional[Sequence[Union[PreHook, PostHook]]], *args  # noqa: ANN002
 ) -> None:
     """Helper function to execute hooks, if any are defined.
 
@@ -362,7 +365,7 @@ def register(
     app: FastAPI,
     pre_hooks: Optional[Sequence[PreHook]] = None,
     post_hooks: Optional[Sequence[PostHook]] = None,
-    add_schema: Union[str, bool] = False,
+    add_schema: Union[str, bool] = False,  # noqa: ARG001
 ) -> None:
     """Register the FastAPI RFC7807 middleware with a FastAPI application instance.
 
@@ -482,7 +485,7 @@ class ProblemMiddleware:
     """
 
     def __init__(
-        self,
+        self: "ProblemMiddleware",
         app: ASGIApp,
         debug: bool = False,
         pre_hooks: Optional[Sequence[PreHook]] = None,
@@ -502,7 +505,9 @@ class ProblemMiddleware:
         )
 
     # See: starlette.middleware.errors.ServerErrorMiddleware
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self: "ProblemMiddleware", scope: Scope, receive: Receive, send: Send
+    ) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return

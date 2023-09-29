@@ -1,36 +1,45 @@
 from __future__ import annotations
+
+import logging
 import re
+from collections.abc import Iterable
 from importlib import resources as impresources
 from itertools import chain
-from typing import Any, Callable, Iterable, Tuple, TypedDict, Union, cast
-from fastapi import Request
+from typing import Any, Callable, TypedDict, Union, cast
 
 import yaml
+from fastapi import Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
-from geojson_pydantic import (Feature, FeatureCollection, LineString,
-                              MultiLineString, MultiPoint, MultiPolygon, Point,
-                              Polygon)
-from geojson_pydantic.geometries import (Geometry, GeometryCollection,
-                                         _GeometryBase)
-from geojson_pydantic.types import (BBox, LineStringCoords,
-                                    MultiLineStringCoords, MultiPointCoords,
-                                    MultiPolygonCoords, PolygonCoords,
-                                    Position)
+from geojson_pydantic import (
+    Feature,
+    FeatureCollection,
+    LineString,
+    MultiLineString,
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
+)
+from geojson_pydantic.geometries import Geometry, GeometryCollection, _GeometryBase
+from geojson_pydantic.types import (
+    BBox,
+    LineStringCoords,
+    MultiLineStringCoords,
+    MultiPointCoords,
+    MultiPolygonCoords,
+    PolygonCoords,
+    Position,
+)
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
-from pyproj import CRS, Transformer
+from pyproj import CRS
+
+from coordinates_transformation_api import assets
 from coordinates_transformation_api.callback import get_transform_callback
-
-from coordinates_transformation_api.models import Axis
-from coordinates_transformation_api.models import Crs as MyCrs
-from coordinates_transformation_api.models import CrsFeatureCollection
-from coordinates_transformation_api.settings import app_settings
-
-
-from typing import TYPE_CHECKING
-
 from coordinates_transformation_api.cityjson.models import CityjsonV113
-
+from coordinates_transformation_api.models import Axis, CrsFeatureCollection
+from coordinates_transformation_api.models import Crs as MyCrs
+from coordinates_transformation_api.settings import app_settings
 
 GeojsonGeomNoGeomCollection = Union[
     Point,
@@ -50,26 +59,26 @@ GeojsonCoordinates = Union[
     MultiPolygonCoords,
 ]
 
-import logging
-
-from coordinates_transformation_api import assets
 
 logger = logging.getLogger(__name__)
+
+TWO_DIM = 2
+THREE_DIM = 3
 
 
 def validate_crs_transformation(
     source_crs, target_crs, projections_axis_info: list[MyCrs]
 ):
-    source_crs_dims = [
+    source_crs_dims = next(
         crs.nr_of_dimensions
         for crs in projections_axis_info
         if crs.crs_auth_identifier == source_crs
-    ][0]
-    target_crs_dims = [
+    )
+    target_crs_dims = next(
         crs.nr_of_dimensions
         for crs in projections_axis_info
         if crs.crs_auth_identifier == target_crs
-    ][0]
+    )
 
     if source_crs_dims < target_crs_dims:
         raise RequestValidationError(
@@ -94,11 +103,11 @@ def validate_crs_transformation(
 def validate_coords_source_crs(
     coordinates, source_crs, projections_axis_info: list[MyCrs]
 ):
-    source_crs_dims = [
+    source_crs_dims = next(
         crs.nr_of_dimensions
         for crs in projections_axis_info
         if crs.crs_auth_identifier == source_crs
-    ][0]
+    )
     if source_crs_dims != len(coordinates.split(",")):
         raise RequestValidationError(
             errors=(
@@ -185,9 +194,9 @@ def get_projs_axis_info(proj_strings) -> list[MyCrs]:
 
 
 def traverse_geojson_coordinates(
-    geojson_coordinates: Union[list[list], list[float], list[int]],
+    geojson_coordinates: list[list] | (list[float] | list[int]),
     callback: Callable[
-        [Union[tuple[float, float], tuple[float, float, float], list[float]]],
+        [tuple[float, float] | (tuple[float, float, float] | list[float])],
         tuple[float, ...],
     ],
 ):
@@ -200,7 +209,7 @@ def traverse_geojson_coordinates(
     Returns:
         GeoJSON coordinates object
     """
-    if all(isinstance(x, float) or isinstance(x, int) for x in geojson_coordinates):
+    if all(isinstance(x, (float, int)) for x in geojson_coordinates):
         return callback(cast(list[float], geojson_coordinates))
     else:
         coords = cast(list[list], geojson_coordinates)
@@ -244,22 +253,23 @@ def explode(coords):
             yield coords
             break
         else:
-            for f in explode(e):
-                yield f
+            yield from explode(e)
 
 
 def get_bbox_from_coordinates(coordinates) -> BBox:
     coordinate_tuples = list(zip(*list(explode(coordinates))))
-    if len(coordinate_tuples) == 2:
+
+    if len(coordinate_tuples) == TWO_DIM:
         x, y = coordinate_tuples
         return min(x), min(y), max(x), max(y)
-    elif len(coordinate_tuples) == 3:
+    elif len(coordinate_tuples) == THREE_DIM:
         x, y, z = coordinate_tuples
         return min(x), min(y), min(z), max(x), max(y), max(z)
     else:
         raise ValueError(
             f"expected length of coordinate tuple is either 2 or 3, got {len(coordinate_tuples)}"
         )
+
 
 def raise_response_validation_error(message: str, location):
     raise ResponseValidationError(
@@ -302,7 +312,7 @@ def raise_validation_error(message: str, location):
 
 
 def get_source_crs_body(
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection]
+    body: Feature | (CrsFeatureCollection | (Geometry | GeometryCollection)),
 ) -> str | None:
     if isinstance(body, CrsFeatureCollection) and body.crs is not None:
         source_crs = body.get_crs_auth_code()
@@ -331,7 +341,7 @@ def get_source_crs_body(
 def get_bbox(
     item: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
 ) -> BBox:
-    if isinstance(item, _GeometryBase) or isinstance(item, GeometryCollection):
+    if isinstance(item, (GeometryCollection, _GeometryBase)):
         coordinates = get_coordinates_from_geometry(item)
     elif isinstance(item, Feature):
         geometry = cast(Geometry, item.geometry)
@@ -362,19 +372,25 @@ def get_coordinates_from_geometry(
 
 
 def accept_html(request: Request) -> bool:
-    if "accept" in request.headers.keys():
+    if "accept" in request.headers:
         accept_header = request.headers["accept"]
         if "text/html" in accept_header:
             return True
     return False
 
 
-def validate_response(item: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection):
+def validate_response(
+    item: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection,
+):
     def coords_has_inf(coordinates):
-        gen = (x for x in explode(coordinates) if  abs(x[0]) == float('inf') or abs(x[1]) == float('inf'))
-        return next(gen, None) != None
+        gen = (
+            x
+            for x in explode(coordinates)
+            if abs(x[0]) == float("inf") or abs(x[1]) == float("inf")
+        )
+        return next(gen, None) is not None
 
-    if isinstance(item, _GeometryBase) or isinstance(item, GeometryCollection):
+    if isinstance(item, (GeometryCollection, _GeometryBase)):
         coordinates = get_coordinates_from_geometry(item)
     elif isinstance(item, Feature):
         geometry = cast(Geometry, item.geometry)
@@ -388,15 +404,16 @@ def validate_response(item: Feature | CrsFeatureCollection | _GeometryBase | Geo
 
     has_inf_val = coords_has_inf(coordinates)
     if has_inf_val:
-        raise_response_validation_error("Out of range float values are not JSON compliant", ["responseBody"])
+        raise_response_validation_error(
+            "Out of range float values are not JSON compliant", ["responseBody"]
+        )
 
 
-
-def transform_request_body(
+def transform_request_body(  # noqa: C901
     body: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection,
     source_crs: str,
-    target_crs :str,
-    csr_list: list[MyCrs]
+    target_crs: str,
+    csr_list: list[MyCrs],
 ) -> None:
     """transform coordinates of request body in place
 
@@ -405,7 +422,9 @@ def transform_request_body(
         transformer (Transformer): pyproj Transformer object
     """
 
-    target_crs_crs: MyCrs = next((x for x in csr_list if x.crs_auth_identifier == target_crs)) # target_crs_crs should be found
+    target_crs_crs: MyCrs = next(
+        x for x in csr_list if x.crs_auth_identifier == target_crs
+    )  # target_crs_crs should be found
     precision = get_precision(target_crs_crs)
 
     def transform_geom(geom: GeojsonGeomNoGeomCollection) -> None:
@@ -465,7 +484,7 @@ def transform_feature(
         feature.bbox = get_bbox(feature)
 
 
-def init_oas() -> Tuple[dict, str, str, list[MyCrs]]:
+def init_oas() -> tuple[dict, str, str, list[MyCrs]]:
     """initialize open api spec:
     - enrich crs parameters with description generated from pyproj
     - extract api verion string from oas
@@ -489,9 +508,7 @@ def init_oas() -> Tuple[dict, str, str, list[MyCrs]]:
         oas["components"]["parameters"]["target-crs"][
             "description"
         ] = f"Target Coordinate Reference System\n{crs_param_description}"
-        servers = [
-            {"url":app_settings.base_url}
-        ]
+        servers = [{"url": app_settings.base_url}]
         oas["servers"] = servers
     api_version = oas["info"]["version"]
     api_title = oas["info"]["title"]

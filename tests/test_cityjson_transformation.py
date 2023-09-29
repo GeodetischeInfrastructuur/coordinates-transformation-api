@@ -1,9 +1,6 @@
 import json
 
-from pyproj import Transformer
-
 from coordinates_transformation_api.cityjson.models import CityjsonV113
-from coordinates_transformation_api.util import get_transform_callback
 
 
 def test_cityjson_transformed():
@@ -11,7 +8,6 @@ def test_cityjson_transformed():
         data = json.load(f)
         cj = CityjsonV113.model_validate(data)
         cj_original = CityjsonV113.model_validate(data)
-
 
         cj.crs_transform("EPSG:7415", "EPSG:9928")
         assert cj.metadata.geographicalExtent != cj_original.metadata.geographicalExtent
