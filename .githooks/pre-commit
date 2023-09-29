@@ -22,7 +22,7 @@ print_message() {
         ;;
     esac
     if [[ $prepend_newline == true ]]; then echo ""; fi
-    printf "${color}%s %s\n\033[0;37m" $(printf "${padding_char}%.0s" $(seq 1 "$indent_level")) "$message"
+    printf "${color}%s %s\n\033[0;37m" $(printf "${padding_char}%.0s" $(seq 1 "$indent_level")) "pre-commit hook: ${message}"
 }
 
 command_available() {
@@ -41,29 +41,27 @@ then
 fi
 
 command_available "mypy"
-print_message "pre-commit - running mypy static type checking" 1 "" true
+print_message "running mypy static type checking" 1 "" true
 if ! mypy src;then
     print_message "mypy static type check failed - commit aborted" 1 "ERROR" true
     exit 1
 fi
 
-
-command_available "black"
-print_message "pre-commit - running Black formatting" 1 "" true
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g' | grep -E "\.py$")
 [ -z "$FILES" ] && exit 0
+
+command_available "ruff"
+print_message "running ruff  linting" 1 "" true
+echo "$FILES" | xargs ruff --fix
+
+
+command_available "black"
+print_message "running Black formatting" 1 "" true
 echo "$FILES" | xargs black --stdin-filename "{}"
 
-command_available "autoflake"
-print_message "pre-commit - running Autoflake formatting" 1 "" true
-echo "$FILES" | xargs autoflake --remove-all-unused-imports --in-place --remove-unused-variables
-
-command_available "isort"
-print_message "pre-commit - running isort formatting" 1 "" true
-echo "$FILES" | xargs isort --overwrite-in-place
 
 command_available "prettier"
-print_message "pre-commit - running prettier formatting" 1 "" true
+print_message "running prettier formatting" 1 "" true
 echo "$FILES" | grep -E ".*\.yaml$" | xargs prettier --ignore-unknown --stdin-filepath
 
 echo "$FILES" | xargs git add

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import Literal, Optional
 
 from geojson_pydantic import FeatureCollection
 from pydantic import BaseModel, Field, computed_field
@@ -25,22 +25,18 @@ class Crs(BaseModel):
 
     @computed_field  # type: ignore
     @property
-    def nr_of_dimensions(self) -> int:
+    def nr_of_dimensions(self: "Crs") -> int:
         return len(self.axes)
 
     axes: list[Axis]
 
-    def get_axis_label(self) -> str:
+    def get_axis_label(self: "Crs") -> str:
         axes: list[Axis] = self.axes
         return ", ".join(list(map(lambda x: f"{x.abbrev} ({x.unit_name})", axes)))
 
-    def get_x_unit_crs(self) -> str:
+    def get_x_unit_crs(self: "Crs") -> str:
         axe = next(
-            (
-                x
-                for x in self.axes
-                if x.abbrev.lower() in ["x", "e", "lon"]
-            ),
+            (x for x in self.axes if x.abbrev.lower() in ["x", "e", "lon"]),
             None,
         )
         if axe is None:
@@ -54,6 +50,7 @@ class Crs(BaseModel):
             )
         return unit_name
 
+
 class Link(BaseModel):
     title: str
     type: str
@@ -64,11 +61,11 @@ class Link(BaseModel):
 class LandingPage(BaseModel):
     title: str
     description: str
-    links: List[Link]
+    links: list[Link]
 
 
 class Conformance(BaseModel):
-    conformsTo: List[str] = []
+    conformsTo: list[str] = []  # noqa: N815
 
 
 class TransformGetAcceptHeaders(Enum):
@@ -90,7 +87,7 @@ class GeoJsonCrs(BaseModel):
 class CrsFeatureCollection(FeatureCollection):
     crs: Optional[GeoJsonCrs] = None
 
-    def get_crs_auth_code(self) -> str | None:
+    def get_crs_auth_code(self: "CrsFeatureCollection") -> str | None:
         if self.crs is None:
             return None
         source_crs_urn_string = self.crs.properties.name
@@ -99,6 +96,8 @@ class CrsFeatureCollection(FeatureCollection):
         crs_identifier = source_crs_urn_list[6]
         return f"{crs_authority}:{crs_identifier}"
 
-    def set_crs_auth_code(self, crs_auth_code):
+    def set_crs_auth_code(self: "CrsFeatureCollection", crs_auth_code: str) -> None:
         crs_auth, crs_identifier = crs_auth_code.split(":")
+        if self.crs is None:
+            raise ValueError(f"self.crs is none of CrsFeatureCollection: {self}")
         self.crs.properties.name = f"urn:ogc:def:crs:{crs_auth}::{crs_identifier}"

@@ -1,6 +1,6 @@
 import asyncio
 import typing
-from typing import Optional
+from typing import Callable, Optional
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import JSONResponse
@@ -13,22 +13,24 @@ DispatchFunction = typing.Callable[
 ]
 
 
-class ContentSizeExceeded(Exception):
+class ContentSizeExceededError(Exception):
     pass
 
 
 class TimeoutMiddleware(BaseHTTPMiddleware):
     #  based on https://github.com/encode/starlette/issues/890#issuecomment-926062125
     def __init__(
-        self,
+        self: "TimeoutMiddleware",
         app: ASGIApp,
         dispatch: DispatchFunction | None = None,
         timeout_seconds: Optional[int] = None,
-    ):
+    ) -> None:
         BaseHTTPMiddleware.__init__(self, app, dispatch=dispatch)
         self.timeout_seconds = timeout_seconds
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+    async def dispatch(
+        self: "TimeoutMiddleware", request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         try:
             response = await asyncio.wait_for(
                 call_next(request), timeout=self.timeout_seconds
@@ -46,17 +48,26 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
         return response
 
 
+Message = typing.MutableMapping[str, typing.Any]
+
+
 class ContentSizeLimitMiddleware:
     # based on https://github.com/steinnes/content-size-limit-asgi/tree/master
-    def __init__(self, app: ASGIApp, max_content_size: Optional[int] = None):
+    def __init__(
+        self: "ContentSizeLimitMiddleware",
+        app: ASGIApp,
+        max_content_size: Optional[int] = None,
+    ) -> None:
         self.app = app
         self.max_content_size = max_content_size
         self.received = 0
 
-    def receive_wrapper(self, receive: Receive):
+    def receive_wrapper(
+        self: "ContentSizeLimitMiddleware", receive: Receive
+    ) -> Callable:
         received = 0
 
-        async def inner():
+        async def inner() -> Message:
             nonlocal received
             message = await receive()
             if message["type"] != "http.request" or self.max_content_size is None:
@@ -73,7 +84,9 @@ class ContentSizeLimitMiddleware:
 
         return inner
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self: "ContentSizeLimitMiddleware", scope: Scope, receive: Receive, send: Send
+    ) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
