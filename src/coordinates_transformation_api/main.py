@@ -12,7 +12,6 @@ from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection
-from pyproj import network
 
 from coordinates_transformation_api import assets
 from coordinates_transformation_api.callback import (
@@ -71,8 +70,6 @@ API_VERSION: str
 CRS_LIST: list[Crs]
 OPEN_API_SPEC, API_TITLE, API_VERSION, CRS_LIST = init_oas()
 BASE_DIR: str = os.path.dirname(__file__)
-
-network.set_network_enabled(True)  # TODO: remove before commit
 
 app: FastAPI = FastAPI(docs_url=None)
 # note: order of adding middleware is required for it to work
@@ -190,8 +187,6 @@ async def crs(crs_id: str) -> Crs | Response:
     result = next(gen, None)
 
     if result is None:
-        # TODO: return not found 404
-
         return Response(
             content=json.dumps(
                 {
@@ -268,7 +263,7 @@ async def transform(  # noqa: PLR0913, ANN201
     )  # convert to list since we do not know dimensionality of coordinates
     callback = get_transform_callback(source_crs, target_crs, precision=precision)
     # TODO: fix following type ignore
-    transformed_coordinates = callback(coordinates_list)  # type: ignore
+    transformed_coordinates = callback(coordinates_list)
 
     if float("inf") in [abs(x) for x in transformed_coordinates]:
         raise_response_validation_error(

@@ -30,7 +30,10 @@ class ProblemResponse(Response):
     media_type: str = "application/problem+json"
 
     def __init__(
-        self: "ProblemResponse", *args, debug: bool = False, **kwargs
+        self: "ProblemResponse",
+        *args,  # noqa: ANN002
+        debug: bool = False,
+        **kwargs,  # noqa: ANN003
     ) -> None:  # type: ignore
         self.debug: bool = debug
         super().__init__(*args, **kwargs)
