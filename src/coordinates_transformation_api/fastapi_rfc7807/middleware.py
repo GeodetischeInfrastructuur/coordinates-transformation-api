@@ -29,7 +29,9 @@ class ProblemResponse(Response):
 
     media_type: str = "application/problem+json"
 
-    def __init__(self: "ProblemResponse", *args, debug: bool = False, **kwargs) -> None:
+    def __init__(
+        self: "ProblemResponse", *args, debug: bool = False, **kwargs
+    ) -> None:  # type: ignore
         self.debug: bool = debug
         super().__init__(*args, **kwargs)
 

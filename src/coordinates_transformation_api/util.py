@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+import math
 import re
+from collections import Counter
 from collections.abc import Iterable
 from importlib import resources as impresources
 from itertools import chain
@@ -11,13 +13,14 @@ import yaml
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from geodense.lib import (  # type: ignore
-    TRANSFORM_CRS,
     check_density_geometry_coordinates,
     densify_geometry_coordinates,
 )
+from geodense.models import (
+    DenseConfig,
+)
 from geojson_pydantic import (
     Feature,
-    FeatureCollection,
     LineString,
     MultiLineString,
     MultiPoint,
@@ -38,11 +41,13 @@ from geojson_pydantic.types import (
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS
+from shapely import GeometryCollection as ShpGeometryCollection
+from shapely import STRtree, box
+from shapely.geometry import shape
 
 from coordinates_transformation_api import assets
 from coordinates_transformation_api.callback import (
     get_transform_callback,
-    get_transformer,
 )
 from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.models import Axis, CrsFeatureCollection
@@ -68,6 +73,14 @@ logger = logging.getLogger(__name__)
 coordinates_type = tuple[float, float] | tuple[float, float, float] | list[float]
 TWO_DIMENSIONAL = 2
 THREE_DIMENSIONAL = 3
+
+DENSIFY_CRS = "EPSG:4258"
+DEVIATION_VALID_BBOX = [
+    3.1201,
+    50.2191,
+    7.5696,
+    54.1238,
+]  # bbox in epsg:4258 - area valid for doing density check (based on deviation param)
 
 
 def validate_crs_transformation(
@@ -125,6 +138,27 @@ def validate_coords_source_crs(
                             ),
                             loc=("query", "coordinates"),
                             input=source_crs,
+                        )
+                    ],
+                )
+            ).errors()
+        )
+
+
+def validate_input_max_segment_deviation_length(deviation, length):
+    if length is None and deviation is None:
+        raise RequestValidationError(
+            errors=(
+                ValidationError.from_exception_data(
+                    "ValueError",
+                    [
+                        InitErrorDetails(
+                            type=PydanticCustomError(
+                                "value_error",
+                                "max_segment_length or max_segment_deviation should be set",
+                            ),
+                            loc=("query", "max_segment_length|max_segment_deviation"),
+                            input=[None, None],
                         )
                     ],
                 )
@@ -342,37 +376,13 @@ def get_source_crs_body(
     return source_crs
 
 
-def get_bbox(
-    item: Feature | FeatureCollection | _GeometryBase | GeometryCollection,
-) -> BBox:
-    if isinstance(item, (_GeometryBase, GeometryCollection)):
-        coordinates = get_coordinates_from_geometry(item)
-    elif isinstance(item, Feature):
-        geometry = cast(Geometry, item.geometry)
-        coordinates = get_coordinates_from_geometry(geometry)
-    elif isinstance(item, FeatureCollection):
-        features: Iterable[Feature] = item.features
-        coordinates = [
-            get_coordinates_from_geometry(cast(Geometry, ft.geometry))
-            for ft in features
-        ]
-    return get_bbox_from_coordinates(coordinates)
-
-
 def get_coordinates_from_geometry(
-    item: _GeometryBase | GeometryCollection,
+    item: _GeometryBase,
 ) -> Iterable[
     Position | MultiPointCoords | MultiLineStringCoords | MultiPolygonCoords | Any
 ]:
-    if isinstance(item, _GeometryBase):
-        geom = cast(_GeometryBase, item)
-        return chain(explode(geom.coordinates))
-    elif isinstance(item, GeometryCollection):
-        geom_collection = cast(GeometryCollection, item)
-        geometries: Iterable[GeojsonGeomNoGeomCollection] = [
-            cast(GeojsonGeomNoGeomCollection, x) for x in geom_collection.geometries
-        ]
-        return chain(*[explode(y.coordinates) for y in geometries])
+    geom = cast(_GeometryBase, item)
+    return chain(explode(geom.coordinates))
 
 
 def accept_html(request: Request) -> bool:
@@ -383,94 +393,202 @@ def accept_html(request: Request) -> bool:
     return False
 
 
-def validate_response(
-    item: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection,
-):
-    def coords_has_inf(coordinates):
-        gen = (
-            x
-            for x in explode(coordinates)
-            if abs(x[0]) == float("inf") or abs(x[1]) == float("inf")
-        )
-        return next(gen, None) is not None
-
-    if isinstance(item, (_GeometryBase, GeometryCollection)):
-        coordinates = get_coordinates_from_geometry(item)
-    elif isinstance(item, Feature):
-        geometry = cast(Geometry, item.geometry)
-        coordinates = get_coordinates_from_geometry(geometry)
-    elif isinstance(item, FeatureCollection):
-        features: Iterable[Feature] = item.features
-        coordinates = [
-            get_coordinates_from_geometry(cast(Geometry, ft.geometry))
-            for ft in features
+def request_body_within_valid_bbox(body, source_crs):
+    if source_crs != DENSIFY_CRS:
+        transform_f = get_transform_callback(DENSIFY_CRS, source_crs)
+        bbox = [
+            *transform_f(DEVIATION_VALID_BBOX[:2]),
+            *transform_f(DEVIATION_VALID_BBOX[2:]),
         ]
+    coll = get_shapely_objects(body)
+    tree = STRtree(coll)
+    contains_index = tree.query(box(*bbox), predicate="contains").tolist()
+    if len(coll) != len(contains_index):
+        return False
+    return True
 
-    has_inf_val = coords_has_inf(coordinates)
-    if has_inf_val:
-        raise_response_validation_error(
-            "Out of range float values are not JSON compliant", ["responseBody"]
-        )
 
-
-# TODO: add support for geometrycollections, see densify_request_body implementation
-def density_check_request_body(
-    body: Feature | CrsFeatureCollection | Geometry,
-    source_crs: str,
-    max_segment_length: int,
-) -> list[tuple[list[int], float]]:
-    report: list[tuple[list[int], float]] = []
-    transformer = get_transformer(
-        source_crs, TRANSFORM_CRS
-    )  # TODO: fix source_crs, crs from header/param should override crs from featurecollection
-
+def apply_function_on_geometries_of_request_body(  # noqa: C901
+    body: Feature
+    | CrsFeatureCollection
+    | GeojsonGeomNoGeomCollection
+    | GeometryCollection,
+    callback: Callable[
+        [GeojsonGeomNoGeomCollection, list[Any], list[int] | None], None
+    ],
+    indices: list[int] | None = None,
+) -> Any:
+    result: list[Any] = []
     if isinstance(body, Feature):
         feature = cast(Feature, body)
-        coordinates = getattr(getattr(feature, "geometry", None), "coordinates", None)
-        check_density_geometry_coordinates(
-            coordinates, source_crs, max_segment_length, report, []
-        )
-    elif isinstance(body, _GeometryBase):
+        if isinstance(feature.geometry, GeometryCollection):
+            return apply_function_on_geometries_of_request_body(
+                feature.geometry, callback
+            )
+
+        geom = cast(GeojsonGeomNoGeomCollection, feature.geometry)
+        return callback(geom, result, None)
+    elif isinstance(body, GeojsonGeomNoGeomCollection):  # type: ignore
         geom = cast(GeojsonGeomNoGeomCollection, body)
-        check_density_geometry_coordinates(
-            geom.coordinates, source_crs, max_segment_length, report, []
-        )
+        return callback(geom, result, indices)
     elif isinstance(body, CrsFeatureCollection):
         fc_body: CrsFeatureCollection = body
         features: Iterable[Feature] = fc_body.features
-
         for i, ft in enumerate(features):
             if ft.geometry is None:
                 raise ValueError(f"feature does not have a geometry, feature: {ft}")
+            if isinstance(ft.geometry, GeometryCollection):
+                ft_result = apply_function_on_geometries_of_request_body(
+                    ft.geometry, callback, [i]
+                )
+                result.extend(ft_result)
+            else:
+                callback(ft.geometry, result, [i])
+    elif isinstance(body, GeometryCollection):
+        gc = cast(GeometryCollection, body)
+        geometries: list[Geometry] = gc.geometries
+        for i, g in enumerate(geometries):
+            n_indices = None
+            if indices is not None:
+                n_indices = indices[:]
+                n_indices.append(i)
+            g_no_gc = cast(
+                GeojsonGeomNoGeomCollection, g
+            )  # geojson prohibits nested geometrycollections - maybe throw exception if this occurs
+            callback(g_no_gc, result, n_indices)
+    return result
 
-            check_density_geometry_coordinates(
-                ft.geometry.coordinates, transformer, max_segment_length, report, [i]
-            )
-    else:
-        raise ValueError(
-            "Cannot perform density-check on GeometryCollection geometry type"
+
+def get_shapely_objects(
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
+) -> list[Any]:
+    def merge_geometry_collections_shapelyfication(input_shp_geoms: list) -> list:
+        indices = list(map(lambda x: x["index"][0], input_shp_geoms))
+        counter = Counter(indices)
+        geom_coll_indices = [x for x in counter if counter[x] > 1]
+        output_shp_geoms = [
+            x["result"]
+            for x in input_shp_geoms
+            if x["index"][0] not in geom_coll_indices
+        ]
+        for i in geom_coll_indices:
+            geom_collection_geoms = [
+                x["result"] for x in input_shp_geoms if x["index"][0] == i
+            ]
+            output_shp_geoms.append(ShpGeometryCollection(geom_collection_geoms))
+        return output_shp_geoms
+
+    transform_fun = get_shapely_object_fun()
+    result = apply_function_on_geometries_of_request_body(body, transform_fun)
+    return merge_geometry_collections_shapelyfication(result)
+
+
+def get_shapely_object_fun() -> Callable:
+    def shapely_object(
+        geometry_dict: dict[str, Any], result: list, indices: list[int] | None = None
+    ) -> None:
+        shp_obj = shape(geometry_dict)
+        result_item = {"result": shp_obj}
+        if indices is not None:
+            result_item["index"] = indices
+        result.append(result_item)
+
+    return shapely_object
+
+
+def get_density_check_fun(
+    densify_config: DenseConfig,
+) -> Callable:
+    def density_check(
+        geometry: GeojsonGeomNoGeomCollection,
+        result: list,
+        indices: list[int] | None = None,
+    ) -> None:
+        check_density_geometry_coordinates(
+            geometry.coordinates, densify_config, result, indices
         )
+
+    return density_check
+
+
+def get_update_geometry_bbox_fun() -> Callable:
+    def update_bbox(
+        geometry: GeojsonGeomNoGeomCollection,
+        _result: list,
+        _indices: list[int] | None = None,
+    ) -> None:
+        coordinates = get_coordinates_from_geometry(geometry)
+        geometry.bbox = get_bbox_from_coordinates(coordinates)
+
+    return update_bbox
+
+
+def get_validate_json_coords_fun() -> Callable:
+    def validate_json_coords(
+        geometry: GeojsonGeomNoGeomCollection,
+        _result: list,
+        _indices: list[int] | None = None,
+    ) -> None:
+        def coords_has_inf(coordinates):
+            gen = (
+                x
+                for x in explode(coordinates)
+                if abs(x[0]) == float("inf") or abs(x[1]) == float("inf")
+            )
+            return next(gen, None) is not None
+
+        coordinates = get_coordinates_from_geometry(geometry)
+        if coords_has_inf(coordinates):
+            raise_response_validation_error(
+                "Out of range float values are not JSON compliant", ["responseBody"]
+            )
+
+    return validate_json_coords
+
+
+def density_check_request_body(
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
+    source_crs: str,
+    max_segment_deviation: float,
+    max_segment_length: float,
+) -> list[tuple[list[int], float]]:
+    report: list[tuple[list[int], float]] = []
+
+    # TODO: figure out how to handle point geometries - what to do if point geometry in payload as part of featurecollection/geometrycollection
+    validate_input_max_segment_deviation_length(
+        max_segment_deviation, max_segment_length
+    )
+    bbox_check_deviation_set(body, source_crs, max_segment_deviation)
+    if max_segment_deviation is not None:
+        max_segment_length = convert_deviation_to_distance(max_segment_deviation)
+
+    # crs transform/convert to EPSG:4258
+    # crs_transform_request_body(body, source_crs, DENSIFY_CRS)
+    crs_transform_fun = get_crs_transform_fun(source_crs, DENSIFY_CRS)
+    _ = apply_function_on_geometries_of_request_body(body, crs_transform_fun)
+
+    # density check
+    c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
+    my_fun = get_density_check_fun(c)
+    report = apply_function_on_geometries_of_request_body(body, my_fun)
     return report
 
 
-# TODO: check if input body contans only linestring/polygon geometries
-def densify_request_body(
-    body: Feature | CrsFeatureCollection | Geometry,
-    source_crs: str,
-    max_segment_length: int,
-) -> None:
-    """transform coordinates of request body in place
+def bbox_check_deviation_set(body, source_crs, max_segment_deviation):
+    if max_segment_deviation is None and not request_body_within_valid_bbox(
+        body, source_crs
+    ):
+        # request body not within valid bbox todo density check
+        # TODO: raise error
+        print("body not inside bbox")
 
-    Args:
-        body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
-        transformer (Transformer): pyproj Transformer object
-    """
-    # TODO: add check for geometry-type, cannot densify on point geometries
-    transformer = get_transformer(
-        source_crs, TRANSFORM_CRS
-    )  # TODO: fix source_crs, crs from header/param should override crs from featurecollection
 
-    def densify_geometry(geometry: Geometry):
+def get_densify_fun(
+    densify_config: DenseConfig,
+) -> Callable:
+    def my_fun(
+        geometry: Geometry, _result: list, _indices: list[int] | None = None
+    ):  # add _result, _indices args since required by transform_geometries_req_body
         geoms: list[Geometry] = []
         if isinstance(geometry, _GeometryBase):
             geoms = [geometry]
@@ -480,31 +598,17 @@ def densify_request_body(
         for g in geoms:
             g_base = cast(_GeometryBase, g)
             g_base.coordinates = densify_geometry_coordinates(
-                g_base.coordinates, transformer, max_segment_length, False
+                g_base.coordinates, densify_config
             )
 
-    if isinstance(body, Feature):
-        feature = cast(Feature, body)
-        geom = cast(Geometry, feature.geometry)
-        densify_geometry(geom)
-
-    elif isinstance(body, FeatureCollection):
-        fc_body: CrsFeatureCollection = body
-        features: Iterable[Feature] = fc_body.features
-        for feature in features:
-            geom = cast(Geometry, feature.geometry)
-            densify_geometry(geom)
-
-    elif isinstance(body, (_GeometryBase, GeometryCollection)):
-        geom = cast(GeojsonGeomNoGeomCollection, body)
-        densify_geometry(geom)
+    return my_fun
 
 
-def transform_request_body(  # noqa: C901
-    body: Feature | CrsFeatureCollection | _GeometryBase | GeometryCollection,
+def densify_request_body(
+    body: Feature | CrsFeatureCollection | Geometry,
     source_crs: str,
-    target_crs: str,
-    csr_list: list[MyCrs],
+    max_segment_deviation: float,
+    max_segment_length: float,
 ) -> None:
     """transform coordinates of request body in place
 
@@ -512,67 +616,51 @@ def transform_request_body(  # noqa: C901
         body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
         transformer (Transformer): pyproj Transformer object
     """
+    # TODO: figure out how to handle point geometries - what to do if point geometry in payload as part of featurecollection/geometrycollection
+    validate_input_max_segment_deviation_length(
+        max_segment_deviation, max_segment_length
+    )
+    bbox_check_deviation_set(body, source_crs, max_segment_deviation)
+    if max_segment_deviation is not None:
+        max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
-    target_crs_crs: MyCrs = next(
-        x for x in csr_list if x.crs_auth_identifier == target_crs
-    )  # target_crs_crs should be found
+    # crs transform/convert to EPSG:4258
+    # crs_transform_request_body(body, source_crs, DENSIFY_CRS)
+    crs_transform_fun = get_crs_transform_fun(source_crs, DENSIFY_CRS)
+    _ = apply_function_on_geometries_of_request_body(body, crs_transform_fun)
+
+    # densify request body
+    c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
+    densify_fun = get_densify_fun(c)
+    _ = apply_function_on_geometries_of_request_body(body, densify_fun)
+
+    # crs transform/convert back to source_crs
+    crs_back_transform_fun = get_crs_transform_fun(source_crs, DENSIFY_CRS)
+    _ = apply_function_on_geometries_of_request_body(body, crs_back_transform_fun)
+
+
+def get_crs_transform_fun(source_crs, target_crs) -> Callable:
+    target_crs_crs: MyCrs = MyCrs.from_crs_str(target_crs)
     precision = get_precision(target_crs_crs)
 
-    def transform_geom(geom: GeojsonGeomNoGeomCollection) -> None:
+    def my_fun(
+        geom: GeojsonGeomNoGeomCollection,
+        _result: list,
+        _indices: list[int] | None = None,
+    ) -> (
+        None
+    ):  # add _result, _indices args since required by transform_geometries_req_body
         callback = get_transform_callback(source_crs, target_crs, precision)
         geom.coordinates = traverse_geojson_coordinates(
             cast(list[list[Any]] | list[float] | list[int], geom.coordinates),
             callback=callback,
         )
+
         if geom.bbox is not None:
-            geom.bbox = get_bbox(geom)
+            my_fun = get_update_geometry_bbox_fun()
+            apply_function_on_geometries_of_request_body(geom, my_fun)
 
-    if isinstance(body, Feature):
-        feature = cast(Feature, body)
-        transform_feature(transform_geom, feature)
-        if feature.bbox is not None:
-            feature.bbox = get_bbox(feature)
-    elif isinstance(body, CrsFeatureCollection):
-        fc_body: CrsFeatureCollection = body
-        features: Iterable[Feature] = fc_body.features
-        for feature in features:
-            transform_feature(transform_geom, feature)
-        if fc_body.bbox is not None:
-            fc_body.bbox = get_bbox(fc_body)
-        if fc_body.crs is not None:
-            fc_body.set_crs_auth_code(target_crs)
-    elif isinstance(body, _GeometryBase):
-        geom = cast(GeojsonGeomNoGeomCollection, body)
-        transform_geom(geom)
-    elif isinstance(body, GeometryCollection):
-        gc = cast(GeometryCollection, body)
-        transform_geometry_collection(transform_geom, gc)
-
-
-def transform_geometry_collection(
-    transform_geom: Callable[[GeojsonGeomNoGeomCollection], None],
-    gc: GeometryCollection,
-) -> None:
-    geometries: list[Geometry] = gc.geometries
-    for g in geometries:
-        geom = cast(GeojsonGeomNoGeomCollection, g)
-        transform_geom(geom)
-    if gc.bbox is not None:
-        gc.bbox = get_bbox(gc)
-
-
-def transform_feature(
-    transform_geom: Callable[[GeojsonGeomNoGeomCollection], None],
-    feature: Feature,
-) -> None:
-    if isinstance(feature.geometry, GeometryCollection):
-        gc = cast(GeometryCollection, feature.geometry)
-        transform_geometry_collection(transform_geom, gc)
-    else:
-        geom = cast(GeojsonGeomNoGeomCollection, feature.geometry)
-        transform_geom(geom)
-    if feature.bbox is not None:
-        feature.bbox = get_bbox(feature)
+    return my_fun
 
 
 def init_oas() -> tuple[dict, str, str, list[MyCrs]]:
@@ -604,3 +692,13 @@ def init_oas() -> tuple[dict, str, str, list[MyCrs]]:
     api_version = oas["info"]["version"]
     api_title = oas["info"]["title"]
     return (oas, api_title, api_version, crs_list)
+
+
+def convert_distance_to_deviation(d):
+    a = 24.15 * 10**-9 * d**2
+    return a
+
+
+def convert_deviation_to_distance(a):
+    d = math.sqrt(a / (24.15 * 10**-9))
+    return d
