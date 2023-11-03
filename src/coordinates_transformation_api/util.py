@@ -265,7 +265,8 @@ def extract_authority_code(crs: str) -> str:
 
 
 def format_as_uri(crs: str) -> str:
-    # TODO the /0/ is a placeholder and should be based on the epsg database
+    # TODO: the /0/ is a placeholder and should be based on the epsg database version
+    #   discuss what convention we want to follow here...
     return "http://www.opengis.net/def/crs/{}/0/{}".format(*crs.split(":"))
 
 
@@ -296,7 +297,6 @@ def explode(coords):
 
 def get_bbox_from_coordinates(coordinates) -> BBox:
     coordinate_tuples = list(zip(*list(explode(coordinates))))
-
     if len(coordinate_tuples) == TWO_DIMENSIONAL:
         x, y = coordinate_tuples
         return min(x), min(y), max(x), max(y)
@@ -382,7 +382,9 @@ def get_coordinates_from_geometry(
     Position | MultiPointCoords | MultiLineStringCoords | MultiPolygonCoords | Any
 ]:
     geom = cast(_GeometryBase, item)
-    return chain(explode(geom.coordinates))
+    return list(
+        chain(explode(geom.coordinates))
+    )  # TODO: check if chain(list()) is required...
 
 
 def accept_html(request: Request) -> bool:
@@ -523,6 +525,61 @@ def get_update_geometry_bbox_fun() -> Callable:
     return update_bbox
 
 
+def update_bbox_geojson_object(  # noqa: C901
+    geojson_obj: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
+) -> None:
+    def rec_fun(  # noqa: C901
+        geojson_obj: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
+        local_coords: list,
+    ) -> None:
+        if isinstance(geojson_obj, CrsFeatureCollection):
+            for ft in geojson_obj.features:
+                rec_fun(ft, local_coords)
+            if geojson_obj.bbox is not None:
+                geojson_obj.bbox = get_bbox_from_coordinates(local_coords)
+        elif isinstance(geojson_obj, Feature):
+            if geojson_obj.geometry is None:
+                return
+            ft_coords: Iterable[
+                Position
+                | MultiPointCoords
+                | MultiLineStringCoords
+                | MultiPolygonCoords
+                | Any
+            ] = []
+            rec_fun(geojson_obj.geometry, list(ft_coords))
+            if geojson_obj.bbox is not None:
+                geojson_obj.bbox = get_bbox_from_coordinates(ft_coords)
+            local_coords.append(ft_coords)
+        elif isinstance(geojson_obj, GeometryCollection):
+            gc_coords: Iterable[
+                Position
+                | MultiPointCoords
+                | MultiLineStringCoords
+                | MultiPolygonCoords
+                | Any
+            ] = []
+            for geom in geojson_obj.geometries:
+                rec_fun(geom, list(gc_coords))
+            if geojson_obj.bbox is not None:
+                geojson_obj.bbox = get_bbox_from_coordinates(gc_coords)
+            local_coords.append(gc_coords)
+        elif isinstance(geojson_obj, _GeometryBase):
+            geom_coords: Iterable[
+                Position
+                | MultiPointCoords
+                | MultiLineStringCoords
+                | MultiPolygonCoords
+                | Any
+            ] = get_coordinates_from_geometry(geojson_obj)
+            local_coords.append(geom_coords)
+            if geojson_obj.bbox is not None:
+                geojson_obj.bbox = get_bbox_from_coordinates(geom_coords)
+
+    coords: list = []
+    rec_fun(geojson_obj, coords)
+
+
 def crs_transform(
     body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
     s_crs: str,
@@ -532,7 +589,7 @@ def crs_transform(
     _ = apply_function_on_geometries_of_request_body(body, crs_transform_fun)
     if isinstance(body, CrsFeatureCollection):
         body.set_crs_auth_code(t_crs)
-    # TODO: update bboxes features and featurecollections
+    update_bbox_geojson_object(body)
 
 
 def get_validate_json_coords_fun() -> Callable:
@@ -660,9 +717,9 @@ def get_crs_transform_fun(source_crs, target_crs) -> Callable:
             callback=callback,
         )
 
-        if geom.bbox is not None:
-            my_fun = get_update_geometry_bbox_fun()
-            apply_function_on_geometries_of_request_body(geom, my_fun)
+        # if geom.bbox is not None:
+        #     my_fun = get_update_geometry_bbox_fun()
+        #     apply_function_on_geometries_of_request_body(geom, my_fun)
 
     return my_fun
 
