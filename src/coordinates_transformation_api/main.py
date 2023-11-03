@@ -39,11 +39,11 @@ from coordinates_transformation_api.util import (
     THREE_DIMENSIONAL,
     accept_html,
     apply_function_on_geometries_of_request_body,
+    crs_transform,
     densify_request_body,
     density_check_request_body,
     extract_authority_code,
     format_as_uri,
-    get_crs_transform_fun,
     get_precision,
     get_source_crs_body,
     get_validate_json_coords_fun,
@@ -448,10 +448,7 @@ async def post_transform(  # noqa: ANN201
             media_type="application/city+json",
         )
     else:
-        crs_transform_fun = get_crs_transform_fun(source_crs, t_crs)
-        _ = apply_function_on_geometries_of_request_body(
-            body, crs_transform_fun
-        )  # TODO: update bboxes features and featurecollections
+        crs_transform(body, s_crs, t_crs)
 
         validate_json_coords_fun = get_validate_json_coords_fun()
         _ = apply_function_on_geometries_of_request_body(
