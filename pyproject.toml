@@ -17,7 +17,7 @@ dependencies = [
     "pyproj == 3.6.0",
     "pydantic-settings == 2.0.2",
     "email-validator == 2.0.0",
-    "geodense@git+https://github.com/GeodetischeInfrastructuur/geodense#egg=c6fdc114057018241b7c3e344b18e5eb499dc7d2",
+    "geodense@git+https://github.com/GeodetischeInfrastructuur/geodense#egg=804ef492aae1de651825df66c35d06c007ccdb4b",
 ]
 requires-python = ">=3.11.4"
 dynamic = ["version"]
@@ -150,3 +150,4 @@ target-version = "py39"
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
+

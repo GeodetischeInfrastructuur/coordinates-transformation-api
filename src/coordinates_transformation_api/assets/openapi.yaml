@@ -1,5 +1,5 @@
 ---
-openapi: 3.0.3
+openapi: "3.1.0"
 info:
   title: NSGI Coordinates Transformation API
   version: 2.0.0
@@ -15,10 +15,8 @@ info:
     - geospatial
     - api
     - transformations
-
 servers:
   - url: "" # replaced in code
-
 tags:
   - name: About
   - name: CRS
@@ -151,6 +149,7 @@ paths:
         - $ref: "#/components/parameters/source-crs"
         - $ref: "#/components/parameters/contentCrs"
         - $ref: "#/components/parameters/maxSegmentLength"
+        - $ref: "#/components/parameters/maxSegmentDeviation"
 
       requestBody:
         required: true
@@ -168,25 +167,25 @@ paths:
           > **Note:** The `crs` member is not part of the [FeatureCollection schema](https://geojson.org/schema/FeatureCollection.json).
         content:
           application/json:
-            schema:
-              $ref: https://geojson.org/schema/FeatureCollection.json
-            example:
-              type: FeatureCollection
-              name: lijnen
-              crs:
-                type: name
-                properties:
-                  name: urn:ogc:def:crs:EPSG::28992
-              features:
-                - type: Feature
-                  properties: {}
-                  geometry:
-                    type: LineString
-                    coordinates:
-                      - - 156264.906359842570964
-                        - 601302.588919493253343
-                      - - 165681.964475793502061
-                        - 605544.313164469087496
+              schema:
+                $ref: https://geojson.org/schema/FeatureCollection.json
+              example:
+                type: FeatureCollection
+                name: lijnen
+                crs:
+                  type: name
+                  properties:
+                    name: urn:ogc:def:crs:EPSG::28992
+                features:
+                  - type: Feature
+                    properties: {}
+                    geometry:
+                      type: LineString
+                      coordinates:
+                        - - 156264.906359842570964
+                          - 601302.588919493253343
+                        - - 165681.964475793502061
+                          - 605544.313164469087496
       responses:
         "200":
           description: OK
@@ -322,9 +321,9 @@ paths:
               example:
                 type: Point
                 coordinates:
-                - 52.763875
-                - 4.069801
-                - 115.904857
+                  - 52.763875
+                  - 4.069801
+                  - 115.904857
             text/plain:
               schema:
                 type: string
@@ -508,20 +507,32 @@ components:
       name: max-segment-length
       required: false
       schema:
-        default: 1000
+        default: 200
         type: number
         minimum: 200
+
+    maxSegmentDeviation:
+      description: Maximum segment deviation for densify and density-check
+      in: query
+      name: max-segment-deviation
+      required: false
+      schema:
+        type: number
+        minimum: 0.001
   responses:
     "200-oas":
       description: OK
       content:
         application/openapi+json:
           schema:
+             $ref: "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.yaml"
         text/html:
           schema:
+            type: "string"
       headers:
         api-version:
           $ref: "#/components/headers/api-version"
+
 
     # "200":
     #   description: OK

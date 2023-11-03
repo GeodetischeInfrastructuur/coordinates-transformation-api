@@ -3,6 +3,7 @@ from typing import Literal, Optional
 
 from geojson_pydantic import FeatureCollection
 from pydantic import BaseModel, Field, computed_field
+from pyproj import CRS
 
 
 class Axis(BaseModel):
@@ -19,9 +20,34 @@ class Crs(BaseModel):
     name: str
     type_name: str
     crs_auth_identifier: str
-
     authority: str
     identifier: str
+
+    @classmethod
+    def from_crs_str(cls, crs_st: str) -> "Crs":  # noqa: ANN102
+        # Do some math here and later set the values
+        auth, identifier = crs_st.split(":")
+        crs = CRS.from_authority(auth, identifier)
+        axes = [
+            Axis(
+                name=a.name,
+                abbrev=a.abbrev,
+                direction=a.direction,
+                unit_conversion_factor=a.unit_conversion_factor,
+                unit_name=a.unit_name,
+                unit_auth_code=a.unit_auth_code,
+                unit_code=a.unit_code,
+            )
+            for a in crs.axis_info
+        ]
+        return cls(
+            name=crs.name,
+            type_name=crs.type_name,
+            crs_auth_identifier=crs.srs,
+            axes=axes,
+            authority=auth,
+            identifier=identifier,
+        )
 
     @computed_field  # type: ignore
     @property
