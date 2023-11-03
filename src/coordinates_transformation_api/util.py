@@ -523,6 +523,18 @@ def get_update_geometry_bbox_fun() -> Callable:
     return update_bbox
 
 
+def crs_transform(
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
+    s_crs: str,
+    t_crs: str,
+) -> None:
+    crs_transform_fun = get_crs_transform_fun(s_crs, t_crs)
+    _ = apply_function_on_geometries_of_request_body(body, crs_transform_fun)
+    if isinstance(body, CrsFeatureCollection):
+        body.set_crs_auth_code(t_crs)
+    # TODO: update bboxes features and featurecollections
+
+
 def get_validate_json_coords_fun() -> Callable:
     def validate_json_coords(
         geometry: GeojsonGeomNoGeomCollection,
@@ -562,10 +574,7 @@ def density_check_request_body(
     if max_segment_deviation is not None:
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
-    # crs transform/convert to EPSG:4258
-    # crs_transform_request_body(body, source_crs, DENSIFY_CRS)
-    crs_transform_fun = get_crs_transform_fun(source_crs, DENSIFY_CRS)
-    _ = apply_function_on_geometries_of_request_body(body, crs_transform_fun)
+    crs_transform(body, source_crs, DENSIFY_CRS)
 
     # density check
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
@@ -624,19 +633,14 @@ def densify_request_body(
     if max_segment_deviation is not None:
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
-    # crs transform/convert to EPSG:4258
-    # crs_transform_request_body(body, source_crs, DENSIFY_CRS)
-    crs_transform_fun = get_crs_transform_fun(source_crs, DENSIFY_CRS)
-    _ = apply_function_on_geometries_of_request_body(body, crs_transform_fun)
+    crs_transform(body, source_crs, DENSIFY_CRS)
 
     # densify request body
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
     densify_fun = get_densify_fun(c)
     _ = apply_function_on_geometries_of_request_body(body, densify_fun)
 
-    # crs transform/convert back to source_crs
-    crs_back_transform_fun = get_crs_transform_fun(source_crs, DENSIFY_CRS)
-    _ = apply_function_on_geometries_of_request_body(body, crs_back_transform_fun)
+    crs_transform(body, DENSIFY_CRS, source_crs)  # transform back
 
 
 def get_crs_transform_fun(source_crs, target_crs) -> Callable:
