@@ -50,8 +50,8 @@ from coordinates_transformation_api.callback import (
     get_transform_callback,
 )
 from coordinates_transformation_api.cityjson.models import CityjsonV113
-from coordinates_transformation_api.models import Axis, CrsFeatureCollection
 from coordinates_transformation_api.models import Crs as MyCrs
+from coordinates_transformation_api.models import CrsFeatureCollection
 from coordinates_transformation_api.settings import app_settings
 
 GeojsonGeomNoGeomCollection = (
@@ -200,35 +200,6 @@ def get_precision(target_crs_crs: MyCrs):
     if unit == "degree":
         precision += 5
     return precision
-
-
-def get_projs_axis_info(proj_strings) -> list[MyCrs]:
-    result: list[MyCrs] = []
-    for proj_string in proj_strings:
-        auth, identifier = proj_string.split(":")
-        crs = CRS.from_authority(auth, identifier)
-        axes = [
-            Axis(
-                name=a.name,
-                abbrev=a.abbrev,
-                direction=a.direction,
-                unit_conversion_factor=a.unit_conversion_factor,
-                unit_name=a.unit_name,
-                unit_auth_code=a.unit_auth_code,
-                unit_code=a.unit_code,
-            )
-            for a in crs.axis_info
-        ]
-        my_crs = MyCrs(
-            name=crs.name,
-            type_name=crs.type_name,
-            crs_auth_identifier=crs.srs,
-            axes=axes,
-            authority=auth,
-            identifier=identifier,
-        )
-        result.append(my_crs)
-    return result
 
 
 def traverse_geojson_coordinates(
@@ -717,17 +688,12 @@ def get_crs_transform_fun(source_crs, target_crs) -> Callable:
             callback=callback,
         )
 
-        # if geom.bbox is not None:
-        #     my_fun = get_update_geometry_bbox_fun()
-        #     apply_function_on_geometries_of_request_body(geom, my_fun)
-
     return my_fun
 
 
-def init_oas() -> tuple[dict, str, str, list[MyCrs]]:
+def init_oas() -> tuple[dict, str, str]:
     """initialize open api spec:
-    - enrich crs parameters with description generated from pyproj
-    - extract api verion string from oas
+    - extract api version string from oas
     - return projection info from oas
 
     Returns:
@@ -737,11 +703,7 @@ def init_oas() -> tuple[dict, str, str, list[MyCrs]]:
 
     with oas_filepath.open("rb") as oas_file:
         oas = yaml.load(oas_file, yaml.SafeLoader)
-        crs_identifiers = oas["components"]["schemas"]["crs-enum"]["enum"]
-        crs_list = get_projs_axis_info(crs_identifiers)
         crs_param_description = ""
-        for crs in crs_list:
-            crs_param_description += f"* `{crs.crs_auth_identifier}`: format: `{crs.get_axis_label()}`, dimensions: {crs.nr_of_dimensions}\n"  # ,
         oas["components"]["parameters"]["source-crs"][
             "description"
         ] = f"Source Coordinate Reference System\n{crs_param_description}"
@@ -752,7 +714,7 @@ def init_oas() -> tuple[dict, str, str, list[MyCrs]]:
         oas["servers"] = servers
     api_version = oas["info"]["version"]
     api_title = oas["info"]["title"]
-    return (oas, api_title, api_version, crs_list)
+    return (oas, api_title, api_version)
 
 
 def convert_distance_to_deviation(d):
