@@ -16,7 +16,10 @@ def get_transformer(source_crs: str, target_crs: str) -> Transformer:
 
 
 def get_transform_callback(
-    source_crs: str, target_crs: str, precision: int | None = None
+    source_crs: str,
+    target_crs: str,
+    precision: int | None = None,
+    epoch: float | None = None,
 ) -> Callable[[coordinates_type], tuple[float, ...],]:
     """TODO: improve type annotation/handling geojson/cityjson transformation, with the current implementation mypy is not complaining"""
 

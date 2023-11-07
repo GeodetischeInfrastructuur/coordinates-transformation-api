@@ -217,14 +217,15 @@ async def conformance() -> Conformance:
 
 @app.get("/transform")
 async def transform(  # noqa: PLR0913, ANN201
-    source_crs: str = Query(alias="source-crs", default=None),
-    target_crs: str = Query(alias="target-crs", defaANN201ult=None),
     coordinates: str = Query(
         alias="coordinates", regex=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"
     ),
-    accept: str = Header(default=TransformGetAcceptHeaders.json),
+    source_crs: str = Query(alias="source-crs", default=None),
+    target_crs: str = Query(alias="target-crs", defaANN201ult=None),
+    epoch: str = Query(alias="epoch", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
     accept_crs: str = Header(alias="accept-crs", default=None),
+    accept: str = Header(default=TransformGetAcceptHeaders.json),
 ):
     if source_crs is not None:
         s_crs = source_crs
@@ -395,6 +396,7 @@ async def post_transform(  # noqa: ANN201
     ],
     source_crs: str = Query(alias="source-crs", default=None),
     target_crs: str = Query(alias="target-crs", default=None),
+    epoch: str = Query(alias="epoch", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
     accept_crs: str = Header(alias="accept-crs", default=None),
 ):
