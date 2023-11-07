@@ -98,7 +98,7 @@ paths:
       tags:
         - CRS
       summary: Get all supported CRSs in the transformation API
-      description: Get all available coordinate reference system (CRS)
+      description: Get all available coordinate reference systems (CRS)
       responses:
         "200":
           description: Successful Response

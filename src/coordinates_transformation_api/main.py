@@ -68,7 +68,10 @@ if not app_settings.debug:  # suppres pyproj warnings in prod
 OPEN_API_SPEC: dict
 API_VERSION: str
 CRS_LIST: list[Crs]
-OPEN_API_SPEC, API_TITLE, API_VERSION, CRS_LIST = init_oas()
+OPEN_API_SPEC, API_TITLE, API_VERSION = init_oas()
+crs_identifiers = OPEN_API_SPEC["components"]["schemas"]["crs-enum"]["enum"]
+CRS_LIST = [Crs.from_crs_str(x) for x in crs_identifiers]
+
 BASE_DIR: str = os.path.dirname(__file__)
 
 app: FastAPI = FastAPI(docs_url=None)
