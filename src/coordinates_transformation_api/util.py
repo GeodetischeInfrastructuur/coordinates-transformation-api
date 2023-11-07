@@ -349,9 +349,7 @@ def get_source_crs_body(
 
 def get_coordinates_from_geometry(
     item: _GeometryBase,
-) -> Iterable[
-    Position | MultiPointCoords | MultiLineStringCoords | MultiPolygonCoords | Any
-]:
+) -> list:
     geom = cast(_GeometryBase, item)
     return list(
         chain(explode(geom.coordinates))
@@ -501,54 +499,36 @@ def update_bbox_geojson_object(  # noqa: C901
 ) -> None:
     def rec_fun(  # noqa: C901
         geojson_obj: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
-        local_coords: list,
-    ) -> None:
+    ) -> list:
         if isinstance(geojson_obj, CrsFeatureCollection):
+            fc_coords: list = []
             for ft in geojson_obj.features:
-                rec_fun(ft, local_coords)
+                fc_coords = rec_fun(ft)
             if geojson_obj.bbox is not None:
-                geojson_obj.bbox = get_bbox_from_coordinates(local_coords)
+                geojson_obj.bbox = get_bbox_from_coordinates(fc_coords)
+            return fc_coords
         elif isinstance(geojson_obj, Feature):
+            ft_coords: list = []
             if geojson_obj.geometry is None:
-                return
-            ft_coords: Iterable[
-                Position
-                | MultiPointCoords
-                | MultiLineStringCoords
-                | MultiPolygonCoords
-                | Any
-            ] = []
-            rec_fun(geojson_obj.geometry, list(ft_coords))
+                return ft_coords
+            ft_coords = rec_fun(geojson_obj.geometry)
             if geojson_obj.bbox is not None:
                 geojson_obj.bbox = get_bbox_from_coordinates(ft_coords)
-            local_coords.append(ft_coords)
+            return ft_coords
         elif isinstance(geojson_obj, GeometryCollection):
-            gc_coords: Iterable[
-                Position
-                | MultiPointCoords
-                | MultiLineStringCoords
-                | MultiPolygonCoords
-                | Any
-            ] = []
+            gc_coords: list = []
             for geom in geojson_obj.geometries:
-                rec_fun(geom, list(gc_coords))
+                gc_coords.append(rec_fun(geom))
             if geojson_obj.bbox is not None:
                 geojson_obj.bbox = get_bbox_from_coordinates(gc_coords)
-            local_coords.append(gc_coords)
+            return gc_coords
         elif isinstance(geojson_obj, _GeometryBase):
-            geom_coords: Iterable[
-                Position
-                | MultiPointCoords
-                | MultiLineStringCoords
-                | MultiPolygonCoords
-                | Any
-            ] = get_coordinates_from_geometry(geojson_obj)
-            local_coords.append(geom_coords)
+            geom_coords: list = get_coordinates_from_geometry(geojson_obj)
             if geojson_obj.bbox is not None:
                 geojson_obj.bbox = get_bbox_from_coordinates(geom_coords)
+            return geom_coords
 
-    coords: list = []
-    rec_fun(geojson_obj, coords)
+    _ = rec_fun(geojson_obj)
 
 
 def crs_transform(
