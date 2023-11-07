@@ -503,7 +503,7 @@ def update_bbox_geojson_object(  # noqa: C901
         if isinstance(geojson_obj, CrsFeatureCollection):
             fc_coords: list = []
             for ft in geojson_obj.features:
-                fc_coords = rec_fun(ft)
+                fc_coords.append(rec_fun(ft))
             if geojson_obj.bbox is not None:
                 geojson_obj.bbox = get_bbox_from_coordinates(fc_coords)
             return fc_coords
