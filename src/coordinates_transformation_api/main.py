@@ -327,7 +327,7 @@ async def densify(  # noqa: ANN201
     densify_request_body(body, s_crs_str, max_segment_deviation, max_segment_length)
     return JSONResponse(
         content=body.model_dump(exclude_none=True),
-        headers={"content-crs": format_as_uri(s_crs_str)},
+        headers=set_response_headers(s_crs_str),
     )
 
 
@@ -467,7 +467,7 @@ async def post_transform(  # noqa: ANN201
 
         return JSONResponse(
             content=body.model_dump(exclude_none=True),
-            headers={"content-crs": format_as_uri(t_crs)},
+            headers=set_response_headers(t_crs, epoch),
         )
 
 
