@@ -45,11 +45,18 @@ def get_transform_callback(
                 f"number of dimensions of target-crs should be 2 or 3, is {dim}"
             )
         val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
+        input = tuple([*val, float(epoch) if epoch is not None else None])
 
         # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
         # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
+        # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
+        # 'needed' in the result, because there is no conversion of time, e.i. a epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
+        # of the transformer is 'stripped' with [0:dim]
         return tuple(
-            [float(my_round(x, precision)) for x in transformer.transform(*val)]
+            [
+                float(my_round(x, precision))
+                for x in transformer.transform(*input)[0:dim]
+            ]
         )
 
     return callback
