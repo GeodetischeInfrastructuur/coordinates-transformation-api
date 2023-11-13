@@ -406,7 +406,7 @@ async def post_transform(  # noqa: ANN201
     ],
     source_crs: str = Query(alias="source-crs", default=None),
     target_crs: str = Query(alias="target-crs", default=None),
-    epoch: str = Query(alias="epoch", default=None),
+    epoch: float = Query(alias="epoch", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
     accept_crs: str = Header(alias="accept-crs", default=None),
 ):
@@ -452,13 +452,13 @@ async def post_transform(  # noqa: ANN201
     validate_crss(s_crs, t_crs, CRS_LIST)
 
     if isinstance(body, CityjsonV113):
-        body.crs_transform(s_crs, t_crs)
+        body.crs_transform(s_crs, t_crs, epoch)
         return Response(
             content=body.model_dump_json(exclude_none=True),
             media_type="application/city+json",
         )
     else:
-        crs_transform(body, s_crs, t_crs)
+        crs_transform(body, s_crs, t_crs, epoch)
 
         validate_json_coords_fun = get_validate_json_coords_fun()
         _ = apply_function_on_geometries_of_request_body(

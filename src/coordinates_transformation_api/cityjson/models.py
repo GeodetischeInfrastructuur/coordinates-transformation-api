@@ -1220,7 +1220,7 @@ class CityjsonV113(BaseModel):
         self.remove_duplicate_vertices()
         self.remove_orphan_vertices()
 
-    def update_bbox_each_cityobjects( # noqa: C901, PLR0912
+    def update_bbox_each_cityobjects(  # noqa: C901, PLR0912
         self: CityjsonV113, addifmissing: bool = False
     ) -> None:
         def recusionvisit(a: CityJSONBoundary, vs: list[int]) -> None:
@@ -1289,11 +1289,9 @@ class CityjsonV113(BaseModel):
         return unit_name
 
     def crs_transform(
-        self: CityjsonV113,
-        source_crs: str,
-        target_crs: str,
+        self: CityjsonV113, source_crs: str, target_crs: str, epoch: float
     ) -> None:
-        callback = get_transform_callback(source_crs, target_crs)
+        callback = get_transform_callback(source_crs, target_crs, epoch=epoch)
         imp_digits = math.ceil(abs(math.log(self.transform.scale[0], 10)))
         self.decompress()
         self.vertices = [

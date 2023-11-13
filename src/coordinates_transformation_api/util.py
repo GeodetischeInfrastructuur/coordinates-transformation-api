@@ -535,8 +535,9 @@ def crs_transform(
     body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
     s_crs: str,
     t_crs: str,
+    epoch: float | None = None,
 ) -> None:
-    crs_transform_fun = get_crs_transform_fun(s_crs, t_crs)
+    crs_transform_fun = get_crs_transform_fun(s_crs, t_crs, epoch)
     _ = apply_function_on_geometries_of_request_body(body, crs_transform_fun)
     if isinstance(body, CrsFeatureCollection):
         body.set_crs_auth_code(t_crs)
@@ -651,7 +652,7 @@ def densify_request_body(
     crs_transform(body, DENSIFY_CRS, source_crs)  # transform back
 
 
-def get_crs_transform_fun(source_crs, target_crs) -> Callable:
+def get_crs_transform_fun(source_crs, target_crs, epoch) -> Callable:
     target_crs_crs: MyCrs = MyCrs.from_crs_str(target_crs)
     precision = get_precision(target_crs_crs)
 
@@ -662,7 +663,9 @@ def get_crs_transform_fun(source_crs, target_crs) -> Callable:
     ) -> (
         None
     ):  # add _result, _indices args since required by transform_geometries_req_body
-        callback = get_transform_callback(source_crs, target_crs, precision)
+        callback = get_transform_callback(
+            source_crs, target_crs, precision, epoch=epoch
+        )
         geom.coordinates = traverse_geojson_coordinates(
             cast(list[list[Any]] | list[float] | list[int], geom.coordinates),
             callback=callback,
