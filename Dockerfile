@@ -9,7 +9,8 @@ ENV ENV PIP_ROOT_USER_ACTION=ignore
 RUN apt-get update && \
     apt-get install -y \
         moreutils \
-        curl && \
+        curl \
+        git && \
     pip install --upgrade setuptools && \
     pip install --upgrade pip && \
     pip install /src
