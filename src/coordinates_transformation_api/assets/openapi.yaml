@@ -308,6 +308,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/source-crs"
         - $ref: "#/components/parameters/target-crs"
+        - $ref: "#/components/parameters/epoch"
         - $ref: "#/components/parameters/contentCrs"
         - $ref: "#/components/parameters/acceptCrs"
         - $ref: "#/components/parameters/coordinates"
@@ -334,6 +335,8 @@ paths:
               $ref: "#/components/headers/api-version"
             Content-crs:
               $ref: "#/components/headers/content-crs"
+            Epoch:
+              $ref: "#/components/headers/epoch"
 
         "400":
           $ref: "#/components/responses/400"
@@ -359,6 +362,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/source-crs"
         - $ref: "#/components/parameters/target-crs"
+        - $ref: "#/components/parameters/epoch"
         - $ref: "#/components/parameters/contentCrs"
         - $ref: "#/components/parameters/acceptCrs"
       requestBody:
@@ -422,6 +426,8 @@ paths:
               $ref: "#/components/headers/api-version"
             Content-crs:
               $ref: "#/components/headers/content-crs"
+            Epoch:
+              $ref: "#/components/headers/epoch"
 
         "400":
           $ref: "#/components/responses/400"
@@ -440,6 +446,10 @@ components:
       description: Source CRS
       schema:
         type: string
+    epoch:
+      description: Epoch of the given coordinates
+      schema:
+        type: string      
 
 
   parameters:
@@ -461,6 +471,15 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/crs-enum"
+
+    epoch:
+      description: Epoch of the coordinates
+      in: query
+      name: epoch
+      example: 2010.1
+      required: false
+      schema:
+        type: number
 
     coordinates:
       description: Coordinates of the query point as comma seperated list, see `source-crs` parameter for order and required number of the coordinates
@@ -519,6 +538,7 @@ components:
       schema:
         type: number
         minimum: 0.001
+
   responses:
     "200-oas":
       description: OK
@@ -684,6 +704,7 @@ components:
         - EPSG:4937
         - EPSG:7415
         - EPSG:7931
+        - EPSG:7912
         - EPSG:4326
         - EPSG:3857
         - OGC:CRS84

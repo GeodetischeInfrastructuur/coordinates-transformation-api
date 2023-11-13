@@ -1,7 +1,29 @@
 import json
 
+from geojson_pydantic import Feature
+from pydantic import ValidationError
+
 from coordinates_transformation_api.models import CrsFeatureCollection
-from coordinates_transformation_api.util import update_bbox_geojson_object
+from coordinates_transformation_api.util import crs_transform, update_bbox_geojson_object
+from tests.util import not_raises
+
+
+def test_feature_bbox():
+    with open("tests/data/feature-bbox.json") as f:
+        data = json.load(f)
+        feature = Feature(**data)
+        feature_original = Feature(**data)
+
+        crs_transform(feature, "EPSG:28992", "EPSG:4326")
+
+        feature_dict = json.loads(feature.model_dump_json())
+        # check if input is actually transformed
+        assert feature != feature_original
+        with not_raises(
+            ValidationError,
+            "could not convert output of transform_request_body to type Feature: {exc}",
+        ):
+            Feature(**feature_dict)
 
 
 def test_update_bbox(geometry_collection_bbox):

@@ -135,8 +135,6 @@ CRS transformation with `cjio`:
 cjio test_1.city.json crs_reproject 4937 save test_1_4937.city.json
 ```
 
-
-
 ```mermaid
 flowchart
     input([/transform endpoint]) ==> filetype{content-type<br>request body}

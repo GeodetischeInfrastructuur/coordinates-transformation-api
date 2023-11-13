@@ -217,14 +217,15 @@ async def conformance() -> Conformance:
 
 @app.get("/transform")
 async def transform(  # noqa: PLR0913, ANN201
-    source_crs: str = Query(alias="source-crs", default=None),
-    target_crs: str = Query(alias="target-crs", defaANN201ult=None),
     coordinates: str = Query(
         alias="coordinates", regex=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"
     ),
-    accept: str = Header(default=TransformGetAcceptHeaders.json),
+    source_crs: str = Query(alias="source-crs", default=None),
+    target_crs: str = Query(alias="target-crs", defaANN201ult=None),
+    epoch: float = Query(alias="epoch", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
     accept_crs: str = Header(alias="accept-crs", default=None),
+    accept: str = Header(default=TransformGetAcceptHeaders.json),
 ):
     if source_crs is not None:
         s_crs = source_crs
@@ -264,7 +265,9 @@ async def transform(  # noqa: PLR0913, ANN201
     coordinates_list: coordinates_type = list(
         float(x) for x in coordinates.split(",")
     )  # convert to list since we do not know dimensionality of coordinates
-    callback = get_transform_callback(source_crs, target_crs, precision=precision)
+    callback = get_transform_callback(
+        source_crs, target_crs, precision=precision, epoch=epoch
+    )
     # TODO: fix following type ignore
     transformed_coordinates = callback(coordinates_list)
 
@@ -277,17 +280,17 @@ async def transform(  # noqa: PLR0913, ANN201
         if len(transformed_coordinates) == THREE_DIMENSIONAL:
             return PlainTextResponse(
                 f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})",
-                headers={"content-crs": format_as_uri(t_crs)},
+                headers=set_response_headers(t_crs, epoch),
             )
 
         return PlainTextResponse(
             f"POINT({' '.join([str(x) for x in transformed_coordinates])})",
-            headers={"content-crs": format_as_uri(t_crs)},
+            headers=set_response_headers(t_crs, epoch),
         )
     else:  # default case serve json
         return JSONResponse(
             content={"type": "Point", "coordinates": transformed_coordinates},
-            headers={"content-crs": format_as_uri(t_crs)},
+            headers=set_response_headers(t_crs, epoch),
         )
 
 
@@ -324,7 +327,7 @@ async def densify(  # noqa: ANN201
     densify_request_body(body, s_crs_str, max_segment_deviation, max_segment_length)
     return JSONResponse(
         content=body.model_dump(exclude_none=True),
-        headers={"content-crs": format_as_uri(s_crs_str)},
+        headers=set_response_headers(s_crs_str),
     )
 
 
@@ -342,6 +345,14 @@ def get_source_crs(
     elif crs_from_body is None and source_crs is None and content_crs is not None:
         s_crs = content_crs
     return s_crs
+
+
+def set_response_headers(t_crs: str, epoch: float | None = None) -> dict[str, str]:
+    headers = {"content-crs": format_as_uri(t_crs)}
+    if epoch:
+        headers["epoch"] = str(epoch)
+
+    return headers
 
 
 @app.post(
@@ -395,6 +406,7 @@ async def post_transform(  # noqa: ANN201
     ],
     source_crs: str = Query(alias="source-crs", default=None),
     target_crs: str = Query(alias="target-crs", default=None),
+    epoch: float = Query(alias="epoch", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
     accept_crs: str = Header(alias="accept-crs", default=None),
 ):
@@ -440,13 +452,13 @@ async def post_transform(  # noqa: ANN201
     validate_crss(s_crs, t_crs, CRS_LIST)
 
     if isinstance(body, CityjsonV113):
-        body.crs_transform(s_crs, t_crs)
+        body.crs_transform(s_crs, t_crs, epoch)
         return Response(
             content=body.model_dump_json(exclude_none=True),
             media_type="application/city+json",
         )
     else:
-        crs_transform(body, s_crs, t_crs)
+        crs_transform(body, s_crs, t_crs, epoch)
 
         validate_json_coords_fun = get_validate_json_coords_fun()
         _ = apply_function_on_geometries_of_request_body(
@@ -455,7 +467,7 @@ async def post_transform(  # noqa: ANN201
 
         return JSONResponse(
             content=body.model_dump(exclude_none=True),
-            headers={"content-crs": format_as_uri(t_crs)},
+            headers=set_response_headers(t_crs, epoch),
         )
 
 
