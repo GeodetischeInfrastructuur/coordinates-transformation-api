@@ -1,10 +1,13 @@
 import json
 
+from coordinates_transformation_api.models import CrsFeatureCollection
+from coordinates_transformation_api.util import (
+    crs_transform,
+    update_bbox_geojson_object,
+)
 from geojson_pydantic import Feature
 from pydantic import ValidationError
 
-from coordinates_transformation_api.models import CrsFeatureCollection
-from coordinates_transformation_api.util import crs_transform, update_bbox_geojson_object
 from tests.util import not_raises
 
 

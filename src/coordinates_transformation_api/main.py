@@ -6,6 +6,7 @@ from typing import Callable, Union, cast
 
 import uvicorn
 from fastapi import FastAPI, Header, Query, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
@@ -71,8 +72,8 @@ CRS_LIST: list[Crs]
 OPEN_API_SPEC, API_TITLE, API_VERSION = init_oas()
 crs_identifiers = OPEN_API_SPEC["components"]["schemas"]["crs-enum"]["enum"]
 CRS_LIST = [Crs.from_crs_str(x) for x in crs_identifiers]
-
 BASE_DIR: str = os.path.dirname(__file__)
+
 
 app: FastAPI = FastAPI(docs_url=None)
 # note: order of adding middleware is required for it to work
@@ -82,6 +83,18 @@ app.add_middleware(
 )
 app.add_middleware(TimeoutMiddleware, timeout_seconds=app_settings.request_timeout)
 
+if app_settings.cors_allow_origins:
+    allow_origins: list[str]
+    if app_settings.cors_allow_origins == "*":
+        allow_origins = [app_settings.cors_allow_origins]
+    else:
+        allow_origins = [str(x).rstrip("/") for x in app_settings.cors_allow_origins]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allow_origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 app.mount(
     "/static",
@@ -400,7 +413,7 @@ async def density_check(  # noqa: ANN201
     ],
     response_model_exclude_none=True,
 )
-async def post_transform(  # noqa: ANN201
+async def post_transform(  # noqa: ANN201, PLR0913
     body: Union[
         Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
     ],
