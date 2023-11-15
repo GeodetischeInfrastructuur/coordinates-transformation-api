@@ -78,10 +78,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/responses/ConformanceDeclaration"
+                $ref: "#/components/schemas/ConformanceDeclaration"
             text/html:
               schema:
-                $ref: "#/components/responses/htmlSchema"
+                type: "string"
           headers:
             api-version:
               $ref: "#/components/headers/api-version"
@@ -449,7 +449,7 @@ components:
     epoch:
       description: Epoch of the given coordinates
       schema:
-        type: string      
+        type: string
 
 
   parameters:
@@ -589,19 +589,7 @@ components:
           $ref: "#/components/headers/api-version"
 
 
-    htmlSchema:
-      description: HTML representation
 
-
-
-    ConformanceDeclaration:
-      description: |-
-        The URIs of all conformance classes supported by the server.
-
-        To support "generic" clients that want to access multiple
-        OGC API Features implementations - and not "just" a specific
-        API / server, the server declares the conformance
-        classes it implements and conforms to.
       # content:
       #   application/json:
       #     schema:
@@ -611,6 +599,21 @@ components:
       #     $ref: "#/components/headers/api-version"
 
   schemas:
+    ConformanceDeclaration:
+      type: object
+      properties:
+        conformsTo:
+          type: array
+          items:
+            type: string
+            example: "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core"
+      description: |-
+        The URIs of all conformance classes supported by the server.
+
+        To support "generic" clients that want to access multiple
+        OGC API Features implementations - and not "just" a specific
+        API / server, the server declares the conformance
+        classes it implements and conforms to.
     Axis:
       properties:
         name:
@@ -781,16 +784,7 @@ components:
         length:
           type: integer
 
-    # confClasses:
-    #   type: object
-    #   required:
-    #     - conformsTo
-    #   properties:
-    #     conformsTo:
-    #       type: array
-    #       items:
-    #         type: string
-    #         example: "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core"
+
 
     Error:
       type: object
