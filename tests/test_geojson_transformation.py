@@ -1,14 +1,12 @@
 import json
 
+from coordinates_transformation_api.models import CrsFeatureCollection
+from coordinates_transformation_api.util import crs_transform
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection, parse_geometry_obj
 from pydantic import ValidationError
 
-from coordinates_transformation_api.models import CrsFeatureCollection
-from coordinates_transformation_api.util import crs_transform, init_oas
 from tests.util import not_raises
-
-_, _, _ = init_oas()
 
 
 def test_bbox_transformed():
