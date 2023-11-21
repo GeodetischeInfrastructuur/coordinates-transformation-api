@@ -144,7 +144,7 @@ async def openapi(
         accept_html(request) and format != "json"
     ):  # return html when format=html, return json when format=json, but return html when accept header accepts html
         return get_swagger_ui_html(
-            openapi_url="/openapi.json",
+            openapi_url="./openapi.json",
             title=f"{API_TITLE} - Swagger UI",
             swagger_favicon_url="https://www.nsgi.nl/o/iv-kadaster-business-theme/images/favicon.ico",
         )
