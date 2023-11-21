@@ -543,22 +543,13 @@ components:
     "200-oas":
       description: OK
       content:
-        application/openapi+json:
-          schema:
-             $ref: "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.yaml"
+        application/openapi+json: {}
         text/html:
           schema:
             type: "string"
       headers:
         api-version:
           $ref: "#/components/headers/api-version"
-
-
-    # "200":
-    #   description: OK
-    #   headers:
-    #     api-version:
-    #       $ref: "#/components/headers/api-version"
     "400":
       description: Bad request. The request body does not contain valid GeoJSON or the query is not supported by the API.
       content:

@@ -14,7 +14,7 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from geodense.lib import (  # type: ignore
     check_density_geometry_coordinates,
-    densify_geometry_coordinates,
+    densify_geojson_object,
 )
 from geodense.models import (
     DenseConfig,
@@ -434,13 +434,19 @@ def get_shapely_objects(
     body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
 ) -> list[Any]:
     def merge_geometry_collections_shapelyfication(input_shp_geoms: list) -> list:
-        indices = list(map(lambda x: x["index"][0], input_shp_geoms))
+        indices = list(
+            map(
+                lambda x: x["index"][0] if hasattr(x, "index") else None,
+                input_shp_geoms,
+            )
+        )
         counter = Counter(indices)
         geom_coll_indices = [x for x in counter if counter[x] > 1]
         output_shp_geoms = [
             x["result"]
             for x in input_shp_geoms
-            if x["index"][0] not in geom_coll_indices
+            if (hasattr(x, "index") and x["index"][0] not in geom_coll_indices)
+            or not hasattr(x, "index")
         ]
         for i in geom_coll_indices:
             geom_collection_geoms = [
@@ -457,12 +463,13 @@ def get_shapely_objects(
 def get_shapely_object_fun() -> Callable:
     def shapely_object(
         geometry_dict: dict[str, Any], result: list, indices: list[int] | None = None
-    ) -> None:
+    ) -> list:
         shp_obj = shape(geometry_dict)
         result_item = {"result": shp_obj}
         if indices is not None:
             result_item["index"] = indices
         result.append(result_item)
+        return result
 
     return shapely_object
 
@@ -601,27 +608,6 @@ def bbox_check_deviation_set(body, source_crs, max_segment_deviation):
         print("body not inside bbox")
 
 
-def get_densify_fun(
-    densify_config: DenseConfig,
-) -> Callable:
-    def my_fun(
-        geometry: Geometry, _result: list, _indices: list[int] | None = None
-    ):  # add _result, _indices args since required by transform_geometries_req_body
-        geoms: list[Geometry] = []
-        if isinstance(geometry, _GeometryBase):
-            geoms = [geometry]
-        elif isinstance(geometry, GeometryCollection):
-            geoms = geometry.geometries
-
-        for g in geoms:
-            g_base = cast(_GeometryBase, g)
-            g_base.coordinates = densify_geometry_coordinates(
-                g_base.coordinates, densify_config
-            )
-
-    return my_fun
-
-
 def densify_request_body(
     body: Feature | CrsFeatureCollection | Geometry,
     source_crs: str,
@@ -646,8 +632,7 @@ def densify_request_body(
 
     # densify request body
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
-    densify_fun = get_densify_fun(c)
-    _ = apply_function_on_geometries_of_request_body(body, densify_fun)
+    densify_geojson_object(body, c)
 
     crs_transform(body, DENSIFY_CRS, source_crs)  # transform back
 
