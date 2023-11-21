@@ -161,28 +161,28 @@ async def landingpage():  # type: ignore  # noqa: ANN201
     self = Link(
         title="API Landing Page",
         rel="self",
-        href=f"{app_settings.base_url}/?f=json",
+        href=f"{app_settings.base_url.rstrip('/')}/?f=json",
         type="application/json",
     )
 
     oas = Link(
         title="Open API Specification as JSON",
         rel="service-desc",
-        href=f"{app_settings.base_url}/openapi?f=json",
+        href=f"{app_settings.base_url.rstrip('/')}/openapi?f=json",
         type="application/openapi+json",
     )
 
     oas_html = Link(
         title="Open API Specification as HTML",
         rel="service-desc",
-        href=f"{app_settings.base_url}/openapi?f=html",
+        href=f"{app_settings.base_url.rstrip('/')}/openapi?f=html",
         type="text/html",
     )
 
     conformance = Link(
         title="Conformance Declaration as JSON",
         rel="http://www.opengis.net/def/rel/ogc/1.0/conformance",
-        href=f"{app_settings.base_url}/conformance",
+        href=f"{app_settings.base_url.rstrip('/')}/conformance",
         type="application/json",
     )
     return LandingPage(

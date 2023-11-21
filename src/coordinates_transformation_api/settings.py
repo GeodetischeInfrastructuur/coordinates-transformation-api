@@ -75,7 +75,7 @@ class AppSettings(BaseSettings):
     )
     base_url: str = Field(
         alias="BASE_URL",
-        default="http://localhost:8000",
+        default="http://localhost:8000/",
         description="base url on wich the API is served",
         pattern=r"^((https?:\/\/)?[\w-]+(\.[\w-]+)*\.?(:\d+)?(\/\S*)?)",  # adapted from https://codegolf.stackexchange.com/a/480
     )
