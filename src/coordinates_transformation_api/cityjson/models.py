@@ -14,7 +14,7 @@ from typing import Annotated, Any, Union, cast
 from pydantic import AnyUrl, BaseModel, EmailStr, Field, StringConstraints
 from pyproj import CRS
 
-from coordinates_transformation_api.callback import get_transform_callback
+from coordinates_transformation_api.crs_transform import get_transform_crs_fun
 
 CityJSONBoundary = Union[
     list[list[list[int]]],
@@ -1291,7 +1291,7 @@ class CityjsonV113(BaseModel):
     def crs_transform(
         self: CityjsonV113, source_crs: str, target_crs: str, epoch: float | None = None
     ) -> None:
-        callback = get_transform_callback(source_crs, target_crs, epoch=epoch)
+        callback = get_transform_crs_fun(source_crs, target_crs, epoch=epoch)
         imp_digits = math.ceil(abs(math.log(self.transform.scale[0], 10)))
         self.decompress()
         self.vertices = [

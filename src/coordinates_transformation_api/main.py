@@ -11,14 +11,11 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
+from geodense.geojson import CrsFeatureCollection
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection
 
 from coordinates_transformation_api import assets
-from coordinates_transformation_api.callback import (
-    coordinates_type,
-    get_transform_callback,
-)
 from coordinates_transformation_api.cityjson.models import CityjsonV113
 from coordinates_transformation_api.fastapi_rfc7807 import middleware
 from coordinates_transformation_api.limit_middleware.middleware import (
@@ -28,7 +25,6 @@ from coordinates_transformation_api.limit_middleware.middleware import (
 from coordinates_transformation_api.models import (
     Conformance,
     Crs,
-    CrsFeatureCollection,
     DensityCheckReport,
     LandingPage,
     Link,
@@ -36,21 +32,20 @@ from coordinates_transformation_api.models import (
 )
 from coordinates_transformation_api.settings import app_settings
 from coordinates_transformation_api.util import (
-    THREE_DIMENSIONAL,
     accept_html,
-    apply_function_on_geometries_of_request_body,
+    convert_point_coords_to_wkt,
     crs_transform,
     densify_request_body,
     density_check_request_body,
     extract_authority_code,
     format_as_uri,
-    get_precision,
     get_source_crs_body,
-    get_validate_json_coords_fun,
     init_oas,
     raise_response_validation_error,
     raise_validation_error,
+    transform_coordinates,
     validate_coords_source_crs,
+    validate_crs_transformed_geojson,
     validate_crss,
     validate_input_max_segment_deviation_length,
 )
@@ -234,7 +229,7 @@ async def transform(  # noqa: PLR0913, ANN201
         alias="coordinates", regex=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"
     ),
     source_crs: str = Query(alias="source-crs", default=None),
-    target_crs: str = Query(alias="target-crs", defaANN201ult=None),
+    target_crs: str = Query(alias="target-crs", default=None),
     epoch: float = Query(alias="epoch", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
     accept_crs: str = Header(alias="accept-crs", default=None),
@@ -273,16 +268,9 @@ async def transform(  # noqa: PLR0913, ANN201
         raise ValueError(
             f"could not instantiate CRS object for CRS with id {target_crs}"
         )
-    precision = get_precision(target_crs_crs)
-
-    coordinates_list: coordinates_type = list(
-        float(x) for x in coordinates.split(",")
-    )  # convert to list since we do not know dimensionality of coordinates
-    callback = get_transform_callback(
-        source_crs, target_crs, precision=precision, epoch=epoch
+    transformed_coordinates = transform_coordinates(
+        coordinates, source_crs, target_crs, epoch, target_crs_crs
     )
-    # TODO: fix following type ignore
-    transformed_coordinates = callback(coordinates_list)
 
     if float("inf") in [abs(x) for x in transformed_coordinates]:
         raise_response_validation_error(
@@ -290,14 +278,9 @@ async def transform(  # noqa: PLR0913, ANN201
         )
 
     if accept == str(TransformGetAcceptHeaders.wkt.value):
-        if len(transformed_coordinates) == THREE_DIMENSIONAL:
-            return PlainTextResponse(
-                f"POINT Z ({' '.join([str(x) for x in transformed_coordinates])})",
-                headers=set_response_headers(t_crs, epoch),
-            )
-
-        return PlainTextResponse(
-            f"POINT({' '.join([str(x) for x in transformed_coordinates])})",
+        wkt_string = convert_point_coords_to_wkt(coordinates)
+        PlainTextResponse(
+            wkt_string,
             headers=set_response_headers(t_crs, epoch),
         )
     else:  # default case serve json
@@ -472,11 +455,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
         )
     else:
         crs_transform(body, s_crs, t_crs, epoch)
-
-        validate_json_coords_fun = get_validate_json_coords_fun()
-        _ = apply_function_on_geometries_of_request_body(
-            body, validate_json_coords_fun
-        )  # TODO: replace with try except block - saves an JSON serialization ??
+        validate_crs_transformed_geojson(body)
 
         return JSONResponse(
             content=body.model_dump(exclude_none=True),
