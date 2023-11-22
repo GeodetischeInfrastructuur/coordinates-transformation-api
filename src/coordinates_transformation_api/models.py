@@ -1,9 +1,35 @@
 from enum import Enum
-from typing import Literal, Optional
+from typing import Optional
 
-from geojson_pydantic import FeatureCollection
-from pydantic import BaseModel, Field, computed_field
-from pyproj import CRS
+from pydantic import BaseModel, computed_field
+from pyproj import CRS as ProjCrs  # noqa: N811
+
+
+class Link(BaseModel):
+    title: str
+    type: str
+    rel: str
+    href: str
+
+
+class LandingPage(BaseModel):
+    title: str
+    description: str
+    links: list[Link]
+
+
+class Conformance(BaseModel):
+    conformsTo: list[str] = []  # noqa: N815
+
+
+class DensityCheckReport(BaseModel):
+    passes_check: bool
+    report: Optional[list[tuple[list[int], float]]]
+
+
+class TransformGetAcceptHeaders(Enum):
+    json = "application/json"
+    wkt = "text/plain"
 
 
 class Axis(BaseModel):
@@ -27,7 +53,7 @@ class Crs(BaseModel):
     def from_crs_str(cls, crs_st: str) -> "Crs":  # noqa: ANN102
         # Do some math here and later set the values
         auth, identifier = crs_st.split(":")
-        crs = CRS.from_authority(auth, identifier)
+        crs = ProjCrs.from_authority(auth, identifier)
         axes = [
             Axis(
                 name=a.name,
@@ -75,60 +101,3 @@ class Crs(BaseModel):
                 f"Unexpected unit in x axis (x, e, lon) CRS {self.crs_auth_identifier} - expected values: degree, meter, actual value: {unit_name}"
             )
         return unit_name
-
-
-class Link(BaseModel):
-    title: str
-    type: str
-    rel: str
-    href: str
-
-
-class LandingPage(BaseModel):
-    title: str
-    description: str
-    links: list[Link]
-
-
-class Conformance(BaseModel):
-    conformsTo: list[str] = []  # noqa: N815
-
-
-class DensityCheckReport(BaseModel):
-    passes_check: bool
-    report: Optional[list[tuple[list[int], float]]]
-
-
-class TransformGetAcceptHeaders(Enum):
-    json = "application/json"
-    wkt = "text/plain"
-
-
-class GeoJsonCrsProp(BaseModel):
-    # OGC URN scheme - 8.2 in OGC 05-103
-    # urn:ogc:def:crs:{crs_auth}:{crs_version}:{crs_identifier}
-    name: str = Field(pattern=r"^urn:ogc:def:crs:.*?:.*?:.*?$")
-
-
-class GeoJsonCrs(BaseModel):
-    properties: GeoJsonCrsProp
-    type: Literal["name"]
-
-
-class CrsFeatureCollection(FeatureCollection):
-    crs: Optional[GeoJsonCrs] = None
-
-    def get_crs_auth_code(self: "CrsFeatureCollection") -> str | None:
-        if self.crs is None:
-            return None
-        source_crs_urn_string = self.crs.properties.name
-        source_crs_urn_list = source_crs_urn_string.split(":")
-        crs_authority = source_crs_urn_list[4]
-        crs_identifier = source_crs_urn_list[6]
-        return f"{crs_authority}:{crs_identifier}"
-
-    def set_crs_auth_code(self: "CrsFeatureCollection", crs_auth_code: str) -> None:
-        crs_auth, crs_identifier = crs_auth_code.split(":")
-        if self.crs is None:
-            raise ValueError(f"self.crs is none of CrsFeatureCollection: {self}")
-        self.crs.properties.name = f"urn:ogc:def:crs:{crs_auth}::{crs_identifier}"
