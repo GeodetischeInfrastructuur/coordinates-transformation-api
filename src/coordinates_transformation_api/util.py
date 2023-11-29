@@ -9,7 +9,6 @@ from typing import Any
 import yaml
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
-
 from geodense.geojson import CrsFeatureCollection
 from geodense.lib import (  # type: ignore  # type: ignore
     THREE_DIMENSIONAL,

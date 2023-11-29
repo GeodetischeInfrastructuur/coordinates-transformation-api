@@ -17,7 +17,7 @@ dependencies = [
     "pyproj == 3.6.0",
     "pydantic-settings == 2.0.2",
     "email-validator == 2.0.0",
-    "geodense@git+https://github.com/GeodetischeInfrastructuur/geodense@925a3ae377be64e784745850d78689702ed2cd69",
+    "geodense ~= 0.0.1a4",
 ]
 requires-python = ">=3.11.4"
 dynamic = ["version"]

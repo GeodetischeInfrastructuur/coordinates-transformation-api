@@ -63,14 +63,14 @@ Install enable pre-commit hook with:
 git config --local core.hooksPath .githooks
 ```
 
-To run debug session in VS Code install the package with `pip` with the
+To run debug session in VS Code install the package with pip with the
 `--editable` flag:
 
 ```sh
 pip install --editable .
 ```
 
-Also install mypy as follows
+Also install Mypy as follows
 
 ```sh
 mypy --install-types
