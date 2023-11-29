@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import (
     AfterValidator,
@@ -79,11 +79,10 @@ class AppSettings(BaseSettings):
         description="base url on wich the API is served",
         pattern=r"^((https?:\/\/)?[\w-]+(\.[\w-]+)*\.?(:\d+)?(\/\S*)?)",  # adapted from https://codegolf.stackexchange.com/a/480
     )
-    cors_allow_origins: list[AnyHttpUrl] | CorsAllOrNone = Field(
+    cors_allow_origins: Union[list[AnyHttpUrl], CorsAllOrNone] = Field(
         alias="CORS_ALLOW_ORIGINS",
-        union_mode="left_to_right",
         default=None,
-        description="CORS origins",
+        description="CORS origins, either a comma separated list of HTTPS urls of the value `*` to allow CORS on all origins",
     )
 
     @classmethod

@@ -11,7 +11,7 @@ from datetime import date
 from enum import Enum
 from typing import Annotated, Any, Union, cast
 
-from pydantic import AnyUrl, BaseModel, EmailStr, Field, StringConstraints
+from pydantic import AnyUrl, BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 from pyproj import CRS
 
 from coordinates_transformation_api.crs_transform import get_transform_crs_fun
@@ -35,8 +35,7 @@ class Extensions(BaseModel):
 
 
 class Transform(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     scale: list[float] = Field(..., max_length=3, min_length=3)
     translate: list[float] = Field(..., max_length=3, min_length=3)
@@ -71,8 +70,7 @@ class Role(Enum):
 
 
 class ContactDetails(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     contactName: str
     phone: str | None = None
@@ -204,8 +202,7 @@ class Texture1(BaseModel):
 
 
 class MultiSurface(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     type: Type3
     lod: Annotated[str, StringConstraints(pattern=r"^(\d\.)(\d)$|^(\d)$")]
@@ -220,8 +217,7 @@ class Type4(Enum):
 
 
 class CompositeSurface(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     type: Type4
     lod: Annotated[str, StringConstraints(pattern=r"^(\d\.)(\d)$|^(\d)$")]
@@ -245,8 +241,7 @@ class Texture3(BaseModel):
 
 
 class Solid(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     type: Type5
     lod: Annotated[str, StringConstraints(pattern=r"^(\d\.)(\d)$|^(\d)$")]
@@ -270,8 +265,7 @@ class Texture4(BaseModel):
 
 
 class CompositeSolid(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     type: Type6
     lod: Annotated[str, StringConstraints(pattern=r"^(\d\.)(\d)$|^(\d)$")]
@@ -302,8 +296,7 @@ class Semantics5(BaseModel):
 
 
 class MultiLineString(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     type: Type8
     lod: Annotated[str, StringConstraints(pattern=r"^(\d\.)(\d)$|^(\d)$")]
@@ -321,8 +314,7 @@ class Semantics6(BaseModel):
 
 
 class MultiSolid(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     type: Type9
     lod: Annotated[str, StringConstraints(pattern=r"^(\d\.)(\d)$|^(\d)$")]
@@ -337,8 +329,7 @@ class Type10(Enum):
 
 
 class GeometryInstance(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     type: Type10
     template: int
@@ -553,8 +544,7 @@ class Waterway(FieldAbstractTransportationComplex):
 
 
 class Material(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     name: str
     ambientIntensity: float | None = None
@@ -586,8 +576,7 @@ class TextureType(Enum):
 
 
 class Texture(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     type: Type41 | None = None
     image: str | None = None
@@ -597,8 +586,7 @@ class Texture(BaseModel):
 
 
 class Appearance(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     default_theme_texture: str | None = Field(None, alias="default-theme-texture")
     default_theme_material: str | None = Field(None, alias="default-theme-material")
@@ -608,8 +596,7 @@ class Appearance(BaseModel):
 
 
 class Metadata(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     identifier: str | None = None
     pointOfContact: ContactDetails | None = None
@@ -628,9 +615,7 @@ class SemanticsModel(BaseModel):
 
 
 class MultiPoint(BaseModel):
-    class Config:
-        extra = "forbid"
-
+    model_config = ConfigDict(extra="forbid")
     type: Type2
     lod: Annotated[str, StringConstraints(pattern=r"^(\d\.)(\d)$|^(\d)$")]
     boundaries: list[int]
@@ -894,8 +879,7 @@ class TunnelInstallation(FieldAbstractCityObject):
 
 
 class GeometryTemplates(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     templates: list[
         MultiPoint
