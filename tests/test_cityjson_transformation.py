@@ -1,6 +1,6 @@
 import json
 
-from coordinates_transformation_api.cityjson.models import CityjsonV113
+from coordinate_transformation_api.cityjson.models import CityjsonV113
 
 
 def test_cityjson_transformed():

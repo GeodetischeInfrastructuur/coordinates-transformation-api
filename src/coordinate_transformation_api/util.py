@@ -25,10 +25,10 @@ from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS
 from shapely import STRtree, box
 
-from coordinates_transformation_api import assets
-from coordinates_transformation_api.cityjson.models import CityjsonV113
-from coordinates_transformation_api.constants import DENSIFY_CRS, DEVIATION_VALID_BBOX
-from coordinates_transformation_api.crs_transform import (
+from coordinate_transformation_api import assets
+from coordinate_transformation_api.cityjson.models import CityjsonV113
+from coordinate_transformation_api.constants import DENSIFY_CRS, DEVIATION_VALID_BBOX
+from coordinate_transformation_api.crs_transform import (
     get_crs_transform_fun,
     get_precision,
     get_shapely_objects,
@@ -36,9 +36,9 @@ from coordinates_transformation_api.crs_transform import (
     get_validate_json_coords_fun,
     update_bbox_geojson_object,
 )
-from coordinates_transformation_api.models import Crs as MyCrs
-from coordinates_transformation_api.settings import app_settings
-from coordinates_transformation_api.types import CoordinatesType
+from coordinate_transformation_api.models import Crs as MyCrs
+from coordinate_transformation_api.settings import app_settings
+from coordinate_transformation_api.types import CoordinatesType
 
 logger = logging.getLogger(__name__)
 
@@ -362,13 +362,13 @@ def transform_coordinates(
     coordinates: Any, source_crs: str, target_crs: str, epoch, target_crs_crs
 ) -> Any:
     precision = get_precision(target_crs_crs)
-    coordinates_list: CoordinatesType = list(
+    coordinate_list: CoordinatesType = list(
         float(x) for x in coordinates.split(",")
     )  # convert to list since we do not know dimensionality of coordinates
     transform_crs_fun = get_transform_crs_fun(
         source_crs, target_crs, precision=precision, epoch=epoch
     )
-    transformed_coordinates = transform_crs_fun(coordinates_list)
+    transformed_coordinates = transform_crs_fun(coordinate_list)
     return transformed_coordinates
 
 
