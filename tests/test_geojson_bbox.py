@@ -1,6 +1,6 @@
 import json
 
-from coordinates_transformation_api.util import (
+from coordinate_transformation_api.util import (
     crs_transform,
     update_bbox_geojson_object,
 )

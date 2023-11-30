@@ -1,6 +1,6 @@
 [project]
-name = "coordinates-transformation-api"
-description = "Coordinates transformation API of the Nederlandse Samenwerking Geodetische Infrastructuur (NSGI)"
+name = "coordinate-transformation-api"
+description = "Coordinate Transformation API of the Nederlandse Samenwerking Geodetische Infrastructuur (NSGI)"
 keywords = ["NSGI", "pyproj", "fastapi", "coordinates", "geo"]
 license = { text = "MIT" }
 classifiers = [
@@ -17,7 +17,7 @@ dependencies = [
     "pyproj == 3.6.0",
     "pydantic-settings == 2.0.2",
     "email-validator == 2.0.0",
-    "geodense ~= 0.0.1a4",
+    "geodense ~= 0.0.1a5",
 ]
 requires-python = ">=3.11.4"
 dynamic = ["version"]
@@ -37,7 +37,7 @@ requires = ["setuptools>=61.0", "setuptools-git-versioning<2"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-ct-api = "coordinates_transformation_api.main:main"
+ct-api = "coordinate_transformation_api.main:main"
 
 [tool.setuptools-git-versioning]
 enabled = true
@@ -45,12 +45,12 @@ enabled = true
 
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)
-include = ["coordinates_transformation_api*"]  # package names should match these glob patterns (["*"] by default)
+include = ["coordinate_transformation_api*"]  # package names should match these glob patterns (["*"] by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.setuptools.package-data]
-"coordinates_transformation_api.assets" = ["*"]
-"coordinates_transformation_api.assets.static" = ["*"]
+"coordinate_transformation_api.assets" = ["*"]
+"coordinate_transformation_api.assets.static" = ["*"]
 
 [tool.ruff]
 # see https://beta.ruff.rs/docs/rules/
@@ -138,11 +138,11 @@ target-version = "py39"
     "ANN" # no type annotation required
 ]
 
-"src/coordinates_transformation_api/cityjson/models.py" = [
+"src/coordinate_transformation_api/cityjson/models.py" = [
     "N815", # non-snakecase variables allowed
 ]
 
-"src/coordinates_transformation_api/util.py" = [
+"src/coordinate_transformation_api/util.py" = [
     "ANN",
 ]
 

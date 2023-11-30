@@ -12,7 +12,7 @@
             "args": [
                 "--reload",
                 "--port", "8000",
-                "coordinates_transformation_api.main:app",
+                "coordinate_transformation_api.main:app",
             ],
             "env": {
                 "LOG_LEVEL": "DEBUG",

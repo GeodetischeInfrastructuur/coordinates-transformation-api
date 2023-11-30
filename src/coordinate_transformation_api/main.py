@@ -15,14 +15,14 @@ from geodense.geojson import CrsFeatureCollection
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection
 
-from coordinates_transformation_api import assets
-from coordinates_transformation_api.cityjson.models import CityjsonV113
-from coordinates_transformation_api.fastapi_rfc7807 import middleware
-from coordinates_transformation_api.limit_middleware.middleware import (
+from coordinate_transformation_api import assets
+from coordinate_transformation_api.cityjson.models import CityjsonV113
+from coordinate_transformation_api.fastapi_rfc7807 import middleware
+from coordinate_transformation_api.limit_middleware.middleware import (
     ContentSizeLimitMiddleware,
     TimeoutMiddleware,
 )
-from coordinates_transformation_api.models import (
+from coordinate_transformation_api.models import (
     Conformance,
     Crs,
     DensityCheckReport,
@@ -30,8 +30,8 @@ from coordinates_transformation_api.models import (
     Link,
     TransformGetAcceptHeaders,
 )
-from coordinates_transformation_api.settings import app_settings
-from coordinates_transformation_api.util import (
+from coordinate_transformation_api.settings import app_settings
+from coordinate_transformation_api.util import (
     accept_html,
     convert_point_coords_to_wkt,
     crs_transform,
@@ -468,7 +468,7 @@ app.openapi = lambda: OPEN_API_SPEC  # type: ignore
 
 def main() -> None:
     uvicorn.run(
-        "coordinates_transformation_api.main:app",
+        "coordinate_transformation_api.main:app",
         workers=2,
         port=8000,
         host="0.0.0.0",  # noqa: S104

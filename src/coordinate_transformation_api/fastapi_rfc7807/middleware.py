@@ -15,7 +15,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from coordinates_transformation_api.settings import app_settings
+from coordinate_transformation_api.settings import app_settings
 
 PreHook = Callable[[Request, Exception], Union[Any, Awaitable[Any]]]
 PostHook = Callable[[Request, Response, Exception], Union[Any, Awaitable[Any]]]

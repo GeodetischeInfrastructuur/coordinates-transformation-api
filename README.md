@@ -1,6 +1,6 @@
-# Coordinates transformation API
+# Coordinate Transformation API
 
-RESTful coordinates transformation API offering NSGI approved transformations
+RESTful Coordinate Transformation API offering NSGI approved transformations
 for the Netherlands. Build on top of pyproj and FastAPI.
 
 ## Assumptions
@@ -79,7 +79,7 @@ mypy --install-types
 Check test coverage (install `coverage` with `pip install coverage`):
 
 ```sh
-coverage run --source=src/coordinates_transformation_api -m pytest -v tests && coverage report -m
+coverage run --source=src/coordinate_transformation_api -m pytest -v tests && coverage report -m
 ```
 
 ## Install
@@ -99,13 +99,13 @@ ct-api
 ### Build container
 
 ```bash
-docker build -t nsgi/coordinatestransformation-api .
+docker build -t nsgi/coordinate-transformation-api .
 ```
 
 ### Run container
 
 ```bash
-docker run --rm -d -p 8000:8000 --name ct-api nsgi/coordinatestransformation-api
+docker run --rm -d -p 8000:8000 --name ct-api nsgi/coordinate-transformation-api
 ```
 
 ## CityJSON

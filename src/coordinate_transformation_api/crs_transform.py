@@ -18,9 +18,9 @@ from pyproj import CRS, Transformer
 from shapely import GeometryCollection as ShpGeometryCollection
 from shapely.geometry import shape
 
-from coordinates_transformation_api.constants import DEFAULT_PRECISION
-from coordinates_transformation_api.models import Crs as MyCrs
-from coordinates_transformation_api.types import CoordinatesType
+from coordinate_transformation_api.constants import DEFAULT_PRECISION
+from coordinate_transformation_api.models import Crs as MyCrs
+from coordinate_transformation_api.types import CoordinatesType
 
 
 def get_precision(target_crs_crs: MyCrs) -> int:
@@ -78,7 +78,7 @@ def get_update_geometry_bbox_fun() -> Callable:
         _result: list,
         _indices: list[int] | None = None,
     ) -> None:
-        coordinates = get_coordinates_from_geometry(geometry)
+        coordinates = get_coordinate_from_geometry(geometry)
         geometry.bbox = get_bbox_from_coordinates(coordinates)
 
     return update_bbox
@@ -120,7 +120,7 @@ def get_validate_json_coords_fun() -> Callable:
             )
             return next(gen, None) is not None
 
-        coords = get_coordinates_from_geometry(geometry)
+        coords = get_coordinate_from_geometry(geometry)
         result.append(coords_has_inf(coords))
         # TODO: HANDLE result in calling code
         # if coords_has_inf(coordinates):
@@ -160,7 +160,7 @@ def update_bbox_geojson_object(  # noqa: C901
                 geojson_obj.bbox = get_bbox_from_coordinates(gc_coords)
             return gc_coords
         elif isinstance(geojson_obj, _GeometryBase):
-            geom_coords: list = get_coordinates_from_geometry(geojson_obj)
+            geom_coords: list = get_coordinate_from_geometry(geojson_obj)
             if geojson_obj.bbox is not None:
                 geojson_obj.bbox = get_bbox_from_coordinates(geom_coords)
             return geom_coords
@@ -197,7 +197,7 @@ def traverse_geojson_coordinates(
         ]
 
 
-def get_coordinates_from_geometry(
+def get_coordinate_from_geometry(
     item: _GeometryBase,
 ) -> list:
     geom = cast(_GeometryBase, item)

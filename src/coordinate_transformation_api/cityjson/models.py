@@ -14,7 +14,7 @@ from typing import Annotated, Any, Union, cast
 from pydantic import AnyUrl, BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 from pyproj import CRS
 
-from coordinates_transformation_api.crs_transform import get_transform_crs_fun
+from coordinate_transformation_api.crs_transform import get_transform_crs_fun
 
 CityJSONBoundary = Union[
     list[list[list[int]]],
