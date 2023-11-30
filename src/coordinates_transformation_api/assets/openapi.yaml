@@ -700,6 +700,7 @@ components:
         - EPSG:7931
         - EPSG:7912
         - EPSG:4326
+        - EPSG:4979
         - EPSG:3857
         - OGC:CRS84
         - EPSG:9928
