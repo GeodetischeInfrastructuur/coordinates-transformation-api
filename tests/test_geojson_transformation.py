@@ -1,6 +1,12 @@
 import json
+from contextlib import nullcontext as does_not_raise
 
-from coordinate_transformation_api.util import crs_transform
+import pytest
+from coordinate_transformation_api.util import (
+    crs_transform,
+    validate_crs_transformed_geojson,
+)
+from fastapi.exceptions import ResponseValidationError
 from geodense.geojson import CrsFeatureCollection
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection, parse_geometry_obj
@@ -136,3 +142,16 @@ def test_transform_geometrycollection():
             "could not convert output of transform_request_body to type GeometryCollection: {exc}",
         ):
             GeometryCollection(**gc_dict)
+
+
+def test_validate_crs_transformed_geojson(feature):
+    feature_exc = feature.model_copy(deep=True)
+    feature_no_exc = feature.model_copy(deep=True)
+
+    crs_transform(feature_exc, "EPSG:4326", "EPSG:28992")
+    with pytest.raises(ResponseValidationError):
+        validate_crs_transformed_geojson(feature_exc)
+
+    crs_transform(feature_no_exc, "EPSG:28992", "EPSG:4326")
+    with does_not_raise():
+        validate_crs_transformed_geojson(feature_no_exc)

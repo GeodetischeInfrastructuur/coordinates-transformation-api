@@ -1,4 +1,3 @@
-from collections import Counter
 from collections.abc import Generator
 from itertools import chain
 from typing import Any, Callable, cast
@@ -10,7 +9,7 @@ from geodense.lib import (  # type: ignore  # type: ignore
     GeojsonObject,
     apply_function_on_geojson_geometries,
 )
-from geodense.types import GeojsonGeomNoGeomCollection
+from geodense.types import GeojsonCoordinates, GeojsonGeomNoGeomCollection
 from geojson_pydantic import Feature, GeometryCollection
 from geojson_pydantic.geometries import _GeometryBase
 from geojson_pydantic.types import BBox
@@ -20,7 +19,7 @@ from shapely.geometry import shape
 
 from coordinate_transformation_api.constants import DEFAULT_PRECISION
 from coordinate_transformation_api.models import Crs as MyCrs
-from coordinate_transformation_api.types import CoordinatesType
+from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
 
 
 def get_precision(target_crs_crs: MyCrs) -> int:
@@ -32,56 +31,23 @@ def get_precision(target_crs_crs: MyCrs) -> int:
 
 def get_shapely_objects(
     body: GeojsonObject,
-) -> list[Any]:
-    def merge_geometry_collections_shapelyfication(input_shp_geoms: list) -> list:
-        indices = list(
-            map(
-                lambda x: x["index"][0] if hasattr(x, "index") else None,
-                input_shp_geoms,
-            )
-        )
-        counter = Counter(indices)
-        geom_coll_indices = [x for x in counter if counter[x] > 1]
-        output_shp_geoms = [
-            x["result"]
-            for x in input_shp_geoms
-            if not hasattr(x, "index") or x["index"][0] not in geom_coll_indices
-        ]
-        for i in geom_coll_indices:
-            geom_collection_geoms = [
-                x["result"] for x in input_shp_geoms if x["index"][0] == i
-            ]
-            output_shp_geoms.append(ShpGeometryCollection(geom_collection_geoms))
-        return output_shp_geoms
-
+) -> list[ShapelyGeometry]:
     transform_fun = get_shapely_object_fun()
     result = apply_function_on_geojson_geometries(body, transform_fun)
-    return merge_geometry_collections_shapelyfication(result)
+    flat_result: list[ShapelyGeometry] = []
+    for item in result:
+        if isinstance(item, list):
+            flat_result.append(ShpGeometryCollection(item))
+        else:
+            flat_result.append(item)
+    return flat_result
 
 
 def get_shapely_object_fun() -> Callable:
-    def shapely_object(
-        geometry_dict: dict[str, Any], result: list, indices: list[int] | None = None
-    ) -> None:
-        shp_obj = shape(geometry_dict)
-        result_item = {"result": shp_obj}
-        if indices is not None:
-            result_item["index"] = indices
-        result.append(result_item)
+    def shapely_object(geometry: GeojsonGeomNoGeomCollection) -> ShapelyGeometry:
+        return shape(geometry)
 
     return shapely_object
-
-
-def get_update_geometry_bbox_fun() -> Callable:
-    def update_bbox(
-        geometry: GeojsonGeomNoGeomCollection,
-        _result: list,
-        _indices: list[int] | None = None,
-    ) -> None:
-        coordinates = get_coordinate_from_geometry(geometry)
-        geometry.bbox = get_bbox_from_coordinates(coordinates)
-
-    return update_bbox
 
 
 def get_crs_transform_fun(
@@ -92,43 +58,30 @@ def get_crs_transform_fun(
 
     def my_fun(
         geom: GeojsonGeomNoGeomCollection,
-        _result: list,
-        _indices: list[int] | None = None,
-    ) -> (
-        None
-    ):  # add _result, _indices args since required by transform_geometries_req_body
+    ) -> GeojsonCoordinates:
         callback = get_transform_crs_fun(source_crs, target_crs, precision, epoch=epoch)
         geom.coordinates = traverse_geojson_coordinates(
             cast(list[list[Any]] | list[float] | list[int], geom.coordinates),
             callback=callback,
         )
+        return geom.coordinates
 
     return my_fun
 
 
-def get_validate_json_coords_fun() -> Callable:
-    def validate_json_coords(
+def get_json_coords_contains_inf_fun() -> Callable[[GeojsonGeomNoGeomCollection], bool]:
+    def json_coords_contains_inf(
         geometry: GeojsonGeomNoGeomCollection,
-        result: list,
-        _indices: list[int] | None = None,
-    ) -> None:
-        def coords_has_inf(coordinates: Any) -> bool:  # noqa: ANN401
-            gen = (
-                x
-                for x in explode(coordinates)
-                if abs(x[0]) == float("inf") or abs(x[1]) == float("inf")
-            )
-            return next(gen, None) is not None
+    ) -> bool:
+        coordinates = get_coordinate_from_geometry(geometry)
+        gen = (
+            x
+            for x in explode(coordinates)
+            if abs(x[0]) == float("inf") or abs(x[1]) == float("inf")
+        )
+        return next(gen, None) is not None
 
-        coords = get_coordinate_from_geometry(geometry)
-        result.append(coords_has_inf(coords))
-        # TODO: HANDLE result in calling code
-        # if coords_has_inf(coordinates):
-        #     raise_response_validation_error(
-        #         "Out of range float values are not JSON compliant", ["responseBody"]
-        #     )
-
-    return validate_json_coords
+    return json_coords_contains_inf
 
 
 def update_bbox_geojson_object(  # noqa: C901
@@ -201,9 +154,7 @@ def get_coordinate_from_geometry(
     item: _GeometryBase,
 ) -> list:
     geom = cast(_GeometryBase, item)
-    return list(
-        chain(explode(geom.coordinates))
-    )  # TODO: check if chain(list()) is required...
+    return list(chain(explode(geom.coordinates)))
 
 
 def explode(coords: Any) -> Generator[Any, Any, None]:  # noqa: ANN401

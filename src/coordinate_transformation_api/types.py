@@ -1,3 +1,5 @@
+from typing import TypeAlias
+
 from geojson_pydantic.types import (
     LineStringCoords,
     MultiLineStringCoords,
@@ -5,6 +7,15 @@ from geojson_pydantic.types import (
     MultiPolygonCoords,
     PolygonCoords,
     Position,
+)
+from shapely import GeometryCollection
+from shapely.geometry import (
+    LineString,
+    MultiLineString,
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
 )
 
 GeojsonCoordinates = (
@@ -16,3 +27,14 @@ GeojsonCoordinates = (
     | MultiPolygonCoords
 )
 CoordinatesType = tuple[float, float] | tuple[float, float, float] | list[float]
+
+
+ShapelyGeometry: TypeAlias = (
+    Point
+    | Polygon
+    | LineString
+    | MultiLineString
+    | MultiPoint
+    | MultiPolygon
+    | GeometryCollection
+)
