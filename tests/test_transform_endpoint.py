@@ -33,7 +33,7 @@ def test_transform_get(input, expectation, source_crs, target_crs):
         f"/transform?coordinates={input}&source-crs={source_crs}&target-crs={target_crs}",
     )
     response_object = response.json()
-    assert response.status_code == 200
+    assert response.status_code == 200  # noqa: PLR2004
     assert response_object == expectation
     api_version_headers_vals = response.headers.get_list("api-version")
     assert len(api_version_headers_vals) == 1
@@ -75,7 +75,7 @@ def test_transform_post(input, expectation, source_crs, target_crs):
         json=input,
     )
     response_object = response.json()
-    assert response.status_code == 200
+    assert response.status_code == 200  # noqa: PLR2004
     assert response_object == expectation
     api_version_headers_vals = response.headers.get_list("api-version")
     assert len(api_version_headers_vals) == 1
