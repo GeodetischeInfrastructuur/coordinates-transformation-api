@@ -31,18 +31,12 @@ dev = [
     "ruff == 0.0.291",
 ]
 
-[tool.setuptools_scm]
-
 [build-system]
 requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
 ct-api = "coordinate_transformation_api.main:main"
-
-[tool.setuptools-git-versioning]
-enabled = true
-
 
 [tool.setuptools.packages.find]
 where = ["src"] # list of folders that contain the packages (["."] by default)
@@ -54,6 +48,8 @@ namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 [tool.setuptools.package-data]
 "coordinate_transformation_api.assets" = ["*"]
 "coordinate_transformation_api.assets.static" = ["*"]
+
+[tool.setuptools_scm]
 
 [tool.ruff]
 # see https://beta.ruff.rs/docs/rules/
