@@ -17,7 +17,7 @@ dependencies = [
     "pyproj == 3.6.0",
     "pydantic-settings == 2.0.2",
     "email-validator == 2.0.0",
-    "geodense ~= 0.0.1a5",
+    "geodense ~= 0.0.1a8",
 ]
 requires-python = ">=3.11.4"
 dynamic = ["version"]
@@ -54,8 +54,6 @@ namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.ruff]
 # see https://beta.ruff.rs/docs/rules/
-# TODO:
-# - add pydocstyle (D)
 select = [
     "E",
     "F",

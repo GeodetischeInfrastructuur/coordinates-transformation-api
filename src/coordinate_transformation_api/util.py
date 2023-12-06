@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import math
 import re
+from collections.abc import Iterable
 from importlib import resources as impresources
 from typing import Any
 
@@ -15,11 +16,13 @@ from geodense.lib import (  # type: ignore  # type: ignore
     GeojsonObject,
     apply_function_on_geojson_geometries,
     densify_geojson_object,
+    flatten,
     get_density_check_fun,
 )
 from geodense.models import (
     DenseConfig,
 )
+from geodense.types import Nested
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS
@@ -30,10 +33,10 @@ from coordinate_transformation_api.cityjson.models import CityjsonV113
 from coordinate_transformation_api.constants import DENSIFY_CRS, DEVIATION_VALID_BBOX
 from coordinate_transformation_api.crs_transform import (
     get_crs_transform_fun,
+    get_json_coords_contains_inf_fun,
     get_precision,
     get_shapely_objects,
     get_transform_crs_fun,
-    get_validate_json_coords_fun,
     update_bbox_geojson_object,
 )
 from coordinate_transformation_api.models import Crs as MyCrs
@@ -114,7 +117,7 @@ def extract_authority_code(crs: str) -> str:
 
 
 def format_as_uri(crs: str) -> str:
-    # TODO: the /0/ is a placeholder and should be based on the epsg database version
+    # NOTE: the /0/ is a placeholder and should be based on the epsg database version
     #   discuss what convention we want to follow here...
     return "http://www.opengis.net/def/crs/{}/0/{}".format(*crs.split(":"))
 
@@ -196,7 +199,7 @@ def density_check_request_body(
 ) -> list[tuple[list[int], float]]:
     report: list[tuple[list[int], float]] = []
 
-    # TODO: figure out how to handle point geometries - what to do if point geometry in payload as part of featurecollection/geometrycollection
+    # TODO: add tests to check behaviour when points are supplied
     validate_input_max_segment_deviation_length(
         max_segment_deviation, max_segment_length
     )
@@ -236,17 +239,14 @@ def densify_request_body(
         body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
         transformer (Transformer): pyproj Transformer object
     """
-    # TODO: figure out how to handle point geometries - what to do if point geometry in payload as part of featurecollection/geometrycollection
     validate_input_max_segment_deviation_length(
         max_segment_deviation, max_segment_length
     )
     bbox_check_deviation_set(body, source_crs, max_segment_deviation)
     if max_segment_deviation is not None:
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
-
+    # TODO: add comments on langelijnen advies implementatie
     crs_transform(body, source_crs, DENSIFY_CRS)
-
-    # densify request body
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
     densify_geojson_object(body, c)
     crs_transform(body, DENSIFY_CRS, source_crs)  # transform back
@@ -373,5 +373,13 @@ def transform_coordinates(
 
 
 def validate_crs_transformed_geojson(body: GeojsonObject) -> None:
-    validate_json_coords_fun = get_validate_json_coords_fun()
-    _ = apply_function_on_geojson_geometries(body, validate_json_coords_fun)
+    validate_json_coords_fun = get_json_coords_contains_inf_fun()
+    result: Nested[bool] = apply_function_on_geojson_geometries(
+        body, validate_json_coords_fun
+    )
+    flat_result: Iterable[bool] = flatten(result)
+
+    if any(flat_result):
+        raise_response_validation_error(
+            "Out of range float values are not JSON compliant", ["responseBody"]
+        )
