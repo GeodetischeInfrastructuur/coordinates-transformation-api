@@ -28,12 +28,12 @@ dev = [
     "coverage == 7.3.1",
     "mypy == 1.5.1",
     "pytest == 7.4.2",
-    "ruff == 0.0.291"
+    "ruff == 0.0.291",
 ]
 
 
 [build-system]
-requires = ["setuptools>=61.0", "setuptools-git-versioning<2"]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
@@ -44,9 +44,11 @@ enabled = true
 
 
 [tool.setuptools.packages.find]
-where = ["src"]  # list of folders that contain the packages (["."] by default)
-include = ["coordinate_transformation_api*"]  # package names should match these glob patterns (["*"] by default)
-namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+where = ["src"] # list of folders that contain the packages (["."] by default)
+include = [
+    "coordinate_transformation_api*",
+] # package names should match these glob patterns (["*"] by default)
+namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.setuptools.package-data]
 "coordinate_transformation_api.assets" = ["*"]
@@ -71,7 +73,7 @@ select = [
     "ARG",
     "SIM",
     "Q",
-    "ANN"
+    "ANN",
 ]
 # Avoid enforcing line-length violations (`E501`) - fixed by Black
 ignore = ["E501"]
@@ -93,7 +95,7 @@ fixable = [
     "S",
     "ARG",
     "SIM",
-    "Q"
+    "Q",
 ]
 unfixable = []
 
@@ -133,19 +135,16 @@ target-version = "py39"
 [tool.ruff.per-file-ignores]
 "tests/**/*.py" = [
     "S101", # asserts allowed
-    "ANN" # no type annotation required
+    "ANN",  # no type annotation required
 ]
 
 "src/coordinate_transformation_api/cityjson/models.py" = [
     "N815", # non-snakecase variables allowed
 ]
 
-"src/coordinate_transformation_api/util.py" = [
-    "ANN",
-]
+"src/coordinate_transformation_api/util.py" = ["ANN"]
 
 
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
-

@@ -79,7 +79,7 @@ mypy --install-types
 Check test coverage (install `coverage` with `pip install coverage`):
 
 ```sh
-coverage run --source=src/coordinate_transformation_api -m pytest -v tests && coverage report -m
+python3 -m coverage run --source=src/coordinate_transformation_api -m pytest -v tests && python3 -m coverage report -m
 ```
 
 ## Install
