@@ -15,14 +15,13 @@ from geodense.geojson import CrsFeatureCollection
 from geodense.lib import (  # type: ignore  # type: ignore
     THREE_DIMENSIONAL,
     GeojsonObject,
+    _geom_type_check,
     apply_function_on_geojson_geometries,
     densify_geojson_object,
     flatten,
     get_density_check_fun,
 )
-from geodense.models import (
-    DenseConfig,
-)
+from geodense.models import DenseConfig, GeodenseError
 from geodense.types import Nested
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
@@ -195,15 +194,21 @@ def crs_transform(
 def density_check_request_body(
     body: GeojsonObject,
     source_crs: str,
-    max_segment_deviation: float,
-    max_segment_length: float,
+    max_segment_deviation: float | None,
+    max_segment_length: float | None,
 ) -> list[tuple[list[int], float]]:
     report: list[tuple[list[int], float]] = []
 
-    # TODO: add tests to check behaviour when points are supplied
+    try:
+        # TODO: create own implementation of geom_type_check to distinguish following: all geoms points, at least one geom point but not all, none geoms points
+        _geom_type_check(body)
+    except GeodenseError as e:
+        raise_req_validation_error(str(e))
+
     validate_input_max_segment_deviation_length(
         max_segment_deviation, max_segment_length
     )
+
     bbox_check_deviation_set(body, source_crs, max_segment_deviation)
     if max_segment_deviation is not None:
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
@@ -232,8 +237,8 @@ def bbox_check_deviation_set(
 def densify_request_body(
     body: GeojsonObject,
     source_crs: str,
-    max_segment_deviation: float,
-    max_segment_length: float,
+    max_segment_deviation: float | None,
+    max_segment_length: float | None,
 ) -> None:
     """transform coordinates of request body in place
 

@@ -226,7 +226,7 @@ async def conformance() -> Conformance:
 @app.get("/transform")
 async def transform(  # noqa: PLR0913, ANN201
     coordinates: str = Query(
-        alias="coordinates", regex=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"
+        alias="coordinates", pattern=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"
     ),
     source_crs: str = Query(alias="source-crs", default=None),
     target_crs: str = Query(alias="target-crs", default=None),
@@ -299,10 +299,10 @@ async def densify(  # noqa: ANN201
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
     source_crs: str = Query(alias="source-crs", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
-    max_segment_deviation: float = Query(
-        alias="max-segment-deviation", default=None, ge=0.0001
-    ),
-    max_segment_length: float = Query(alias="max-segment-length", default=None, ge=200),
+    max_segment_deviation: float
+    | None = Query(alias="max-segment-deviation", default=None, ge=0.0001),
+    max_segment_length: float
+    | None = Query(alias="max-segment-length", default=None, ge=200),
 ):
     validate_input_max_segment_deviation_length(
         max_segment_deviation, max_segment_length
@@ -360,10 +360,10 @@ async def density_check(  # noqa: ANN201
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
     source_crs: str = Query(alias="source-crs", default=None),
     content_crs: str = Header(alias="content-crs", default=None),
-    max_segment_deviation: float = Query(
-        alias="max-segment-deviation", default=None, ge=0.0001
-    ),
-    max_segment_length: float = Query(alias="max-segment-length", default=200, ge=200),
+    max_segment_deviation: float
+    | None = Query(alias="max-segment-deviation", default=None, ge=0.0001),
+    max_segment_length: float
+    | None = Query(alias="max-segment-length", default=200, ge=200),
 ):
     validate_input_max_segment_deviation_length(
         max_segment_deviation, max_segment_length

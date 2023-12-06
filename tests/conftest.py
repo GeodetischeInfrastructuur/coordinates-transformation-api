@@ -39,3 +39,9 @@ def feature_geometry_collection(test_dir):
 def polygons(test_dir):
     with open(os.path.join(test_dir, "data", "polygons.json")) as f:
         return get_geojson_obj(f)
+
+
+@pytest.fixture()
+def points(test_dir):
+    with open(os.path.join(test_dir, "data", "points.json")) as f:
+        return get_geojson_obj(f)
