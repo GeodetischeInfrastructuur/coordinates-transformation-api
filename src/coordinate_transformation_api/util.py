@@ -5,6 +5,7 @@ import math
 import re
 from collections.abc import Iterable
 from importlib import resources as impresources
+from importlib.metadata import version
 from typing import Any
 
 import yaml
@@ -254,8 +255,10 @@ def densify_request_body(
 
 def init_oas() -> tuple[dict, str, str]:
     """initialize open api spec:
-    - extract api version string from oas
     - return projection info from oas
+    - return app version
+    - set api base url in api spec
+    - set api version based on app version
 
     Returns:
         Tuple[dict, str, dict]: _description_
@@ -264,18 +267,11 @@ def init_oas() -> tuple[dict, str, str]:
 
     with oas_filepath.open("rb") as oas_file:
         oas = yaml.load(oas_file, yaml.SafeLoader)
-        crs_param_description = ""
-        oas["components"]["parameters"]["source-crs"][
-            "description"
-        ] = f"Source Coordinate Reference System\n{crs_param_description}"
-        oas["components"]["parameters"]["target-crs"][
-            "description"
-        ] = f"Target Coordinate Reference System\n{crs_param_description}"
         servers = [{"url": app_settings.base_url}]
         oas["servers"] = servers
-    api_version = oas["info"]["version"]
+        oas["info"]["version"] = version("coordinate_transformation_api")
     api_title = oas["info"]["title"]
-    return (oas, api_title, api_version)
+    return (oas, api_title, oas["info"]["version"])
 
 
 def convert_distance_to_deviation(d):

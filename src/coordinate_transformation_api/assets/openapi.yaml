@@ -2,7 +2,7 @@
 openapi: "3.1.0"
 info:
   title: NSGI Coordinate Transformation API
-  version: 2.0.0
+  version: "" # replaced in code
   description: >
     The Coordinate Transformation API performs coordinate transformations on GeoJSON and CityJSON files using the official RDNAPTRANS™
     transformation procedure.
