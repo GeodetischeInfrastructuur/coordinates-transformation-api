@@ -223,9 +223,10 @@ def bbox_check_deviation_set(
     if max_segment_deviation is None and not request_body_within_valid_bbox(
         body, source_crs
     ):
-        # request body not within valid bbox todo density check
-        # TODO: raise error
-        print("body not inside bbox")
+        raise_validation_error(
+            f"GeoJSON geometries not within bounnding box: {','.join([str(x) for x in DEVIATION_VALID_BBOX])}, use max_segment_length parameter instead of max_segment_deviation instead",
+            "body",
+        )
 
 
 def densify_request_body(
@@ -243,8 +244,9 @@ def densify_request_body(
     validate_input_max_segment_deviation_length(
         max_segment_deviation, max_segment_length
     )
-    bbox_check_deviation_set(body, source_crs, max_segment_deviation)
+
     if max_segment_deviation is not None:
+        bbox_check_deviation_set(body, source_crs, max_segment_deviation)
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
     # TODO: add comments on langelijnen advies implementatie
     crs_transform(body, source_crs, DENSIFY_CRS)
