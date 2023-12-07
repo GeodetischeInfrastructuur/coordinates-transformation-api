@@ -1,8 +1,9 @@
+import enum
 import json
 import logging
 import os
 from importlib import resources as impresources
-from typing import Callable, Union, cast
+from typing import Annotated, Callable, Union
 
 import uvicorn
 from fastapi import FastAPI, Header, Query, Request, Response
@@ -37,16 +38,15 @@ from coordinate_transformation_api.util import (
     crs_transform,
     densify_request_body,
     density_check_request_body,
-    extract_authority_code,
-    format_as_uri,
-    get_source_crs_body,
+    get_src_crs_densify,
+    get_transform_get_crss,
     init_oas,
+    post_transform_get_crss,
     raise_response_validation_error,
-    raise_validation_error,
+    set_response_headers,
     transform_coordinates,
     validate_coords_source_crs,
     validate_crs_transformed_geojson,
-    validate_crss,
     validate_input_max_segment_deviation_length,
 )
 
@@ -65,9 +65,12 @@ OPEN_API_SPEC: dict
 API_VERSION: str
 CRS_LIST: list[Crs]
 OPEN_API_SPEC, API_TITLE, API_VERSION = init_oas()
-crs_identifiers = OPEN_API_SPEC["components"]["schemas"]["crs-enum"]["enum"]
+crs_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"]["crs-enum"]["enum"]
 CRS_LIST = [Crs.from_crs_str(x) for x in crs_identifiers]
 BASE_DIR: str = os.path.dirname(__file__)
+
+
+CrsEnum: enum = enum.Enum("CrsEnum", {f"{x}": x for x in crs_identifiers})  # type: ignore
 
 
 app: FastAPI = FastAPI(docs_url=None)
@@ -133,7 +136,7 @@ async def add_api_version(request: Request, call_next: Callable) -> Response:
 @app.get("/openapi", include_in_schema=False)
 @app.get("/openapi.html", include_in_schema=False)
 async def openapi(
-    request: Request, format: str = Query(alias="f", default=None)
+    request: Request, format: Annotated[str | None, Query(alias="f")] = None
 ) -> Response:
     if format == "html" or (
         accept_html(request) and format != "json"
@@ -223,53 +226,106 @@ async def conformance() -> Conformance:
     )
 
 
+@app.post(
+    "/densify",
+    response_model=Union[Feature, CrsFeatureCollection, Geometry],
+    response_model_exclude_none=True,
+)
+async def densify(  # noqa: ANN201
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
+    content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
+    max_segment_deviation: Annotated[
+        float | None, Query(alias="max-segment-deviation", ge=0.0001)
+    ] = None,
+    max_segment_length: Annotated[
+        float | None, Query(alias="max-segment-length", ge=200)
+    ] = 200,
+):
+    source_crs_str: str
+    content_crs_str: str
+
+    source_crs_str, content_crs_str = (
+        x.value if x is not None else None for x in [source_crs, content_crs]
+    )
+
+    validate_input_max_segment_deviation_length(
+        max_segment_deviation, max_segment_length
+    )
+    s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
+    densify_request_body(body, s_crs, max_segment_deviation, max_segment_length)
+    return JSONResponse(
+        content=body.model_dump(exclude_none=True),
+        headers=set_response_headers(s_crs),
+    )
+
+
+@app.post(
+    "/density-check",
+    response_model=DensityCheckReport,
+    response_model_exclude_none=True,
+)
+async def density_check(  # noqa: ANN201
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
+    content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
+    max_segment_deviation: Annotated[
+        float | None, Query(alias="max-segment-deviation", ge=0.0001)
+    ] = None,
+    max_segment_length: Annotated[
+        float | None, Query(alias="max-segment-length", ge=200)
+    ] = 200,
+):
+    source_crs_str: str
+    content_crs_str: str
+
+    source_crs_str, content_crs_str = (
+        x.value if x is not None else None for x in [source_crs, content_crs]
+    )
+
+    validate_input_max_segment_deviation_length(
+        max_segment_deviation, max_segment_length
+    )
+
+    s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
+    report = density_check_request_body(
+        body, s_crs, max_segment_deviation, max_segment_length
+    )
+    result = DensityCheckReport(passes_check=not len(report) > 0, report=report)
+    return result
+
+
 @app.get("/transform")
 async def transform(  # noqa: PLR0913, ANN201
-    coordinates: str = Query(
-        alias="coordinates", pattern=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"
-    ),
-    source_crs: str = Query(alias="source-crs", default=None),
-    target_crs: str = Query(alias="target-crs", default=None),
-    epoch: float = Query(alias="epoch", default=None),
-    content_crs: str = Header(alias="content-crs", default=None),
-    accept_crs: str = Header(alias="accept-crs", default=None),
-    accept: str = Header(default=TransformGetAcceptHeaders.json),
+    coordinates: Annotated[
+        str,
+        Query(alias="coordinates", pattern=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"),
+    ],
+    source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
+    target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,
+    content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
+    accept_crs: Annotated[CrsEnum | None, Header(alias="accept-crs")] = None,
+    epoch: Annotated[float | None, Query(alias="epoch")] = None,
+    accept: Annotated[str, Header()] = TransformGetAcceptHeaders.json.value,
 ):
-    if source_crs is not None:
-        s_crs = source_crs
-    elif source_crs is None and content_crs is not None:
-        s_crs = content_crs
-    else:
-        raise_validation_error(
-            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
-            ("query", "source-crs", "header", "content-crs"),
-        )
+    # get string values from CrsEnum|None parameters
+    source_crs_str: str
+    target_crs_str: str
+    content_crs_str: str
+    accept_crs_str: str
+    source_crs_str, target_crs_str, content_crs_str, accept_crs_str = (
+        x.value if x is not None else None
+        for x in [source_crs, target_crs, content_crs, accept_crs]
+    )
 
-    if target_crs is not None:
-        t_crs = target_crs
-    elif target_crs is None and accept_crs is not None:
-        t_crs = accept_crs
-    else:
-        raise_validation_error(
-            "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
-            ("query", "target-crs", "header", "accept-crs"),
-        )
+    s_crs, t_crs = get_transform_get_crss(
+        source_crs_str, target_crs_str, content_crs_str, accept_crs_str, CRS_LIST
+    )
 
-    s_crs = extract_authority_code(s_crs)
-    t_crs = extract_authority_code(t_crs)
-
-    validate_crss(s_crs, t_crs, CRS_LIST)
     validate_coords_source_crs(coordinates, s_crs, CRS_LIST)
 
-    target_crs_crs = next(
-        (x for x in CRS_LIST if x.crs_auth_identifier == target_crs), None
-    )
-    if target_crs_crs is None:
-        raise ValueError(
-            f"could not instantiate CRS object for CRS with id {target_crs}"
-        )
     transformed_coordinates = transform_coordinates(
-        coordinates, source_crs, target_crs, epoch, target_crs_crs
+        coordinates, s_crs, t_crs, epoch, CRS_LIST
     )
 
     if float("inf") in [abs(x) for x in transformed_coordinates]:
@@ -291,105 +347,6 @@ async def transform(  # noqa: PLR0913, ANN201
 
 
 @app.post(
-    "/densify",
-    response_model=Union[Feature, CrsFeatureCollection, Geometry],
-    response_model_exclude_none=True,
-)
-async def densify(  # noqa: ANN201
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
-    source_crs: str = Query(alias="source-crs", default=None),
-    content_crs: str = Header(alias="content-crs", default=None),
-    max_segment_deviation: float
-    | None = Query(alias="max-segment-deviation", default=None, ge=0.0001),
-    max_segment_length: float
-    | None = Query(alias="max-segment-length", default=None, ge=200),
-):
-    validate_input_max_segment_deviation_length(
-        max_segment_deviation, max_segment_length
-    )
-
-    s_crs = get_source_crs(body, source_crs, content_crs)
-    if s_crs is None and isinstance(body, CrsFeatureCollection):
-        raise_validation_error(
-            "No source CRS found in request. Defining a source CRS is required in the FeatureCollection request body, the source-crs query parameter or the content-crs header",
-            ("body", "crs", "query", "source-crs", "header", "content-crs"),
-        )
-    elif s_crs is None:
-        raise_validation_error(
-            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
-            ("query", "source-crs", "header", "content-crs"),
-        )
-    s_crs_str = cast(str, s_crs)
-    densify_request_body(body, s_crs_str, max_segment_deviation, max_segment_length)
-    return JSONResponse(
-        content=body.model_dump(exclude_none=True),
-        headers=set_response_headers(s_crs_str),
-    )
-
-
-def get_source_crs(
-    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection | CityjsonV113,
-    source_crs: str,
-    content_crs: str,
-) -> str | None:
-    crs_from_body = get_source_crs_body(body)
-    s_crs = None
-    if crs_from_body is not None:
-        s_crs = crs_from_body
-    elif crs_from_body is None and source_crs is not None:
-        s_crs = source_crs
-    elif crs_from_body is None and source_crs is None and content_crs is not None:
-        s_crs = content_crs
-    return s_crs
-
-
-def set_response_headers(t_crs: str, epoch: float | None = None) -> dict[str, str]:
-    headers = {"content-crs": format_as_uri(t_crs)}
-    if epoch:
-        headers["epoch"] = str(epoch)
-
-    return headers
-
-
-@app.post(
-    "/density-check",
-    response_model=DensityCheckReport,
-    response_model_exclude_none=True,
-)
-async def density_check(  # noqa: ANN201
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
-    source_crs: str = Query(alias="source-crs", default=None),
-    content_crs: str = Header(alias="content-crs", default=None),
-    max_segment_deviation: float
-    | None = Query(alias="max-segment-deviation", default=None, ge=0.0001),
-    max_segment_length: float
-    | None = Query(alias="max-segment-length", default=200, ge=200),
-):
-    validate_input_max_segment_deviation_length(
-        max_segment_deviation, max_segment_length
-    )
-
-    s_crs = get_source_crs(body, source_crs, content_crs)
-
-    if s_crs is None and isinstance(body, CrsFeatureCollection):
-        raise_validation_error(
-            "No source CRS found in request. Defining a source CRS is required in the FeatureCollection request body, the source-crs query parameter or the content-crs header",
-            ("body", "crs", "query", "source-crs", "header", "content-crs"),
-        )
-    elif s_crs is None:
-        raise_validation_error(
-            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
-            ("query", "source-crs", "header", "content-crs"),
-        )
-    s_crs_str = cast(str, s_crs)
-    report = density_check_request_body(
-        body, s_crs_str, max_segment_deviation, max_segment_length
-    )
-    result = DensityCheckReport(passes_check=not len(report) > 0, report=report)
-    return result
-
-
-@app.post(
     "/transform",
     response_model=Union[
         Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
@@ -400,52 +357,24 @@ async def post_transform(  # noqa: ANN201, PLR0913
     body: Union[
         Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
     ],
-    source_crs: str = Query(alias="source-crs", default=None),
-    target_crs: str = Query(alias="target-crs", default=None),
-    epoch: float = Query(alias="epoch", default=None),
-    content_crs: str = Header(alias="content-crs", default=None),
-    accept_crs: str = Header(alias="accept-crs", default=None),
+    source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
+    target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,
+    content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
+    accept_crs: Annotated[CrsEnum | None, Header(alias="accept-crs")] = None,
+    epoch: Annotated[float | None, Query(alias="epoch")] = None,
 ):
-    s_crs = get_source_crs(body, source_crs, content_crs)
-
-    if s_crs is None and isinstance(body, CrsFeatureCollection):
-        raise_validation_error(
-            "No source CRS found in request. Defining a source CRS is required through the provided object a query parameter source-crs or header content-crs",
-            ("body", "crs", "query", "source-crs", "header", "content-crs"),
-        )
-    elif s_crs is None and isinstance(body, CityjsonV113):
-        raise_validation_error(
-            "metadata.referenceSystem field missing in CityJSON request body",
-            (
-                "body",
-                "metadata.referenceSystem",
-                "query",
-                "source-crs",
-                "header",
-                "content-crs",
-            ),
-        )
-    elif s_crs is None:
-        raise_validation_error(
-            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
-            ("query", "source-crs", "header", "content-crs"),
-        )
-
-    if target_crs is not None:
-        t_crs = target_crs
-    elif target_crs is None and accept_crs is not None:
-        t_crs = accept_crs
-    else:
-        raise_validation_error(
-            "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
-            ("query", "target-crs", "header", "accept-crs"),
-        )
-
-    s_crs_str = cast(str, s_crs)
-    s_crs = extract_authority_code(s_crs_str)
-    t_crs = extract_authority_code(t_crs)
-
-    validate_crss(s_crs, t_crs, CRS_LIST)
+    # get string values from CrsEnum|None parameters
+    source_crs_str: str
+    target_crs_str: str
+    content_crs_str: str
+    accept_crs_str: str
+    source_crs_str, target_crs_str, content_crs_str, accept_crs_str = (
+        x.value if x is not None else None
+        for x in [source_crs, target_crs, content_crs, accept_crs]
+    )
+    s_crs, t_crs = post_transform_get_crss(
+        body, source_crs_str, target_crs_str, content_crs_str, accept_crs_str, CRS_LIST
+    )
 
     if isinstance(body, CityjsonV113):
         body.crs_transform(s_crs, t_crs, epoch)
