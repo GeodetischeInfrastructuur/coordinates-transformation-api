@@ -6,7 +6,7 @@ import re
 from collections.abc import Iterable
 from importlib import resources as impresources
 from importlib.metadata import version
-from typing import Any
+from typing import Any, cast
 
 import yaml
 from fastapi import Request
@@ -23,6 +23,8 @@ from geodense.lib import (  # type: ignore  # type: ignore
 )
 from geodense.models import DenseConfig, GeodenseError
 from geodense.types import Nested
+from geojson_pydantic import Feature, GeometryCollection
+from geojson_pydantic.geometries import Geometry
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS
@@ -97,17 +99,6 @@ def validate_input_max_segment_deviation_length(deviation, length):
         )
 
 
-def validate_input_crs(value, name, projections_axis_info: list[MyCrs]):
-    if not any(
-        crs for crs in projections_axis_info if crs.crs_auth_identifier == value
-    ):
-        raise_req_validation_error(
-            f"{name} should be one of {', '.join([str(x.crs_auth_identifier) for x in projections_axis_info])}",
-            loc=("query", name),
-            input=value,
-        )
-
-
 def extract_authority_code(crs: str) -> str:
     r = re.search("^(http://www.opengis.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
     if r is not None:
@@ -120,12 +111,6 @@ def format_as_uri(crs: str) -> str:
     # NOTE: the /0/ is a placeholder and should be based on the epsg database version
     #   discuss what convention we want to follow here...
     return "http://www.opengis.net/def/crs/{}/0/{}".format(*crs.split(":"))
-
-
-def validate_crss(source_crs: str, target_crs: str, projections_axis_info):
-    validate_input_crs(source_crs, "source-crs", projections_axis_info)
-    validate_input_crs(target_crs, "target_crs", projections_axis_info)
-    validate_crs_transformation(source_crs, target_crs, projections_axis_info)
 
 
 def get_source_crs_body(
@@ -199,8 +184,7 @@ def density_check_request_body(
 ) -> list[tuple[list[int], float]]:
     report: list[tuple[list[int], float]] = []
 
-    try:
-        # TODO: create own implementation of geom_type_check to distinguish following: all geoms points, at least one geom point but not all, none geoms points
+    try:  # raises GeodenseError when all geometries in body are (multi)point
         _geom_type_check(body)
     except GeodenseError as e:
         raise_req_validation_error(str(e))
@@ -213,9 +197,8 @@ def density_check_request_body(
     if max_segment_deviation is not None:
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
+    # TODO: @jochem add comments on langelijnen advies implementatie
     crs_transform(body, source_crs, DENSIFY_CRS)
-
-    # density check
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
     my_fun = get_density_check_fun(c)
     report = apply_function_on_geojson_geometries(body, my_fun)
@@ -246,6 +229,7 @@ def densify_request_body(
         body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
         transformer (Transformer): pyproj Transformer object
     """
+
     validate_input_max_segment_deviation_length(
         max_segment_deviation, max_segment_length
     )
@@ -253,10 +237,14 @@ def densify_request_body(
     if max_segment_deviation is not None:
         bbox_check_deviation_set(body, source_crs, max_segment_deviation)
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
-    # TODO: add comments on langelijnen advies implementatie
+    # TODO: @jochem add comments on langelijnen advies implementatie
     crs_transform(body, source_crs, DENSIFY_CRS)
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
-    densify_geojson_object(body, c)
+    try:
+        densify_geojson_object(body, c)
+    except GeodenseError as e:
+        raise_req_validation_error(str(e))
+
     crs_transform(body, DENSIFY_CRS, source_crs)  # transform back
 
 
@@ -279,11 +267,6 @@ def init_oas() -> tuple[dict, str, str]:
         oas["info"]["version"] = version("coordinate_transformation_api")
     api_title = oas["info"]["title"]
     return (oas, api_title, oas["info"]["version"])
-
-
-def convert_distance_to_deviation(d):
-    a = 24.15 * 10**-9 * d**2
-    return a
 
 
 def convert_deviation_to_distance(a):
@@ -361,9 +344,21 @@ def convert_point_coords_to_wkt(coords):
     return f"{geom_type}({' '.join([str(x) for x in coords])})"
 
 
+def get_crs(crs_str: str, crs_list: list[MyCrs]) -> MyCrs:
+    crs = next((x for x in crs_list if x.crs_auth_identifier == crs_str), None)
+    if crs is None:
+        raise ValueError(f"could not instantiate CRS object for CRS with id {crs_str}")
+
+    return crs
+
+
 def transform_coordinates(
-    coordinates: Any, source_crs: str, target_crs: str, epoch, target_crs_crs
+    coordinates: Any, source_crs: str, target_crs: str, epoch, crs_list: list[MyCrs]
 ) -> Any:
+    target_crs_crs = get_crs(
+        target_crs,
+        crs_list,
+    )
     precision = get_precision(target_crs_crs)
     coordinate_list: CoordinatesType = list(
         float(x) for x in coordinates.split(",")
@@ -386,3 +381,135 @@ def validate_crs_transformed_geojson(body: GeojsonObject) -> None:
         raise_response_validation_error(
             "Out of range float values are not JSON compliant", ["responseBody"]
         )
+
+
+def get_source_crs(
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection | CityjsonV113,
+    source_crs: str,
+    content_crs: str,
+) -> str | None:
+    crs_from_body = get_source_crs_body(body)
+    s_crs = None
+    if crs_from_body is not None:
+        s_crs = crs_from_body
+    elif crs_from_body is None and source_crs is not None:
+        s_crs = source_crs
+    elif crs_from_body is None and source_crs is None and content_crs is not None:
+        s_crs = content_crs
+    return s_crs
+
+
+def post_transform_get_crss(  # noqa: PLR0913
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection | CityjsonV113,
+    source_crs: str,
+    target_crs: str,
+    content_crs: str,
+    accept_crs: str,
+    crs_list: list[MyCrs],
+) -> tuple[str, str]:
+    s_crs = get_source_crs(body, source_crs, content_crs)
+
+    if s_crs is None and isinstance(body, CrsFeatureCollection):
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required through the provided object a query parameter source-crs or header content-crs",
+            [("body", "crs"), ("query", "source-crs"), ("header", "content-crs")],
+        )
+    elif s_crs is None and isinstance(body, CityjsonV113):
+        raise_validation_error(
+            "metadata.referenceSystem field missing in CityJSON request body",
+            [
+                (
+                    "body",
+                    "metadata.referenceSystem",
+                ),
+                ("query", "source-crs"),
+                (
+                    "header",
+                    "content-crs",
+                ),
+            ],
+        )
+    elif s_crs is None:
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
+            ("query", "source-crs", "header", "content-crs"),
+        )
+
+    if target_crs is not None:
+        t_crs = target_crs
+    elif target_crs is None and accept_crs is not None:
+        t_crs = accept_crs
+    else:
+        raise_validation_error(
+            "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
+            ("query", "target-crs", "header", "accept-crs"),
+        )
+
+    s_crs_str = cast(str, s_crs)
+    s_crs = extract_authority_code(s_crs_str)
+    t_crs = extract_authority_code(t_crs)
+
+    validate_crs_transformation(source_crs, target_crs, crs_list)
+    return s_crs, t_crs
+
+
+def get_transform_get_crss(
+    source_crs: str,
+    target_crs: str,
+    content_crs: str,
+    accept_crs: str,
+    crs_list: list[MyCrs],
+) -> tuple[str, str]:
+    if source_crs is not None:
+        s_crs = source_crs
+    elif source_crs is None and content_crs is not None:
+        s_crs = content_crs
+    else:
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
+            ("query", "source-crs", "header", "content-crs"),
+        )
+
+    if target_crs is not None:
+        t_crs = target_crs
+    elif target_crs is None and accept_crs is not None:
+        t_crs = accept_crs
+    else:
+        raise_validation_error(
+            "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
+            ("query", "target-crs", "header", "accept-crs"),
+        )
+
+    s_crs = extract_authority_code(s_crs)
+    t_crs = extract_authority_code(t_crs)
+
+    validate_crs_transformation(source_crs, target_crs, crs_list)
+
+    return s_crs, t_crs
+
+
+def get_src_crs_densify(
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
+    source_crs: str,
+    content_crs: str,
+) -> str:
+    s_crs = get_source_crs(body, source_crs, content_crs)
+    if s_crs is None and isinstance(body, CrsFeatureCollection):
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required in the FeatureCollection request body, the source-crs query parameter or the content-crs header",
+            ("body", "crs", "query", "source-crs", "header", "content-crs"),
+        )
+    elif s_crs is None:
+        raise_validation_error(
+            "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
+            ("query", "source-crs", "header", "content-crs"),
+        )
+    return cast(str, s_crs)
+
+
+def set_response_headers(t_crs: str, epoch: float | None = None) -> dict[str, str]:
+    headers = {"content-crs": format_as_uri(t_crs)}
+    if epoch:
+        headers["epoch"] = str(epoch)
+
+    return headers
