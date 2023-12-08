@@ -100,7 +100,7 @@ def validate_input_max_segment_deviation_length(deviation, length):
 
 
 def extract_authority_code(crs: str) -> str:
-    r = re.search("^(http://www.opengis.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
+    r = re.search(r"^(http://www\.opengis\.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
     if r is not None:
         return str(r[2] + ":" + r[4])
 
