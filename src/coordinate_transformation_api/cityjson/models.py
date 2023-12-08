@@ -1004,7 +1004,7 @@ class CityjsonV113(BaseModel):
     )
 
     def set_epsg(self: CityjsonV113, crs_auth_identifier: str) -> None:
-        pattern_string = "^(OGC|EPSG):.*$"
+        pattern_string = r"^(OGC|EPSG):.*$"
         pattern = re.compile(pattern_string)
         if not pattern.match(crs_auth_identifier):
             raise ValueError(
