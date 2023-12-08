@@ -27,27 +27,27 @@ paths:
     get:
       operationId: "get-landing-page"
       tags:
-      - About
+        - About
       summary: Landing Page
       description: OGC Common API landing page
       responses:
-          "200":
-            description: OK
-            content:
-              application/json:
-                schema:
-                  $ref: "#/components/schemas/landingPage"
-                example:
-                  title: My API
-                  description: Landing page describing the capabilities of this API
-                  links:
-                    - title: OGC Common Landing Page
-                      type: application/json
-                      rel: self
-                      href: http://example.com/?f=json
-            headers:
-              api-version:
-                $ref: "#/components/headers/api-version"
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/landingPage"
+              example:
+                title: My API
+                description: Landing page describing the capabilities of this API
+                links:
+                  - title: OGC Common Landing Page
+                    type: application/json
+                    rel: self
+                    href: http://example.com/?f=json
+          headers:
+            api-version:
+              $ref: "#/components/headers/api-version"
   /openapi:
     get:
       operationId: "get-oas"
@@ -106,14 +106,14 @@ paths:
             application/json:
               schema:
                 items:
-                  $ref: '#/components/schemas/Crs'
+                  $ref: "#/components/schemas/Crs"
                 type: array
                 title: CRS List
   /crss/{crs-id}:
     get:
       operationId: "get-crs"
       tags:
-      - CRS
+        - CRS
       summary: Get a single CRS
       description: >
         Endpoint that returns a single coordinate reference system (CRS) by `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
@@ -122,14 +122,14 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/crs-enum'
+            $ref: "#/components/schemas/crs-enum"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Crs'
+                $ref: "#/components/schemas/Crs"
         "400":
           $ref: "#/components/responses/400"
         "406":
@@ -167,25 +167,25 @@ paths:
           > **Note:** The `crs` member is not part of the [FeatureCollection schema](https://geojson.org/schema/FeatureCollection.json).
         content:
           application/json:
-              schema:
-                $ref: https://geojson.org/schema/FeatureCollection.json
-              example:
-                type: FeatureCollection
-                name: lijnen
-                crs:
-                  type: name
-                  properties:
-                    name: urn:ogc:def:crs:EPSG::28992
-                features:
-                  - type: Feature
-                    properties: {}
-                    geometry:
-                      type: LineString
-                      coordinates:
-                        - - 156264.906359842570964
-                          - 601302.588919493253343
-                        - - 165681.964475793502061
-                          - 605544.313164469087496
+            schema:
+              $ref: https://geojson.org/schema/FeatureCollection.json
+            example:
+              type: FeatureCollection
+              name: lijnen
+              crs:
+                type: name
+                properties:
+                  name: urn:ogc:def:crs:EPSG::28992
+              features:
+                - type: Feature
+                  properties: {}
+                  geometry:
+                    type: LineString
+                    coordinates:
+                      - - 156264.906359842570964
+                        - 601302.588919493253343
+                      - - 165681.964475793502061
+                        - 605544.313164469087496
       responses:
         "200":
           description: OK
@@ -193,7 +193,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/densityCheckReport"
-
 
           headers:
             api-version:
@@ -393,9 +392,9 @@ paths:
                 geometry:
                   type: Point
                   coordinates:
-                  - 66080.2628
-                  - 531539.0239
-                  - 73.2384
+                    - 66080.2628
+                    - 531539.0239
+                    - 73.2384
                 properties:
                   id: 1
       responses:
@@ -414,12 +413,11 @@ paths:
                 geometry:
                   type: Point
                   coordinates:
-                  - 52.763875
-                  - 4.069801
-                  - 115.904857
+                    - 52.763875
+                    - 4.069801
+                    - 115.904857
                 properties:
                   id: 1
-
 
           headers:
             api-version:
@@ -450,7 +448,6 @@ components:
       description: Epoch of the given coordinates
       schema:
         type: string
-
 
   parameters:
     source-crs:
@@ -579,8 +576,6 @@ components:
         api-version:
           $ref: "#/components/headers/api-version"
 
-
-
       # content:
       #   application/json:
       #     schema:
@@ -656,7 +651,7 @@ components:
           title: Identifier
         axes:
           items:
-            $ref: '#/components/schemas/Axis'
+            $ref: "#/components/schemas/Axis"
           type: array
           title: Axes
       type: object
@@ -731,11 +726,11 @@ components:
                     type: integer
                 - type: number
       example:
-                passesCheck: false
-                featuresReport:
-                  - - - 0
-                      - 0
-                    - 10327.96658923969
+        passesCheck: false
+        featuresReport:
+          - - - 0
+              - 0
+            - 10327.96658923969
     landingPage:
       type: object
       required:
@@ -775,8 +770,6 @@ components:
           example: EPSG:28992
         length:
           type: integer
-
-
 
     Error:
       type: object

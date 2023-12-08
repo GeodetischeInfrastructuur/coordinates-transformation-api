@@ -10,7 +10,7 @@ classifiers = [
 ]
 readme = { file = "./README.md", content-type = "text/markdown" }
 dependencies = [
-    "fastapi == 0.104.1",
+    "fastapi[all] == 0.104.1",
     "uvicorn == 0.24.0.post1",
     "pyyaml == 6.0.1",
     "geojson_pydantic == 1.0.1",
@@ -29,6 +29,8 @@ dev = [
     "mypy == 1.7.1",
     "pytest == 7.4.3",
     "ruff == 0.1.7",
+    "types-ujson == 5.8.0.1",
+    "types-PyYAML == 6.0.12.12",
 ]
 
 [build-system]
@@ -119,6 +121,7 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
+    "build"
 ]
 
 line-length = 120
