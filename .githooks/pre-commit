@@ -57,7 +57,7 @@ if [ -n "$PY_FILES" ]; then
     black .
 
     command_available "ruff"
-    print_message "running ruff  linting" 1 "" true
+    print_message "running ruff linting" 1 "" true
     ruff --fix .
 
     echo "$PY_FILES"  | xargs git add
