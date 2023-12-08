@@ -41,8 +41,8 @@ then
   exit 0
 fi
 
-PY_FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g' | { grep -E "\.py$" || test $? = 1; })
-YAML_FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g' | { grep -E "\.ya?ml$" || test $? = 1; })
+PY_FILES=$(git ls-files --cached --modified --other --exclude-standard | { grep -E "\.py$" || test $? = 1; })
+YAML_FILES=$(git ls-files --cached --modified --other --exclude-standard | { grep -E "\.ya?ml$" || test $? = 1; })
 
 if [ -n "$PY_FILES" ]; then
     command_available "mypy"
@@ -54,19 +54,19 @@ if [ -n "$PY_FILES" ]; then
 
     command_available "black"
     print_message "running Black formatting" 1 "" true
-    echo "$PY_FILES" | xargs black --stdin-filename "{}"
+    black .
 
     command_available "ruff"
     print_message "running ruff  linting" 1 "" true
-    echo "$PY_FILES" | xargs ruff --fix
+    ruff --fix .
 
-    echo "$PY_FILES" | xargs git add
+    echo "$PY_FILES"  | xargs git add
 fi
 
 if [ -n "$YAML_FILES" ]; then
     command_available "prettier"
     print_message "running prettier yaml formatting" 1 "" true
-    echo "$YAML_FILES" | xargs prettier --ignore-unknown --stdin-filepath
+    echo "$YAML_FILES" | xargs prettier --ignore-unknown --stdin-filepath --write > /dev/null
     echo "$YAML_FILES" | xargs git add
 fi
 

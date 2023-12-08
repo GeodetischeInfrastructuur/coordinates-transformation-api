@@ -1,0 +1,46 @@
+name: Run linting and unit tests
+
+on:
+  pull_request:
+
+jobs:
+  linting_and_tests:
+    name: Linting and Tests | python=${{ matrix.python-version }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # to fetch all history for all branches and tags; required because we derive app version from latest tag
+          fetch-tags: true
+      - name: Setup conda
+        uses: s-weigand/setup-conda@v1
+        with:
+          update-conda: true
+          python-version: ${{ matrix.python-version }}
+          conda-channels: anaconda, conda-forge
+
+      - name: Conda install dependencies
+        run: conda install -c conda-forge pyproj==3.6.0
+
+      - name: Install dependencies
+        run: |
+          python${{ matrix.python-version }} -m pip install --upgrade pip
+          python${{ matrix.python-version }} -m pip install --force-reinstall -e ".[dev]"
+
+      - name: Lint with black
+        run: |
+          python${{ matrix.python-version }} -m black --check .
+
+      - name: Lint with ruff
+        run: |
+          python${{ matrix.python-version }} -m ruff -v .
+
+      - name: Test with pytest and generate coverage report
+        run: |
+          python${{ matrix.python-version }} -m coverage run --source=src/coordinate_transformation_api -m pytest -v tests
