@@ -698,7 +698,6 @@ components:
         - EPSG:4979
         - EPSG:3857
         - OGC:CRS84
-        - EPSG:9928
       example: EPSG:28992
 
     coords:
