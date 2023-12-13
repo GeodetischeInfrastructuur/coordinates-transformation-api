@@ -192,26 +192,29 @@ def get_bbox_from_coordinates(coordinates: Any) -> BBox:  # noqa: ANN401
 
 def get_transformer(source_crs: str, target_crs: str) -> Transformer:
     s_crs = CRS.from_authority(*source_crs.split(":"))
-    t_crs = CRS.from_authority(*target_crs.split(":"))    
-    
-    # Area of interest spanning NL 
+    t_crs = CRS.from_authority(*target_crs.split(":"))
+
+    # Area of interest spanning NL
     # coord from EPSG.org Netherlands - onshore
-    aoi = transformer.AreaOfInterest(3.2,50.75,7.22,53.7)
-    
+    aoi = transformer.AreaOfInterest(3.2, 50.75, 7.22, 53.7)
+
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
-    tfg = transformer.TransformerGroup(s_crs, t_crs, allow_ballpark=False, always_xy=True, area_of_interest=aoi)
-    
+    tfg = transformer.TransformerGroup(
+        s_crs, t_crs, allow_ballpark=False, always_xy=True, area_of_interest=aoi
+    )
+
     # If everything is 'right' we should always have a transformer
     # based on our configured proj.db. Therefor this error.
     if len(tfg.transformers) == 0:
         raise ValueError(
-                f"Transformation not possible between {s_crs} and {t_crs}, no transformation path available"
-                ) 
+            f"Transformation not possible between {s_crs} and {t_crs}, no transformation path available"
+        )
     else:
         # Select 1st result
         # the first result is based on the input parameters the "best" result
         return tfg.transformers[0]
+
 
 def get_transform_crs_fun(
     source_crs: str,
