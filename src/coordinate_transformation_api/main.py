@@ -109,7 +109,9 @@ app.mount(
 
 
 def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
-    if source_crs_str in TRANSFORMATIONS_EXCLUDE and (target_crs_str in TRANSFORMATIONS_EXCLUDE[source_crs_str]):
+    if source_crs_str in TRANSFORMATIONS_EXCLUDE and (
+        target_crs_str in TRANSFORMATIONS_EXCLUDE[source_crs_str]
+    ):
         return True
 
     return False
