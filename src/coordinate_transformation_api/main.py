@@ -2,11 +2,11 @@ import enum
 import json
 import logging
 import os
-import yaml
 from importlib import resources as impresources
 from typing import Annotated, Callable, Union
 
 import uvicorn
+import yaml
 from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -43,13 +43,13 @@ from coordinate_transformation_api.util import (
     get_transform_get_crss,
     init_oas,
     post_transform_get_crss,
+    raise_response_validation_error,
+    raise_validation_error,
     set_response_headers,
     transform_coordinates,
     validate_coords_source_crs,
     validate_crs_transformed_geojson,
     validate_input_max_segment_deviation_length,
-    raise_validation_error,
-    raise_response_validation_error,
 )
 
 assets_resources = impresources.files(assets)
@@ -108,10 +108,9 @@ app.mount(
 )
 
 
-def exclude_transformation(source_crs_str, target_crs_str) -> bool:
-    if source_crs_str in TRANSFORMATIONS_EXCLUDE:
-        if (target_crs_str in TRANSFORMATIONS_EXCLUDE[source_crs_str]) != None:
-            return True
+def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
+    if source_crs_str in TRANSFORMATIONS_EXCLUDE and (target_crs_str in TRANSFORMATIONS_EXCLUDE[source_crs_str]):
+        return True
 
     return False
 
