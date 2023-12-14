@@ -336,7 +336,7 @@ async def transform(  # noqa: PLR0913, ANN201
     if exclude_transformation(source_crs_str, target_crs_str):
         raise_validation_error(
             f"Transformation not possible between {source_crs_str} and {target_crs_str}",
-            ["responseBody"],
+            [("query", "source-crs"), ("query", "target-crs")],
         )
 
     s_crs, t_crs = get_transform_get_crss(
@@ -397,7 +397,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
     if exclude_transformation(source_crs_str, target_crs_str):
         raise_validation_error(
             f"Transformation not possible between {source_crs_str} and {target_crs_str}",
-            ["responseBody"],
+            [("query", "source-crs"), ("query", "target-crs")],
         )
 
     s_crs, t_crs = post_transform_get_crss(
