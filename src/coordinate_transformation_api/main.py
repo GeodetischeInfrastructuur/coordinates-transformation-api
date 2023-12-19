@@ -6,6 +6,7 @@ from importlib import resources as impresources
 from typing import Annotated, Callable, Union
 
 import uvicorn
+import yaml
 from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -43,6 +44,7 @@ from coordinate_transformation_api.util import (
     init_oas,
     post_transform_get_crss,
     raise_response_validation_error,
+    raise_validation_error,
     set_response_headers,
     transform_coordinates,
     validate_coords_source_crs,
@@ -52,6 +54,11 @@ from coordinate_transformation_api.util import (
 
 assets_resources = impresources.files(assets)
 logging_conf = assets_resources.joinpath("logging.conf")
+api_conf = assets_resources.joinpath("config.yaml")
+
+
+with open(str(api_conf)) as f:
+    TRANSFORMATIONS_EXCLUDE = yaml.safe_load(f)["transformations"]["exclude"]
 
 
 logging.config.fileConfig(str(logging_conf), disable_existing_loggers=False)
@@ -99,6 +106,15 @@ app.mount(
     StaticFiles(directory=f"{BASE_DIR}/assets/static"),
     name="static",
 )
+
+
+def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
+    if source_crs_str in TRANSFORMATIONS_EXCLUDE and (
+        target_crs_str in TRANSFORMATIONS_EXCLUDE[source_crs_str]
+    ):
+        return True
+
+    return False
 
 
 @app.middleware("http")
@@ -318,6 +334,12 @@ async def transform(  # noqa: PLR0913, ANN201
         for x in [source_crs, target_crs, content_crs, accept_crs]
     )
 
+    if exclude_transformation(source_crs_str, target_crs_str):
+        raise_validation_error(
+            f"Transformation not possible between {source_crs_str} and {target_crs_str}",
+            [("query", "source-crs"), ("query", "target-crs")],
+        )
+
     s_crs, t_crs = get_transform_get_crss(
         source_crs_str, target_crs_str, content_crs_str, accept_crs_str, CRS_LIST
     )
@@ -372,6 +394,13 @@ async def post_transform(  # noqa: ANN201, PLR0913
         x.value if x is not None else None
         for x in [source_crs, target_crs, content_crs, accept_crs]
     )
+
+    if exclude_transformation(source_crs_str, target_crs_str):
+        raise_validation_error(
+            f"Transformation not possible between {source_crs_str} and {target_crs_str}",
+            [("query", "source-crs"), ("query", "target-crs")],
+        )
+
     s_crs, t_crs = post_transform_get_crss(
         body, source_crs_str, target_crs_str, content_crs_str, accept_crs_str, CRS_LIST
     )
