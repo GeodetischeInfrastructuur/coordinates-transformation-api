@@ -33,6 +33,12 @@ jobs:
           python${{ matrix.python-version }} -m pip install --upgrade pip
           python${{ matrix.python-version }} -m pip install --force-reinstall -e ".[dev]"
 
+      - name: Download NL correction grids
+        run: |
+          curl  https://cdn.proj.org/nl_nsgi_rdtrans2018.tif -o /usr/share/miniconda/envs/__setup_conda/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/nl_nsgi_rdtrans2018.tif
+          curl  https://cdn.proj.org/nl_nsgi_nlgeo2018.tif -o /usr/share/miniconda/envs/__setup_conda/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/nl_nsgi_nlgeo2018.tif
+          curl  https://cdn.proj.org/nl_nsgi_rdcorr2018.tif -o /usr/share/miniconda/envs/__setup_conda/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/nl_nsgi_rdcorr2018.tif
+
       - name: Lint with black
         run: |
           python${{ matrix.python-version }} -m black --check .
