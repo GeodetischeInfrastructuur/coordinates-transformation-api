@@ -5,6 +5,7 @@ import os
 from importlib import resources as impresources
 from typing import Annotated, Callable, Union
 
+import pyproj
 import uvicorn
 import yaml
 from fastapi import FastAPI, Header, Query, Request, Response
@@ -422,6 +423,8 @@ async def post_transform(  # noqa: ANN201, PLR0913
 
 
 app.openapi = lambda: OPEN_API_SPEC  # type: ignore
+
+logger.info(f"pyproj datadir: {pyproj.datadir.get_data_dir()}")
 
 
 def main() -> None:
