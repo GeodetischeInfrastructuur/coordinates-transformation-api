@@ -2,8 +2,11 @@ import enum
 import json
 import logging
 import os
+import pkgutil
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from importlib import resources as impresources
-from typing import Annotated, Callable, Union
+from typing import Annotated, Any, Callable, Union
 
 import pyproj
 import uvicorn
@@ -18,6 +21,7 @@ from geodense.geojson import CrsFeatureCollection
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection
 
+import coordinate_transformation_api
 from coordinate_transformation_api import assets
 from coordinate_transformation_api.cityjson.models import CityjsonV113
 from coordinate_transformation_api.fastapi_rfc7807 import middleware
@@ -62,11 +66,12 @@ with open(str(api_conf)) as f:
     TRANSFORMATIONS_EXCLUDE = yaml.safe_load(f)["transformations"]["exclude"]
 
 
-logging.config.fileConfig(str(logging_conf), disable_existing_loggers=False)
-logger = logging.getLogger(__name__)
-logger.setLevel(app_settings.log_level)
-if not app_settings.debug:  # suppres pyproj warnings in prod
-    logging.getLogger("pyproj").setLevel(logging.ERROR)
+# logging.config.fileConfig(str(logging_conf), disable_existing_loggers=False)
+# logger = logging.getLogger("uvicorn")
+# # logger.addHandler(logging.StreamHandler())
+
+
+# logger = logging.getLogger("uvicorn")
 
 
 OPEN_API_SPEC: dict
@@ -76,12 +81,23 @@ OPEN_API_SPEC, API_TITLE, API_VERSION = init_oas()
 crs_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"]["crs-enum"]["enum"]
 CRS_LIST = [Crs.from_crs_str(x) for x in crs_identifiers]
 BASE_DIR: str = os.path.dirname(__file__)
-
+logger: logging.Logger
 
 CrsEnum: enum = enum.Enum("CrsEnum", {f"{x}": x for x in crs_identifiers})  # type: ignore
 
 
-app: FastAPI = FastAPI(docs_url=None)
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator:
+    global logger  # noqa: PLW0603
+    logger = logging.getLogger(__name__)
+    logger.info(f"settings: {app_settings}")
+    logger.info(f"pyproj datadir: {pyproj.datadir.get_data_dir()}")
+    if not app_settings.debug:  # suppres pyproj warnings in prod
+        logging.getLogger("pyproj").setLevel(logging.ERROR)
+    yield
+
+
+app: FastAPI = FastAPI(docs_url=None, lifespan=lifespan)
 # note: order of adding middleware is required for it to work
 middleware.register(app)
 app.add_middleware(
@@ -424,15 +440,37 @@ async def post_transform(  # noqa: ANN201, PLR0913
 
 app.openapi = lambda: OPEN_API_SPEC  # type: ignore
 
-logger.info(f"pyproj datadir: {pyproj.datadir.get_data_dir()}")
+
+def get_logging_config() -> Any:  # noqa: ANN401
+    logging_config = uvicorn.config.LOGGING_CONFIG
+    logging_config["loggers"]["uvicorn"]["level"] = app_settings.log_level
+    logging_config["loggers"]["uvicorn.error"]["level"] = app_settings.log_level
+    logging_config["loggers"]["uvicorn.access"]["level"] = app_settings.log_level
+
+    package = coordinate_transformation_api
+    for _importer, modname, _ispkg in pkgutil.walk_packages(
+        path=package.__path__, prefix=package.__name__ + ".", onerror=lambda _: None
+    ):
+        logging_config["loggers"][modname] = {
+            "handlers": ["default"],
+            "level": app_settings.log_level,
+            "propagate": False,
+        }
+    return logging_config
 
 
 def main() -> None:
     uvicorn.run(
-        "coordinate_transformation_api.main:app",
-        workers=2,
+        f"{__name__}:app",
+        workers=1,
         port=8000,
         host="0.0.0.0",  # noqa: S104
+        log_level=app_settings.log_level.lower(),
+        log_config=get_logging_config(),
+        access_log=app_settings.access_log,
+        loop="uvloop",
+        server_header=False,
+        date_header=False,
     )
 
 

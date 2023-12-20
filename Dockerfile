@@ -11,7 +11,9 @@ ENV ENV PIP_ROOT_USER_ACTION=ignore
 
 WORKDIR /src
 
-RUN apt update && apt install jq curl -y
+RUN apt-get update && apt-get install jq curl -y
+
+RUN rm -f dist/*
 
 RUN pip install --upgrade setuptools && \
     pip install --upgrade pip && \
@@ -20,12 +22,12 @@ RUN pip install --upgrade setuptools && \
 
 WORKDIR /assets
 
-RUN curl -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
-    curl -o nl_nsgi_rdcorr2018.tif https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
-    curl -o nl_nsgi_rdtrans2018.tif https://cdn.proj.org/nl_nsgi_rdtrans2018.tif
+RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
+    curl -sL -o nl_nsgi_rdcorr2018.tif https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
+    curl -sL -o nl_nsgi_rdtrans2018.tif https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
+    curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.db").url') -o proj.db
 
-RUN curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.db").url') -o proj.db
-
+RUN ls -lah /src/dist/ >&2
 
 FROM python:3.11.4-slim-bullseye as runner
 
