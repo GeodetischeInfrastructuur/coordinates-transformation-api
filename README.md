@@ -82,6 +82,15 @@ Check test coverage (install `coverage` with `pip install coverage`):
 python3 -m coverage run --source=src/coordinate_transformation_api -m pytest -v tests && python3 -m coverage report -m
 ```
 
+### Install NSGI proj.db
+
+Execute the following shell one-liner to install the NSGI `proj.db` from the [GeodetischeInfrastructuur/transformations](https://github.com/GeodetischeInfrastructuur/transformations/releases) repo:
+
+
+```sh
+curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.db").url') -o "$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());')"/proj.db
+```
+
 ## Install
 
 ```bash

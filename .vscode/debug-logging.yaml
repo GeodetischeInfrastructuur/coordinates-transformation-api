@@ -1,0 +1,112 @@
+disable_existing_loggers: false
+formatters:
+  access:
+    (): uvicorn.logging.AccessFormatter
+    fmt: '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
+  default:
+    (): uvicorn.logging.DefaultFormatter
+    fmt: "%(levelprefix)s %(message)s"
+    use_colors: null
+handlers:
+  access:
+    class: logging.StreamHandler
+    formatter: access
+    stream: ext://sys.stdout
+  default:
+    class: logging.StreamHandler
+    formatter: default
+    stream: ext://sys.stderr
+loggers:
+  coordinate_transformation_api.assets:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.assets.static:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.cityjson:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.cityjson.models:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.constants:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.crs_transform:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.fastapi_rfc7807:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.fastapi_rfc7807.middleware:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.fastapi_rfc7807.schema:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.limit_middleware:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.limit_middleware.middleware:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.main:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.models:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.settings:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.types:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  coordinate_transformation_api.util:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  uvicorn:
+    handlers:
+      - default
+    level: DEBUG
+    propagate: false
+  uvicorn.access:
+    handlers:
+      - access
+    level: DEBUG
+    propagate: false
+  uvicorn.error:
+    level: DEBUG
+version: 1

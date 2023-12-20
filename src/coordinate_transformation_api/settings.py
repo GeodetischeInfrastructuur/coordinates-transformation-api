@@ -62,7 +62,7 @@ class AppSettings(BaseSettings):
         default=2000000,
         description="max size request body in bytes",
     )
-    log_level: str = Field(alias="LOG_LEVEL", default="ERROR")
+    log_level: str = Field(alias="LOG_LEVEL", default="INFO")
     debug: bool = Field(
         alias="DEBUG",
         default=False,
@@ -83,6 +83,11 @@ class AppSettings(BaseSettings):
         alias="CORS_ALLOW_ORIGINS",
         default=None,
         description="CORS origins, either a comma separated list of HTTPS urls of the value `*` to allow CORS on all origins",
+    )
+    access_log: bool = Field(
+        alias="ACCESS_LOG",
+        default=False,
+        description="enable access log, defaults to False",
     )
 
     @classmethod
