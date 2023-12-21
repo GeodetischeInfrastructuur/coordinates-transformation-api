@@ -246,7 +246,18 @@ def get_transform_crs_fun(
                 f"number of dimensions of target-crs should be 2 or 3, is {dim}"
             )
         val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
-        input = tuple([*val, float(epoch) if epoch is not None else None])
+        # TODO: fix epoch handling, should only be added in certain cases
+        # when one of the src or tgt crs has a dynamic time component
+        # or the transformation used has a datetime component
+        # for now simple check on coords length (which is not correct)
+        input = tuple(
+            [
+                *val,
+                float(epoch)
+                if len(val) == THREE_DIMENSIONAL and epoch is not None
+                else None,
+            ]
+        )
 
         # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
         # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
