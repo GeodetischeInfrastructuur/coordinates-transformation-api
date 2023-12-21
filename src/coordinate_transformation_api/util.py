@@ -90,15 +90,6 @@ def camel_to_snake(s):
     return "".join(["_" + c.lower() if c.isupper() else c for c in s]).lstrip("_")
 
 
-def validate_input_max_segment_deviation_length(deviation, length):
-    if length is None and deviation is None:
-        raise_req_validation_error(
-            "max_segment_length or max_segment_deviation should be set",
-            loc=("query", "max_segment_length|max_segment_deviation"),
-            input=[None, None],
-        )
-
-
 def extract_authority_code(crs: str) -> str:
     r = re.search(r"^(http://www\.opengis\.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
     if r is not None:
@@ -184,17 +175,10 @@ def density_check_request_body(
 ) -> list[tuple[list[int], float]]:
     report: list[tuple[list[int], float]] = []
 
-    try:  # raises GeodenseError when all geometries in body are (multi)point
-        _geom_type_check(body)
-    except GeodenseError as e:
-        raise_req_validation_error(str(e))
+    _geom_type_check(body)
 
-    validate_input_max_segment_deviation_length(
-        max_segment_deviation, max_segment_length
-    )
-
-    bbox_check_deviation_set(body, source_crs, max_segment_deviation)
     if max_segment_deviation is not None:
+        bbox_check_deviation_set(body, source_crs, max_segment_deviation)
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
     # TODO: @jochem add comments on langelijnen advies implementatie
@@ -208,12 +192,12 @@ def density_check_request_body(
 def bbox_check_deviation_set(
     body: GeojsonObject, source_crs, max_segment_deviation
 ) -> None:
-    if max_segment_deviation is None and not request_body_within_valid_bbox(
+    if max_segment_deviation is not None and not request_body_within_valid_bbox(
         body, source_crs
     ):
         raise_validation_error(
-            f"GeoJSON geometries not within bounnding box: {','.join([str(x) for x in DEVIATION_VALID_BBOX])}, use max_segment_length parameter instead of max_segment_deviation instead",
-            "body",
+            f"GeoJSON geometries not within bounding box: {','.join([str(x) for x in DEVIATION_VALID_BBOX])}, use max_segment_length parameter instead of max_segment_deviation instead",
+            loc=("body",),
         )
 
 
@@ -229,10 +213,6 @@ def densify_request_body(
         body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
         transformer (Transformer): pyproj Transformer object
     """
-
-    validate_input_max_segment_deviation_length(
-        max_segment_deviation, max_segment_length
-    )
 
     if max_segment_deviation is not None:
         bbox_check_deviation_set(body, source_crs, max_segment_deviation)
@@ -294,7 +274,12 @@ def raise_response_validation_error(message: str, location):
     )
 
 
-def raise_validation_error(message: str, location):
+def raise_validation_error(
+    message: str,
+    input: Any | None = None,
+    loc: tuple[int | str, ...] | None = None,
+    ctx: Any | None = None,
+):
     raise RequestValidationError(
         errors=(
             ValidationError.from_exception_data(
@@ -305,17 +290,23 @@ def raise_validation_error(message: str, location):
                             "missing",
                             message,
                         ),
-                        loc=location,
-                        input="",
+                        input=input,
+                        **({"ctx": ctx} if ctx is not None else {}),  # type: ignore
+                        **({"loc": loc} if loc is not None else {}),  # type: ignore
                     ),
                 ],
             )
-        ).errors()
+        ).errors(include_context=True)
     )
 
 
+# TODO: remove duplicate method to raise error
 def raise_req_validation_error(
-    error_message, error_type="ValueError", input=any, loc: tuple[int | str, ...] = ()
+    error_message,
+    error_type="ValueError",
+    input: Any | None = None,
+    loc: tuple[int | str, ...] | None = None,
+    ctx: Any | None = None,
 ):
     error_type_snake = camel_to_snake(error_type)
     raise RequestValidationError(
@@ -328,8 +319,9 @@ def raise_req_validation_error(
                             error_type_snake,
                             error_message,
                         ),
-                        loc=loc,
                         input=input,
+                        **({"ctx": ctx} if ctx is not None else {}),  # type: ignore
+                        **({"loc": loc} if loc is not None else {}),  # type: ignore
                     )
                 ],
             )
@@ -412,12 +404,12 @@ def post_transform_get_crss(  # noqa: PLR0913
     if s_crs is None and isinstance(body, CrsFeatureCollection):
         raise_validation_error(
             "No source CRS found in request. Defining a source CRS is required through the provided object a query parameter source-crs or header content-crs",
-            [("body", "crs"), ("query", "source-crs"), ("header", "content-crs")],
+            loc=[("body", "crs"), ("query", "source-crs"), ("header", "content-crs")],  # type: ignore
         )
     elif s_crs is None and isinstance(body, CityjsonV113):
         raise_validation_error(
             "metadata.referenceSystem field missing in CityJSON request body",
-            [
+            loc=[
                 (
                     "body",
                     "metadata.referenceSystem",
@@ -427,12 +419,12 @@ def post_transform_get_crss(  # noqa: PLR0913
                     "header",
                     "content-crs",
                 ),
-            ],
+            ],  # type: ignore
         )
     elif s_crs is None:
         raise_validation_error(
             "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
-            ("query", "source-crs", "header", "content-crs"),
+            loc=("query", "source-crs", "header", "content-crs"),
         )
 
     if target_crs is not None:
@@ -442,7 +434,7 @@ def post_transform_get_crss(  # noqa: PLR0913
     else:
         raise_validation_error(
             "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
-            ("query", "target-crs", "header", "accept-crs"),
+            loc=("query", "target-crs", "header", "accept-crs"),
         )
 
     s_crs_str = cast(str, s_crs)
@@ -467,7 +459,7 @@ def get_transform_get_crss(
     else:
         raise_validation_error(
             "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
-            ("query", "source-crs", "header", "content-crs"),
+            loc=("query", "source-crs", "header", "content-crs"),
         )
 
     if target_crs is not None:
@@ -477,7 +469,7 @@ def get_transform_get_crss(
     else:
         raise_validation_error(
             "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
-            ("query", "target-crs", "header", "accept-crs"),
+            loc=("query", "target-crs", "header", "accept-crs"),
         )
 
     s_crs = extract_authority_code(s_crs)
@@ -497,19 +489,26 @@ def get_src_crs_densify(
     if s_crs is None and isinstance(body, CrsFeatureCollection):
         raise_validation_error(
             "No source CRS found in request. Defining a source CRS is required in the FeatureCollection request body, the source-crs query parameter or the content-crs header",
-            ("body", "crs", "query", "source-crs", "header", "content-crs"),
+            loc=("body", "crs", "query", "source-crs", "header", "content-crs"),
         )
     elif s_crs is None:
         raise_validation_error(
             "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
-            ("query", "source-crs", "header", "content-crs"),
+            loc=("query", "source-crs", "header", "content-crs"),
         )
     return cast(str, s_crs)
 
 
-def set_response_headers(t_crs: str, epoch: float | None = None) -> dict[str, str]:
-    headers = {"content-crs": format_as_uri(t_crs)}
-    if epoch:
-        headers["epoch"] = str(epoch)
-
+def set_response_headers(
+    *args, headers: dict[str, str] | None = None
+) -> dict[str, str]:
+    headers = {} if headers is None else headers
+    for arg in args:
+        key, val = arg
+        headers[key] = str(val)
     return headers
+    # headers = {"content-crs": format_as_uri(t_crs)}
+    # if epoch:
+    #     headers["epoch"] = str(epoch)
+
+    # return headers

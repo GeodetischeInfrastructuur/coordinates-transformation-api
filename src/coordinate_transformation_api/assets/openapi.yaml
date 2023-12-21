@@ -364,6 +364,9 @@ paths:
         - $ref: "#/components/parameters/epoch"
         - $ref: "#/components/parameters/contentCrs"
         - $ref: "#/components/parameters/acceptCrs"
+        - $ref: "#/components/parameters/density-check"
+        - $ref: "#/components/parameters/maxSegmentLength"
+        - $ref: "#/components/parameters/maxSegmentDeviation"
       requestBody:
         required: true
         description: |
@@ -450,6 +453,16 @@ components:
         type: string
 
   parameters:
+    density-check:
+      description: |
+        Run density-check on input. TODO: add description on density-check result.
+      in: query
+      name: density-check
+      example: True
+      required: false
+      schema:
+        type: boolean
+        default: true
     source-crs:
       description: |
         Source Coordinate Reference System

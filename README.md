@@ -88,7 +88,11 @@ Execute the following shell one-liner to install the NSGI `proj.db` from the [Ge
 
 
 ```sh
-curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.db").url') -o "$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());')"/proj.db
+proj_data_dir=$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());')
+curl -sL -o "${proj_data_dir}/nl_nsgi_nlgeo2018.tif" https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
+    curl -sL -o "${proj_data_dir}/nl_nsgi_rdcorr2018.tif" https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
+    curl -sL -o "${proj_data_dir}/nl_nsgi_rdtrans2018.tif" https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
+curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.db").url') -o "${proj_data_dir}/proj.db"
 ```
 
 ## Install

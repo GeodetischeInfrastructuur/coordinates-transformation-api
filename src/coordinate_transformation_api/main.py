@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geodense.geojson import CrsFeatureCollection
+from geodense.lib import GeodenseError, flatten  # type: ignore  # type: ignore
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection
 
@@ -48,13 +49,13 @@ from coordinate_transformation_api.util import (
     get_transform_get_crss,
     init_oas,
     post_transform_get_crss,
+    raise_req_validation_error,
     raise_response_validation_error,
     raise_validation_error,
     set_response_headers,
     transform_coordinates,
     validate_coords_source_crs,
     validate_crs_transformed_geojson,
-    validate_input_max_segment_deviation_length,
 )
 
 assets_resources = impresources.files(assets)
@@ -282,14 +283,11 @@ async def densify(  # noqa: ANN201
         x.value if x is not None else None for x in [source_crs, content_crs]
     )
 
-    validate_input_max_segment_deviation_length(
-        max_segment_deviation, max_segment_length
-    )
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
     densify_request_body(body, s_crs, max_segment_deviation, max_segment_length)
     return JSONResponse(
         content=body.model_dump(exclude_none=True),
-        headers=set_response_headers(s_crs),
+        headers=set_response_headers(("content-crs", s_crs)),
     )
 
 
@@ -316,15 +314,15 @@ async def density_check(  # noqa: ANN201
         x.value if x is not None else None for x in [source_crs, content_crs]
     )
 
-    validate_input_max_segment_deviation_length(
-        max_segment_deviation, max_segment_length
-    )
-
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
-    report = density_check_request_body(
-        body, s_crs, max_segment_deviation, max_segment_length
-    )
-    result = DensityCheckReport(passes_check=not len(report) > 0, report=report)
+    try:  # raises GeodenseError when all geometries in body are (multi)point
+        report = density_check_request_body(
+            body, s_crs, max_segment_deviation, max_segment_length
+        )
+    except GeodenseError as e:
+        raise_req_validation_error(str(e))
+
+    result = DensityCheckReport.from_report(list(flatten(report)))
     return result
 
 
@@ -371,17 +369,14 @@ async def transform(  # noqa: PLR0913, ANN201
         raise_response_validation_error(
             "Out of range float values are not JSON compliant", ["responseBody"]
         )
-
+    headers = set_response_headers(("content-crs", t_crs), ("epoch", epoch))
     if accept == str(TransformGetAcceptHeaders.wkt.value):
         wkt_string = convert_point_coords_to_wkt(coordinates)
-        PlainTextResponse(
-            wkt_string,
-            headers=set_response_headers(t_crs, epoch),
-        )
+        PlainTextResponse(wkt_string, headers=headers)
     else:  # default case serve json
         return JSONResponse(
             content={"type": "Point", "coordinates": transformed_coordinates},
-            headers=set_response_headers(t_crs, epoch),
+            headers=headers,
         )
 
 
@@ -393,6 +388,7 @@ async def transform(  # noqa: PLR0913, ANN201
     response_model_exclude_none=True,
 )
 async def post_transform(  # noqa: ANN201, PLR0913
+    response: Response,
     body: Union[
         Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
     ],
@@ -401,6 +397,13 @@ async def post_transform(  # noqa: ANN201, PLR0913
     content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
     accept_crs: Annotated[CrsEnum | None, Header(alias="accept-crs")] = None,
     epoch: Annotated[float | None, Query(alias="epoch")] = None,
+    density_check: Annotated[bool, Query(alias="density-check")] = True,
+    max_segment_deviation: Annotated[
+        float | None, Query(alias="max-segment-deviation", ge=0.0001)
+    ] = None,
+    max_segment_length: Annotated[
+        float | None, Query(alias="max-segment-length", ge=200)
+    ] = 200,
 ):
     # get string values from CrsEnum|None parameters
     source_crs_str: str
@@ -421,7 +424,39 @@ async def post_transform(  # noqa: ANN201, PLR0913
     s_crs, t_crs = post_transform_get_crss(
         body, source_crs_str, target_crs_str, content_crs_str, accept_crs_str, CRS_LIST
     )
+    response_headers: dict = {}
+    if density_check:
+        # TODO: run density_check
 
+        try:  # raises GeodenseError when all geometries in body are (multi)point
+            report = density_check_request_body(
+                body, s_crs, max_segment_deviation, max_segment_length
+            )
+            result = DensityCheckReport.from_report(list(flatten(report)))
+            if result.passes_check:
+                response_headers = set_response_headers(
+                    ("density-check-result", "success")
+                )
+            else:
+                response_headers = set_response_headers(
+                    ("density-check-result", "failed")
+                )
+                response.headers.update(
+                    {k: v for k, v in response_headers.items() if v}
+                )
+                raise_validation_error(
+                    "density-check failed, run the density-check request to obtain the density-check report",
+                    loc=("body",),
+                    ctx={"report": result.model_dump_json()},
+                )
+        except GeodenseError as e:
+            if str(e) == "GeoJSON contains only (Multi)Point geometries":
+                response_headers = set_response_headers(
+                    ("density-check-result", "NotApplicableGeometryType"),
+                    headers=response_headers,
+                )
+            else:
+                raise_req_validation_error(str(e), loc=tuple("body"))
     if isinstance(body, CityjsonV113):
         body.crs_transform(s_crs, t_crs, epoch)
         return Response(
@@ -431,10 +466,13 @@ async def post_transform(  # noqa: ANN201, PLR0913
     else:
         crs_transform(body, s_crs, t_crs, epoch)
         validate_crs_transformed_geojson(body)
-
+        response_headers = set_response_headers(
+            ("content-crs", t_crs), ("epoch", epoch), headers=response_headers
+        )
+        response_body = body.model_dump(exclude_none=True)
         return JSONResponse(
-            content=body.model_dump(exclude_none=True),
-            headers=set_response_headers(t_crs, epoch),
+            content=response_body,
+            headers=response_headers,
         )
 
 

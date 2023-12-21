@@ -26,6 +26,13 @@ class DensityCheckReport(BaseModel):
     passes_check: bool
     report: Optional[list[tuple[list[int], float]]]
 
+    @classmethod
+    def from_report(
+        cls, report: list[tuple[list[int], float]]  # noqa: ANN102
+    ) -> "DensityCheckReport":
+        passes_check = not len(report) > 0
+        return DensityCheckReport(passes_check=passes_check, report=report)
+
 
 class TransformGetAcceptHeaders(Enum):
     json = "application/json"
