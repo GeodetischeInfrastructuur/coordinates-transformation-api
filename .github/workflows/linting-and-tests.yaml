@@ -33,11 +33,14 @@ jobs:
           python${{ matrix.python-version }} -m pip install --upgrade pip
           python${{ matrix.python-version }} -m pip install --force-reinstall -e ".[dev]"
 
-      - name: Download NL correction grids
+      - name: Download NL correction grids and nsgi proj db
         run: |
-          curl  https://cdn.proj.org/nl_nsgi_rdtrans2018.tif -o /usr/share/miniconda/envs/__setup_conda/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/nl_nsgi_rdtrans2018.tif
-          curl  https://cdn.proj.org/nl_nsgi_nlgeo2018.tif -o /usr/share/miniconda/envs/__setup_conda/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/nl_nsgi_nlgeo2018.tif
-          curl  https://cdn.proj.org/nl_nsgi_rdcorr2018.tif -o /usr/share/miniconda/envs/__setup_conda/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/nl_nsgi_rdcorr2018.tif
+
+          proj_data_dir=$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());')
+          curl -sL -o "${proj_data_dir}/nl_nsgi_nlgeo2018.tif" https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
+          curl -sL -o "${proj_data_dir}/nl_nsgi_rdcorr2018.tif" https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
+          curl -sL -o "${proj_data_dir}/nl_nsgi_rdtrans2018.tif" https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
+          curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.db").url') -o "${proj_data_dir}/proj.db"
 
       - name: Lint with black
         run: |
