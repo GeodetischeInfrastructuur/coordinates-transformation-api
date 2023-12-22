@@ -41,33 +41,17 @@ from coordinate_transformation_api.crs_transform import (
     get_transform_crs_fun,
     update_bbox_geojson_object,
 )
-from coordinate_transformation_api.models import Crs as MyCrs
+from coordinate_transformation_api.models import (
+    Crs as MyCrs,
+)
+from coordinate_transformation_api.models import (
+    DataValidationError,
+    DensifyError,
+)
 from coordinate_transformation_api.settings import app_settings
 from coordinate_transformation_api.types import CoordinatesType
 
 logger = logging.getLogger(__name__)
-
-
-def validate_crs_transformation(
-    source_crs, target_crs, projections_axis_info: list[MyCrs]
-):
-    source_crs_dims = next(
-        crs.nr_of_dimensions
-        for crs in projections_axis_info
-        if crs.crs_auth_identifier == source_crs
-    )
-    target_crs_dims = next(
-        crs.nr_of_dimensions
-        for crs in projections_axis_info
-        if crs.crs_auth_identifier == target_crs
-    )
-
-    if source_crs_dims < target_crs_dims:
-        raise_req_validation_error(
-            f"number of dimensions of target-crs should be equal or less then that of the source-crs\n * source-crs: {source_crs}, dimensions: {source_crs_dims}\n * target-crs {target_crs}, dimensions: {target_crs_dims}",
-            loc=("query", "target-crs"),
-            input=(source_crs, target_crs),
-        )
 
 
 def validate_coords_source_crs(
@@ -195,9 +179,8 @@ def bbox_check_deviation_set(
     if max_segment_deviation is not None and not request_body_within_valid_bbox(
         body, source_crs
     ):
-        raise_validation_error(
-            f"GeoJSON geometries not within bounding box: {','.join([str(x) for x in DEVIATION_VALID_BBOX])}, use max_segment_length parameter instead of max_segment_deviation instead",
-            loc=("body",),
+        raise DataValidationError(
+            f"GeoJSON geometries not within bounding box: {','.join([str(x) for x in DEVIATION_VALID_BBOX])}, use max_segment_length parameter instead of max_segment_deviation parameter. Use of max_segment_deviation parameter requires data to be within mentioned bounding box."
         )
 
 
@@ -223,7 +206,7 @@ def densify_request_body(
     try:
         densify_geojson_object(body, c)
     except GeodenseError as e:
-        raise_req_validation_error(str(e))
+        raise DensifyError(str(e)) from e
 
     crs_transform(body, DENSIFY_CRS, source_crs)  # transform back
 
@@ -274,7 +257,7 @@ def raise_response_validation_error(message: str, location):
     )
 
 
-def raise_validation_error(
+def raise_request_validation_error(
     message: str,
     input: Any | None = None,
     loc: tuple[int | str, ...] | None = None,
@@ -391,23 +374,22 @@ def get_source_crs(
     return s_crs
 
 
-def post_transform_get_crss(  # noqa: PLR0913
+def post_transform_get_crss(
     body: Feature | CrsFeatureCollection | Geometry | GeometryCollection | CityjsonV113,
     source_crs: str,
     target_crs: str,
     content_crs: str,
     accept_crs: str,
-    crs_list: list[MyCrs],
 ) -> tuple[str, str]:
     s_crs = get_source_crs(body, source_crs, content_crs)
 
     if s_crs is None and isinstance(body, CrsFeatureCollection):
-        raise_validation_error(
+        raise_request_validation_error(
             "No source CRS found in request. Defining a source CRS is required through the provided object a query parameter source-crs or header content-crs",
             loc=[("body", "crs"), ("query", "source-crs"), ("header", "content-crs")],  # type: ignore
         )
     elif s_crs is None and isinstance(body, CityjsonV113):
-        raise_validation_error(
+        raise_request_validation_error(
             "metadata.referenceSystem field missing in CityJSON request body",
             loc=[
                 (
@@ -422,7 +404,7 @@ def post_transform_get_crss(  # noqa: PLR0913
             ],  # type: ignore
         )
     elif s_crs is None:
-        raise_validation_error(
+        raise_request_validation_error(
             "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
             loc=("query", "source-crs", "header", "content-crs"),
         )
@@ -432,7 +414,7 @@ def post_transform_get_crss(  # noqa: PLR0913
     elif target_crs is None and accept_crs is not None:
         t_crs = accept_crs
     else:
-        raise_validation_error(
+        raise_request_validation_error(
             "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
             loc=("query", "target-crs", "header", "accept-crs"),
         )
@@ -441,7 +423,6 @@ def post_transform_get_crss(  # noqa: PLR0913
     s_crs = extract_authority_code(s_crs_str)
     t_crs = extract_authority_code(t_crs)
 
-    validate_crs_transformation(source_crs, target_crs, crs_list)
     return s_crs, t_crs
 
 
@@ -450,14 +431,13 @@ def get_transform_get_crss(
     target_crs: str,
     content_crs: str,
     accept_crs: str,
-    crs_list: list[MyCrs],
 ) -> tuple[str, str]:
     if source_crs is not None:
         s_crs = source_crs
     elif source_crs is None and content_crs is not None:
         s_crs = content_crs
     else:
-        raise_validation_error(
+        raise_request_validation_error(
             "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
             loc=("query", "source-crs", "header", "content-crs"),
         )
@@ -467,15 +447,13 @@ def get_transform_get_crss(
     elif target_crs is None and accept_crs is not None:
         t_crs = accept_crs
     else:
-        raise_validation_error(
+        raise_request_validation_error(
             "No target CRS found in request. Defining a target CRS is required through the query parameter target-crs or header accept-crs",
             loc=("query", "target-crs", "header", "accept-crs"),
         )
 
     s_crs = extract_authority_code(s_crs)
     t_crs = extract_authority_code(t_crs)
-
-    validate_crs_transformation(source_crs, target_crs, crs_list)
 
     return s_crs, t_crs
 
@@ -487,12 +465,12 @@ def get_src_crs_densify(
 ) -> str:
     s_crs = get_source_crs(body, source_crs, content_crs)
     if s_crs is None and isinstance(body, CrsFeatureCollection):
-        raise_validation_error(
+        raise_request_validation_error(
             "No source CRS found in request. Defining a source CRS is required in the FeatureCollection request body, the source-crs query parameter or the content-crs header",
             loc=("body", "crs", "query", "source-crs", "header", "content-crs"),
         )
     elif s_crs is None:
-        raise_validation_error(
+        raise_request_validation_error(
             "No source CRS found in request. Defining a source CRS is required through the query parameter source-crs or header content-crs",
             loc=("query", "source-crs", "header", "content-crs"),
         )

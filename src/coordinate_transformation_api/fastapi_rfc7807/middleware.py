@@ -15,6 +15,12 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from coordinate_transformation_api.constants import DENSITY_CHECK_RESULT_HEADER
+from coordinate_transformation_api.models import (
+    DataValidationError,
+    DensityCheckFailedError,
+    DensityCheckResult,
+)
 from coordinate_transformation_api.settings import app_settings
 
 PreHook = Callable[[Request, Exception], Union[Any, Awaitable[Any]]]
@@ -55,6 +61,8 @@ class ProblemResponse(Response):
             p = from_http_exception(content)
         elif isinstance(content, RequestValidationError):
             p = from_request_validation_error(content)
+        elif isinstance(content, DataValidationError):
+            p = from_data_validation_error(content)
         elif isinstance(content, ResponseValidationError):
             p = from_response_validation_error(content)
         elif isinstance(content, Exception):
@@ -251,6 +259,16 @@ def from_response_validation_error(exc: ResponseValidationError) -> ProblemError
     )
 
 
+def from_data_validation_error(exc: DataValidationError) -> ProblemError:
+    extra = {}
+    if isinstance(exc, DensityCheckFailedError):
+        extra = {"report": exc.report}
+
+    return ProblemError(
+        type=exc.type_str, title=exc.title, status=400, detail=str(exc), **extra  # type: ignore
+    )
+
+
 def from_request_validation_error(exc: RequestValidationError) -> ProblemError:
     """Create a new Problem instance from a RequestValidationError.
 
@@ -340,6 +358,10 @@ def get_exception_handler(
 
         await exec_hooks(pre_hooks, request, exc)
         response = ProblemResponse(exc, debug=debug)
+        if response.problem.type == "nsgi.nl/density-check-failed":
+            response.headers[
+                DENSITY_CHECK_RESULT_HEADER
+            ] = DensityCheckResult.failed.value
         await exec_hooks(post_hooks, request, response, exc)
 
         return response
