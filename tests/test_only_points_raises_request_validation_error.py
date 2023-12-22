@@ -1,11 +1,11 @@
 from contextlib import nullcontext as does_not_raise
 
 import pytest
+from coordinate_transformation_api.main import CrsEnum, density_check
+from coordinate_transformation_api.models import DensifyError, DensityCheckError
 from coordinate_transformation_api.util import (
     densify_request_body,
-    density_check_request_body,
 )
-from fastapi.exceptions import RequestValidationError
 from geodense.types import GeojsonObject
 
 """Test to check if input with only points raises a RequestValidationError - for both densify and density_check
@@ -25,17 +25,21 @@ from geodense.types import GeojsonObject
         ),  # contains a polygon
         (
             "points",
-            pytest.raises(RequestValidationError),
+            pytest.raises(
+                DensityCheckError,
+                match=r"GeoJSON contains only \(Multi\)Point geometries",
+            ),
         ),  # contains only points
     ],
 )
-def test_density_check_points_raises_request_validation_error(
+@pytest.mark.asyncio()
+async def test_density_check_points_raises_request_validation_error(
     geojson, expected, request
 ):
     gj: GeojsonObject = request.getfixturevalue(geojson)
 
     with expected:
-        density_check_request_body(gj, "EPSG:28992", 10, None)
+        await density_check(gj, CrsEnum.EPSG_28992, max_segment_length=10)
 
 
 @pytest.mark.parametrize(
@@ -51,11 +55,16 @@ def test_density_check_points_raises_request_validation_error(
         ),  # contains a polygon
         (
             "points",
-            pytest.raises(RequestValidationError),
+            pytest.raises(
+                DensifyError,
+                match=r"cannot run densify on GeoJSON that only contains \(Multi\)Point geometries",
+            ),
         ),  # contains only points
     ],
 )
 def test_densify_points_raises_request_validation_error(geojson, expected, request):
     gj: GeojsonObject = request.getfixturevalue(geojson)
     with expected:
-        densify_request_body(gj, "EPSG:28992", 10, None)
+        densify_request_body(
+            gj, "EPSG:28992", max_segment_length=10, max_segment_deviation=None
+        )

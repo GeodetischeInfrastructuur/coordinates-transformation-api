@@ -5,6 +5,57 @@ from pydantic import BaseModel, computed_field
 from pyproj import CRS as ProjCrs  # noqa: N811
 
 
+class DataValidationError(Exception):
+    type_str = "nsgi.nl/data-validation-error"
+    title = "Data Validation Error"
+    pass
+
+
+class TransformationNotPossibleError(DataValidationError):
+    type_str = "nsgi.nl/transformation-not-possible"
+    title = "Transformation Not Possible"
+
+    def __init__(
+        self: "TransformationNotPossibleError",
+        src_crs: str,
+        target_crs: str,
+        reason: str = "no transformation path available",
+    ) -> None:
+        # Call the base class constructor with the parameters it needs
+        message = (
+            f"Transformation not possible between {src_crs} and {target_crs}, {reason}"
+        )
+        super().__init__(message)
+        # Now for your custom code...
+
+
+class DensityCheckFailedError(DataValidationError):
+    type_str = "nsgi.nl/density-check-failed"
+    title = "Density Check Failed"
+
+    def __init__(
+        self: "DensityCheckFailedError",
+        message: str,
+        report: list[tuple[list[int], float]],
+    ) -> None:
+        # Call the base class constructor with the parameters it needs
+        super().__init__(message)
+        # Now for your custom code...
+        self.report = report
+
+
+class DensityCheckError(DataValidationError):
+    type_str = "nsgi.nl/density-check-error"
+    title = "Error Occured In Density Check"
+    pass
+
+
+class DensifyError(DataValidationError):
+    type_str = "nsgi.nl/densification-error"
+    title = "Error Occured in Densification"
+    pass
+
+
 class Link(BaseModel):
     title: str
     type: str
@@ -37,6 +88,13 @@ class DensityCheckReport(BaseModel):
 class TransformGetAcceptHeaders(Enum):
     json = "application/json"
     wkt = "text/plain"
+
+
+class DensityCheckResult(Enum):
+    not_run = "not-run"
+    success = "success"
+    failed = "failed"
+    not_applicable_geom_type = "not-applicable-geom-type"
 
 
 class Axis(BaseModel):

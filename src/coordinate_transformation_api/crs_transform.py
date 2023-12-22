@@ -1,7 +1,9 @@
 from collections.abc import Generator
+from importlib import resources as impresources
 from itertools import chain
 from typing import Any, Callable, cast
 
+import yaml
 from geodense.geojson import CrsFeatureCollection
 from geodense.lib import (  # type: ignore  # type: ignore
     THREE_DIMENSIONAL,
@@ -17,9 +19,16 @@ from pyproj import CRS, Transformer, transformer
 from shapely import GeometryCollection as ShpGeometryCollection
 from shapely.geometry import shape
 
+from coordinate_transformation_api import assets
 from coordinate_transformation_api.constants import DEFAULT_PRECISION
 from coordinate_transformation_api.models import Crs as MyCrs
+from coordinate_transformation_api.models import TransformationNotPossibleError
 from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
+
+assets_resources = impresources.files(assets)
+api_conf = assets_resources.joinpath("config.yaml")
+with open(str(api_conf)) as f:
+    TRANSFORMATIONS_EXCLUDE = yaml.safe_load(f)["transformations"]["exclude"]
 
 
 def get_precision(target_crs_crs: MyCrs) -> int:
@@ -190,9 +199,29 @@ def get_bbox_from_coordinates(coordinates: Any) -> BBox:  # noqa: ANN401
         )
 
 
+def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
+    if source_crs_str in TRANSFORMATIONS_EXCLUDE and (
+        target_crs_str in TRANSFORMATIONS_EXCLUDE[source_crs_str]
+    ):
+        return True
+
+    return False
+
+
 def get_transformer(source_crs: str, target_crs: str) -> Transformer:
     s_crs = CRS.from_authority(*source_crs.split(":"))
     t_crs = CRS.from_authority(*target_crs.split(":"))
+
+    # TODO: move validation to seperate function to call early in the request, to prevent unnecessary processing
+    if len(s_crs.axis_info) < len(t_crs.axis_info):
+        raise TransformationNotPossibleError(
+            src_crs=str(s_crs),
+            target_crs=str(t_crs),
+            reason=f"number of dimensions source-crs: {len(s_crs.axis_info)}, number of dimensions target-crs: {len(t_crs.axis_info)}",
+        )
+
+    if exclude_transformation(source_crs, target_crs):
+        raise TransformationNotPossibleError(source_crs, target_crs)
 
     # Area of interest spanning NL
     # coord from EPSG.org Netherlands - onshore
@@ -207,8 +236,9 @@ def get_transformer(source_crs: str, target_crs: str) -> Transformer:
     # If everything is 'right' we should always have a transformer
     # based on our configured proj.db. Therefor this error.
     if len(tfg.transformers) == 0:
-        raise ValueError(
-            f"Transformation not possible between {s_crs} and {t_crs}, no transformation path available"
+        raise TransformationNotPossibleError(
+            src_crs=str(s_crs),
+            target_crs=str(t_crs),
         )
     else:
         # Select 1st result

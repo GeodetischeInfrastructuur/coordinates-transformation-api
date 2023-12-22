@@ -6,3 +6,4 @@ DEVIATION_VALID_BBOX = [
     7.5696,
     54.1238,
 ]  # bbox in epsg:4258 - area valid for doing density check (based on deviation param)
+DENSITY_CHECK_RESULT_HEADER = "density-check-result"
