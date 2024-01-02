@@ -44,6 +44,12 @@ class DensityCheckFailedError(DataValidationError):
         self.report = report
 
 
+class DeviationOutOfBboxError(DataValidationError):
+    type_str = "nsgi.nl/deviation-data-outside-bbox"
+    title = "Data Outside Bounding Box when Using Deviation"
+    pass
+
+
 class DensityCheckError(DataValidationError):
     type_str = "nsgi.nl/density-check-error"
     title = "Error Occured In Density Check"
@@ -95,6 +101,7 @@ class DensityCheckResult(Enum):
     success = "success"
     failed = "failed"
     not_applicable_geom_type = "not-applicable-geom-type"
+    not_implemented = "not-implemented"
 
 
 class Axis(BaseModel):
