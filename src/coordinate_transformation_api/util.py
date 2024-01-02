@@ -45,8 +45,8 @@ from coordinate_transformation_api.models import (
     Crs as MyCrs,
 )
 from coordinate_transformation_api.models import (
-    DataValidationError,
     DensifyError,
+    DeviationOutOfBboxError,
 )
 from coordinate_transformation_api.settings import app_settings
 from coordinate_transformation_api.types import CoordinatesType
@@ -179,8 +179,8 @@ def bbox_check_deviation_set(
     if max_segment_deviation is not None and not request_body_within_valid_bbox(
         body, source_crs
     ):
-        raise DataValidationError(
-            f"GeoJSON geometries not within bounding box: {','.join([str(x) for x in DEVIATION_VALID_BBOX])}, use max_segment_length parameter instead of max_segment_deviation parameter. Use of max_segment_deviation parameter requires data to be within mentioned bounding box."
+        raise DeviationOutOfBboxError(
+            f"Geometries not within bounding box: {DEVIATION_VALID_BBOX!s}. Use of max_segment_deviation parameter requires data to be within mentioned bounding box."
         )
 
 

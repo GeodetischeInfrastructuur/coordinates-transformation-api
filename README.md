@@ -152,19 +152,22 @@ cjio test_1.city.json crs_reproject 4937 save test_1_4937.city.json
 flowchart
     input([/transform endpoint]) ==> filetype{content-type<br>request body}
     filetype==> | GeoJSON | dc_param{density-check parameter}
-    filetype==> | CityJSON | tf 
+    filetype==> | CityJSON | a4[add response header:<br>density-check-result: not-implemented] 
+    a4 --> tf
     dc_param ==> |"`default: *true*`"|ms_param{max_segment param}
     ms_param -.-> |max_segment_deviation param| bc[check if data within bbox]
     bc --> |success| dc
     bc --> |failure| output_error_bbox([HTTP 400 with bbox error])
 
     ms_param ==> |"`max_segment_length param (default: *200*)`"| dc[density check]
-    dc_param -.-> |"`*false*`"| tf[transform]
+    dc_param -.-> |"`*false*`"| a5[add response header:<br>density-check-result: not-run] 
     
-    dc --> |"not applicable: geometrytype is point" | a2[add response header:<br>Density-Check-Result: NotApplicableGeometryType]
-    dc --> |"partially not applicable:<br> one or more geometries have geometrytype (multi)Point" | a4[??]
-    dc --> |"success"| a3[add response header:<br>Density-Check-Result: success]
-    dc --> |"failure"| output_error([HTTP 400 with density check report])
+    a5 --> tf[transform]
+    
+    dc --> |"not applicable: geometrytype is point" | a2[add response header:<br>density-check-result: not-applicable-geom-type]
+    dc --> |"success"| a3[add response header:<br>density-check-result: success]
+    dc --> |"failure"| a6[add response header:<br>density-check-result: failed] 
+    a6 --> output_error([HTTP 400 with density check report])
     a2 --> tf
     a3 --> tf
     tf --> output([http 200 response])

@@ -424,11 +424,6 @@ async def post_transform(  # noqa: ANN201, PLR0913
         for x in [source_crs, target_crs, content_crs, accept_crs]
     )
 
-    # if exclude_transformation(source_crs_str, target_crs_str):
-    #     raise middleware.TransformationNotPossibleError(
-    #         source_crs_str, target_crs_str
-    #     )
-
     s_crs, t_crs = post_transform_get_crss(
         body, source_crs_str, target_crs_str, content_crs_str, accept_crs_str
     )
@@ -436,8 +431,16 @@ async def post_transform(  # noqa: ANN201, PLR0913
 
     if isinstance(body, CityjsonV113):
         body.crs_transform(s_crs, t_crs, epoch)
+        response_headers = set_response_headers(
+            (
+                DENSITY_CHECK_RESULT_HEADER,
+                DensityCheckResult.not_implemented.value,
+            ),
+            headers=response_headers,
+        )
         return Response(
             content=body.model_dump_json(exclude_none=True),
+            headers=response_headers,
             media_type="application/city+json",
         )
     else:
