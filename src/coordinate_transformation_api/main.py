@@ -1,10 +1,11 @@
+import asyncio
 import enum
 import json
 import logging
 import os
 import pkgutil
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from importlib import resources as impresources
 from typing import Annotated, Any, Callable, Union
 
@@ -92,8 +93,21 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator:
     logger.info(f"pyproj datadir: {pyproj.datadir.get_data_dir()}")
     if not app_settings.debug:  # suppres pyproj warnings in prod
         logging.getLogger("pyproj").setLevel(logging.ERROR)
-    yield
+    with suppress(
+        asyncio.CancelledError
+    ):  # required for cancellation see runner method
+        yield
 
+
+@asynccontextmanager
+async def lifespan_probes(_app: FastAPI) -> AsyncGenerator:
+    with suppress(
+        asyncio.CancelledError
+    ):  # required for cancellation see runner method
+        yield
+
+
+app_probes: FastAPI = FastAPI(docs_url=None, lifespan=lifespan_probes)
 
 app: FastAPI = FastAPI(docs_url=None, lifespan=lifespan)
 # note: order of adding middleware is required for it to work
@@ -174,6 +188,17 @@ async def openapi(
             status_code=200,
             media_type="application/json",
         )
+
+
+@app_probes.get("/liveness")
+async def liveness() -> dict:
+    _ = CRS_LIST[0]  # test to see if CRS can be retrieved
+    return {"status": "ok"}
+
+
+@app_probes.get("/readiness")
+async def readiness() -> dict:
+    return {"status": "ok"}
 
 
 @app.get("/", response_model=LandingPage)
@@ -475,10 +500,9 @@ def get_logging_config() -> Any:  # noqa: ANN401
     logging_config["loggers"]["uvicorn"]["level"] = app_settings.log_level
     logging_config["loggers"]["uvicorn.error"]["level"] = app_settings.log_level
     logging_config["loggers"]["uvicorn.access"]["level"] = app_settings.log_level
-
     package = coordinate_transformation_api
     for _importer, modname, _ispkg in pkgutil.walk_packages(
-        path=package.__path__, prefix=package.__name__ + ".", onerror=lambda _: None
+        path=package.__path__, prefix=f"{package.__name__}.", onerror=lambda _: None
     ):
         logging_config["loggers"][modname] = {
             "handlers": ["default"],
@@ -488,12 +512,12 @@ def get_logging_config() -> Any:  # noqa: ANN401
     return logging_config
 
 
-def main() -> None:
-    uvicorn.run(
-        f"{__name__}:app",
-        workers=1,
-        port=8000,
+async def create_webserver(app_name: str, port: int) -> None:
+    server_config = uvicorn.Config(
+        app_name,
+        port=port,
         host="0.0.0.0",  # noqa: S104
+        workers=1,
         log_level=app_settings.log_level.lower(),
         log_config=get_logging_config(),
         access_log=app_settings.access_log,
@@ -501,6 +525,29 @@ def main() -> None:
         server_header=False,
         date_header=False,
     )
+    server = uvicorn.Server(server_config)
+    await server.serve()
+
+
+async def runner() -> None:
+    app_name = f"{__name__}:app"
+    app_probes_name = f"{__name__}:app_probes"
+    _, pending = await asyncio.wait(
+        [
+            asyncio.create_task(
+                create_webserver(app_probes_name, 8001),
+                name=app_probes_name,
+            ),
+            asyncio.create_task(create_webserver(app_name, 8000), name=app_name),
+        ],
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+    for pending_task in pending:
+        pending_task.cancel()
+
+
+def main() -> None:
+    asyncio.run(runner())
 
 
 if __name__ == "__main__":
