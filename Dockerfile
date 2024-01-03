@@ -40,5 +40,11 @@ RUN pip install coordinate_transformation_api-2*.whl
 COPY --from=builder /assets/*.tif /usr/local/lib/python3.11/site-packages/pyproj/proj_dir/share/proj
 COPY --from=builder /assets/proj.db /usr/local/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/proj.db
 
+# PORT for serving out API
 EXPOSE 8000
+# PORT for exposing health endpoints
+EXPOSE 8001
+
 ENTRYPOINT [ "ct-api" ]
+
+
