@@ -20,7 +20,7 @@
 | /geo/embed-geojson-geometry-request | :grey_exclamation: | nonapplicable |
 | /geo/geojson-response | :grey_exclamation: | nonapplicable |
 | /geo/embed-geojson-geometry-response | :grey_exclamation: | nonapplicable |
-| /geo/crs-list | :heavy_check_mark: | implemented |
+| /geo/crs-list | :heavy_check_mark:/:grey_exclamation: | implemented, with the modification that a URI is return instead of a array of URI's, better suited for our use-case|
 | /geo/storage-crs | :grey_exclamation: | nonapplicable, we don't store data |
 | /geo/default-crs | :grey_exclamation: | nonapplicable, the service is build around RDNAPTRANS(r), so the default is EPSG:7415 not CRS84 |
 | /geo/preferred-crs | :heavy_check_mark: | We return data in RD and ETRS89 |
