@@ -86,7 +86,6 @@ python3 -m coverage run --source=src/coordinate_transformation_api -m pytest -v 
 
 Execute the following shell one-liner to install the NSGI `proj.db` from the [GeodetischeInfrastructuur/transformations](https://github.com/GeodetischeInfrastructuur/transformations/releases) repo:
 
-
 ```sh
 proj_data_dir=$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());')
 curl -sL -o "${proj_data_dir}/nl_nsgi_nlgeo2018.tif" https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
