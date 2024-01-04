@@ -115,6 +115,7 @@ class Axis(BaseModel):
 
 
 class Crs(BaseModel):
+    crs: str
     name: str
     type_name: str
     crs_auth_identifier: str
@@ -139,6 +140,7 @@ class Crs(BaseModel):
             for a in crs.axis_info
         ]
         return cls(
+            crs=f"https://www.opengis.net/def/crs/{auth}/0/{identifier}",
             name=crs.name,
             type_name=crs.type_name,
             crs_auth_identifier=crs.srs,
