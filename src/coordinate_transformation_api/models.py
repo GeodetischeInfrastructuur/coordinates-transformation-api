@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import Optional
 
-from pydantic import BaseModel, computed_field
+from geodense.geojson import CrsFeatureCollection
+from pydantic import BaseModel, Field, computed_field
 from pyproj import CRS as ProjCrs  # noqa: N811
 
 
@@ -80,15 +80,17 @@ class Conformance(BaseModel):
 
 
 class DensityCheckReport(BaseModel):
-    passes_check: bool
-    report: Optional[list[tuple[list[int], float]]]
+    check_result: bool = Field(..., alias="checkResult")
+    report: CrsFeatureCollection | None
 
     @classmethod
-    def from_report(
-        cls, report: list[tuple[list[int], float]]  # noqa: ANN102
+    def from_fc_report(
+        cls, fc_report: CrsFeatureCollection  # noqa: ANN102
     ) -> "DensityCheckReport":
-        passes_check = not len(report) > 0
-        return DensityCheckReport(passes_check=passes_check, report=report)
+        check_result = len(fc_report.features) == 0
+        return DensityCheckReport(
+            checkResult=check_result, report=None if check_result else fc_report
+        )
 
 
 class TransformGetAcceptHeaders(Enum):

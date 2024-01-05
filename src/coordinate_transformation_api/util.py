@@ -18,8 +18,8 @@ from geodense.lib import (  # type: ignore  # type: ignore
     _geom_type_check,
     apply_function_on_geojson_geometries,
     densify_geojson_object,
+    density_check_geojson_object,
     flatten,
-    get_density_check_fun,
 )
 from geodense.models import DenseConfig, GeodenseError
 from geodense.types import Nested
@@ -156,21 +156,20 @@ def density_check_request_body(
     source_crs: str,
     max_segment_deviation: float | None,
     max_segment_length: float | None,
-) -> list[tuple[list[int], float]]:
-    report: list[tuple[list[int], float]] = []
-
+) -> CrsFeatureCollection:
     _geom_type_check(body)
-
     if max_segment_deviation is not None:
         bbox_check_deviation_set(body, source_crs, max_segment_deviation)
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
     # TODO: @jochem add comments on langelijnen advies implementatie
-    crs_transform(body, source_crs, DENSIFY_CRS)
+    crs_transform(
+        body, source_crs, DENSIFY_CRS
+    )  # !NOTE: crs_transform is required for langelijnen advies implementatie
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
-    my_fun = get_density_check_fun(c)
-    report = apply_function_on_geojson_geometries(body, my_fun)
-    return report
+    report_fc = density_check_geojson_object(body, c)
+    crs_transform(report_fc, DENSIFY_CRS, source_crs)
+    return report_fc
 
 
 def bbox_check_deviation_set(
