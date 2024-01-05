@@ -18,15 +18,15 @@
 | /req/core/query-param-value-decimal | :x: | **Needs to be implemented**, see `/req/core/query-param-name-unknown` |
 | /req/core/query-param-value-double| :x: | **Needs to be implemented**, see `/req/core/query-param-name-unknown` |
 | /req/landing-page/root-op | :heavy_check_mark: | Returns the landing page |
-| /req/landing-page/root-success | :x: | **Needs to be implemented** |
-| /req/landing-page/api-definition-op | :x: | **Needs to be implemented** |
-| /req/landing-page/api-definition-success | :x: | **Needs to be implemented** |
-| /req/landing-page/conformance-op | :x: | **Needs to be implemented** |
-| /req/landing-page/conformance-success | :x: | **Needs to be implemented** |
+| /req/landing-page/root-success | :heavy_check_mark: | Succesful execution returns a 200 response containing API Definition en Conformance Declaration |
+| /req/landing-page/api-definition-op | :heavy_check_mark: | All links support GET operation
+| /req/landing-page/api-definition-success | :heavy_check_mark: | implemented |
+| /req/landing-page/conformance-op | :heavy_check_mark: | implemented |
+| /req/landing-page/conformance-success | :heavy_check_mark: | implemented |
 | /req/html/definition | :x: | **Needs to be implemented**, `text/html` response for LandingPage and Conformance documents |
 | /req/html/content | :x: | **Needs to be implemented**, returns HTML5 document |
-| /req/json/definition | :x: | **Needs to be implemented**, `application/json` response for LandingPage and Conformance documents |
-| /req/json/content | :x: | **Needs to be implemented**, LandingPage and Conformance documents need to conform to the correct json schem |
+| /req/json/definition | :heavy_check_mark: | implemented |
+| /req/json/content | :heavy_check_mark: | implemented |
 | /req/oas30/oas-definition-1 | :grey_exclamation: | both JSON and HTML version of the API definition need to be available. The response header `application/vnd.oai.openapi+json;version=3.0` needs to be implemented for the OAS doc |
 | /req/oas30/oas-definition-2 | :heavy_check_mark: | document conform OAS 3.0 |
 | /req/oas30/oas-impl | :heavy_check_mark: | no missing or incomplete api operations |
@@ -52,7 +52,7 @@
 | /rec/core/json | :heavy_check_mark: | yes |
 | /rec/core/query-param-capitalization | :heavy_check_mark: | yes |
 | /rec/core/query-param-value-special | :heavy_check_mark: | oke |
-| /rec/landing-page/api-definition-op | :x: | **Needs to be implemented**, `/api` SHOULD be implementend. MAY use -f parameter to satisfy this requiremen |
+| /rec/landing-page/api-definition-op | :x: | `/api` SHOULD be implementend. We support it through `/openapi` |
 | /rec/landing-page/api-definition-oas | :heavy_check_mark: | yes |
 | /rec/html/schema-org | :x: | **Needs to be implemented**, `text/html` responses SHOULD include schema.org annotations |
 | /rec/json/problem-details | :x: | **Needs to be implemented**, error respones need to set `content-type: application/problem+json` and structured following this [JSON schema](https://github.com/opengeospatial/ogcapi-common/blob/master/collections/openapi/schemas/exception.json) |
