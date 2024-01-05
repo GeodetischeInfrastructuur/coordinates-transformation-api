@@ -743,20 +743,12 @@ components:
     densityCheckReport:
       type: object
       properties:
-        checkPassed:
+        checkResult:
           type: boolean
         report:
-          type: array
-          items:
-            type: array
-            items:
-              anyOf:
-                - type: array
-                  items:
-                    type: integer
-                - type: number
+          $ref: https://geojson.org/schema/FeatureCollection.json
       example:
-        passesCheck: false
+        checkResult: false
         featuresReport:
           - - - 0
               - 0

@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geodense.geojson import CrsFeatureCollection
-from geodense.lib import GeodenseError, flatten  # type: ignore  # type: ignore
+from geodense.lib import GeodenseError  # type: ignore  # type: ignore
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection
 
@@ -329,17 +329,13 @@ async def density_check(  # noqa: ANN201
 
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
     try:  # raises GeodenseError when all geometries in body are (multi)point
-        report = density_check_request_body(
+        fc_report = density_check_request_body(
             body, s_crs, max_segment_deviation, max_segment_length
         )
     except GeodenseError as e:
         raise DensityCheckError(str(e)) from e
 
-    # TODO: filter out NONE values in Geodense (or allow non values to indicate point geoms)
-    result = DensityCheckReport.from_report(
-        [x for x in list(flatten(report)) if x is not None]
-    )
-    return result
+    return DensityCheckReport.from_fc_report(fc_report)
 
 
 @app.get("/transform")
@@ -446,14 +442,11 @@ async def post_transform(  # noqa: ANN201, PLR0913
     else:
         if density_check:
             try:  # raises GeodenseError when all geometries in body are (multi)point
-                report = density_check_request_body(
+                fc_report = density_check_request_body(
                     body, s_crs, max_segment_deviation, max_segment_length
                 )
-                # TODO: filter out NONE values in Geodense (or allow non values to indicate point geoms)
-                result = DensityCheckReport.from_report(
-                    [x for x in list(flatten(report)) if x is not None]
-                )
-                if result.passes_check:
+                result = DensityCheckReport.from_fc_report(fc_report)
+                if result.check_result:
                     response_headers = set_response_headers(
                         (DENSITY_CHECK_RESULT_HEADER, DensityCheckResult.success.value)
                     )
