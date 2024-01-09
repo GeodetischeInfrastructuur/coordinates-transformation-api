@@ -60,7 +60,7 @@ def validate_coords_source_crs(
     source_crs_dims = next(
         crs.nr_of_dimensions
         for crs in projections_axis_info
-        if crs.crs_auth_identifier == source_crs
+        if source_crs == crs.crs_auth_identifier
     )
     if source_crs_dims != len(coordinates.split(",")):
         raise_req_validation_error(
@@ -75,7 +75,7 @@ def camel_to_snake(s):
 
 
 def extract_authority_code(crs: str) -> str:
-    r = re.search(r"^(http://www\.opengis\.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
+    r = re.search(r"^(https?://www\.opengis\.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
     if r is not None:
         return str(r[2] + ":" + r[4])
 
@@ -210,7 +210,7 @@ def densify_request_body(
     crs_transform(body, DENSIFY_CRS, source_crs)  # transform back
 
 
-def init_oas() -> tuple[dict, str, str]:
+def init_oas(crs_config) -> tuple[dict, str, str]:
     """initialize open api spec:
     - return projection info from oas
     - return app version
@@ -222,11 +222,16 @@ def init_oas() -> tuple[dict, str, str]:
     """
     oas_filepath = impresources.files(assets) / "openapi.yaml"
 
+    available_crss = list(crs_config.keys())
+    available_crss_uri = list(map(lambda x: x["uri"], list(crs_config.values())))
+
     with oas_filepath.open("rb") as oas_file:
         oas = yaml.load(oas_file, yaml.SafeLoader)
         servers = [{"url": app_settings.base_url}]
         oas["servers"] = servers
         oas["info"]["version"] = version("coordinate_transformation_api")
+        oas["components"]["schemas"]["crs-enum"]["enum"] = available_crss
+        oas["components"]["schemas"]["crs-header-enum"]["enum"] = available_crss_uri
     api_title = oas["info"]["title"]
     return (oas, api_title, oas["info"]["version"])
 
