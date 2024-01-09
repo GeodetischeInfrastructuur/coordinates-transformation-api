@@ -26,6 +26,7 @@ import coordinate_transformation_api
 from coordinate_transformation_api import assets
 from coordinate_transformation_api.cityjson.models import CityjsonV113
 from coordinate_transformation_api.constants import DENSITY_CHECK_RESULT_HEADER
+from coordinate_transformation_api.crs_transform import CRS_CONFIG
 from coordinate_transformation_api.fastapi_rfc7807 import middleware
 from coordinate_transformation_api.limit_middleware.middleware import (
     ContentSizeLimitMiddleware,
@@ -76,13 +77,17 @@ logging_conf = assets_resources.joinpath("logging.conf")
 OPEN_API_SPEC: dict
 API_VERSION: str
 CRS_LIST: list[Crs]
-OPEN_API_SPEC, API_TITLE, API_VERSION = init_oas()
+OPEN_API_SPEC, API_TITLE, API_VERSION = init_oas(CRS_CONFIG)
 crs_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"]["crs-enum"]["enum"]
+crs_header_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"][
+    "crs-header-enum"
+]["enum"]
 CRS_LIST = [Crs.from_crs_str(x) for x in crs_identifiers]
 BASE_DIR: str = os.path.dirname(__file__)
 logger: logging.Logger
 
 CrsEnum: enum = enum.Enum("CrsEnum", {x.replace(":", "_"): x for x in crs_identifiers})  # type: ignore
+CrsHeaderEnum: enum = enum.Enum("CrsHeaderEnum", {x.replace(":", "_"): x for x in crs_header_identifiers})  # type: ignore
 
 
 @asynccontextmanager
@@ -281,7 +286,7 @@ async def conformance() -> Conformance:
 async def densify(  # noqa: ANN201
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
-    content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
+    content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
     max_segment_deviation: Annotated[
         float | None, Query(alias="max-segment-deviation", ge=0.0001)
     ] = None,
@@ -312,7 +317,7 @@ async def densify(  # noqa: ANN201
 async def density_check(  # noqa: ANN201
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
-    content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
+    content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
     max_segment_deviation: Annotated[
         float | None, Query(alias="max-segment-deviation", ge=0.0001)
     ] = None,
@@ -346,8 +351,8 @@ async def transform(  # noqa: PLR0913, ANN201
     ],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,
-    content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
-    accept_crs: Annotated[CrsEnum | None, Header(alias="accept-crs")] = None,
+    content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
+    accept_crs: Annotated[CrsHeaderEnum | None, Header(alias="accept-crs")] = None,
     epoch: Annotated[float | None, Query(alias="epoch")] = None,
     accept: Annotated[str, Header()] = TransformGetAcceptHeaders.json.value,
 ):
@@ -375,7 +380,11 @@ async def transform(  # noqa: PLR0913, ANN201
         raise_response_validation_error(
             "Out of range float values are not JSON compliant", ["responseBody"]
         )
-    headers = set_response_headers(("content-crs", t_crs), ("epoch", epoch))
+
+    headers = set_response_headers(("content-crs", Crs.from_crs_str(t_crs).crs))
+    if epoch is not None:
+        headers = set_response_headers(("epoch", epoch), headers=headers)
+
     if accept == str(TransformGetAcceptHeaders.wkt.value):
         wkt_string = convert_point_coords_to_wkt(coordinates)
         PlainTextResponse(wkt_string, headers=headers)
@@ -399,8 +408,8 @@ async def post_transform(  # noqa: ANN201, PLR0913
     ],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,
-    content_crs: Annotated[CrsEnum | None, Header(alias="content-crs")] = None,
-    accept_crs: Annotated[CrsEnum | None, Header(alias="accept-crs")] = None,
+    content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
+    accept_crs: Annotated[CrsHeaderEnum | None, Header(alias="accept-crs")] = None,
     epoch: Annotated[float | None, Query(alias="epoch")] = None,
     density_check: Annotated[bool, Query(alias="density-check")] = True,
     max_segment_deviation: Annotated[
@@ -479,8 +488,13 @@ async def post_transform(  # noqa: ANN201, PLR0913
         crs_transform(body, s_crs, t_crs, epoch)
         validate_crs_transformed_geojson(body)
         response_headers = set_response_headers(
-            ("content-crs", t_crs), ("epoch", epoch), headers=response_headers
+            ("content-crs", Crs.from_crs_str(t_crs).crs), headers=response_headers
         )
+        if epoch is not None:
+            response_headers = set_response_headers(
+                ("epoch", epoch), headers=response_headers
+            )
+
         response_body = body.model_dump(exclude_none=True)
         return JSONResponse(
             content=response_body,

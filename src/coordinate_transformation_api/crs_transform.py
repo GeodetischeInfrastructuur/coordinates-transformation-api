@@ -28,7 +28,7 @@ from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
 assets_resources = impresources.files(assets)
 api_conf = assets_resources.joinpath("config.yaml")
 with open(str(api_conf)) as f:
-    TRANSFORMATIONS_EXCLUDE = yaml.safe_load(f)["transformations"]["exclude"]
+    CRS_CONFIG = yaml.safe_load(f)
 
 
 def get_precision(target_crs_crs: MyCrs) -> int:
@@ -200,11 +200,10 @@ def get_bbox_from_coordinates(coordinates: Any) -> BBox:  # noqa: ANN401
 
 
 def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
-    if source_crs_str in TRANSFORMATIONS_EXCLUDE and (
-        target_crs_str in TRANSFORMATIONS_EXCLUDE[source_crs_str]
+    if source_crs_str in CRS_CONFIG and (
+        target_crs_str in CRS_CONFIG[source_crs_str]["exclude-transformations"]
     ):
         return True
-
     return False
 
 
