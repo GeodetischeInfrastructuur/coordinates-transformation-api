@@ -1,6 +1,6 @@
 FROM python:3.11.4-bullseye as builder
 
-ARG NSGI_PROJ_DB_VERSION="1.0.0"
+ARG NSGI_PROJ_DB_VERSION="1.0.1"
 
 LABEL maintainer="NSGI <info@nsgi.nl>"
 
@@ -25,7 +25,7 @@ WORKDIR /assets
 RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
     curl -sL -o nl_nsgi_rdcorr2018.tif https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
     curl -sL -o nl_nsgi_rdtrans2018.tif https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
-    curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.db").url') -o proj.db
+    curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.global.time.dependent.transformations.db").url') -o proj.db
 
 RUN ls -lah /src/dist/ >&2
 
