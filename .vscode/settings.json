@@ -14,5 +14,8 @@
         "latex",
         "plaintext",
         "markdown"
-    ]
+    ],
+    "yaml.schemas": {
+        "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.0/schema.json": "file:///home/anton/workspace/github.com/geodetischeinfrastructuur/coordinate-transformation-api/src/coordinate_transformation_api/assets/openapi.yaml"
+    }
 }

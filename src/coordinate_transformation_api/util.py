@@ -230,8 +230,8 @@ def init_oas(crs_config) -> tuple[dict, str, str]:
         servers = [{"url": app_settings.base_url}]
         oas["servers"] = servers
         oas["info"]["version"] = version("coordinate_transformation_api")
-        oas["components"]["schemas"]["crs-enum"]["enum"] = available_crss
-        oas["components"]["schemas"]["crs-header-enum"]["enum"] = available_crss_uri
+        oas["components"]["schemas"]["CrsEnum"]["enum"] = available_crss
+        oas["components"]["schemas"]["CrsHeaderEnum"]["enum"] = available_crss_uri
     api_title = oas["info"]["title"]
     return (oas, api_title, oas["info"]["version"])
 
