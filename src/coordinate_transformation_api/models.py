@@ -11,6 +11,26 @@ class DataValidationError(Exception):
     pass
 
 
+class NotFoundError(Exception):
+    type_str = "nsgi.nl/not-found-error"
+    title = "Not Found Error"
+    pass
+
+
+class CrsNotFoundError(NotFoundError):
+    type_str = "nsgi.nl/crs-not-found-error"
+    title = "CRS Not Found Error"
+
+    def __init__(
+        self: "CrsNotFoundError",
+        crs_id: str,
+    ) -> None:
+        # Call the base class constructor with the parameters it needs
+        super().__init__(f"CRS with id {crs_id} not supported by API")
+        # Now for your custom code...
+        self.crs_id = crs_id
+
+
 class TransformationNotPossibleError(DataValidationError):
     type_str = "nsgi.nl/transformation-not-possible"
     title = "Transformation Not Possible"
@@ -81,7 +101,9 @@ class Conformance(BaseModel):
 
 class DensityCheckReport(BaseModel):
     check_result: bool = Field(..., alias="checkResult")
-    report: CrsFeatureCollection | None
+    failed_line_segments: CrsFeatureCollection | None = Field(
+        ..., alias="failedLineSegments"
+    )
 
     @classmethod
     def from_fc_report(
@@ -89,7 +111,8 @@ class DensityCheckReport(BaseModel):
     ) -> "DensityCheckReport":
         check_result = len(fc_report.features) == 0
         return DensityCheckReport(
-            checkResult=check_result, report=None if check_result else fc_report
+            checkResult=check_result,
+            failedLineSegments=None if check_result else fc_report,
         )
 
 

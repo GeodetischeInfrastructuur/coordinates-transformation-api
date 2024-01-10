@@ -17,9 +17,11 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from coordinate_transformation_api.constants import DENSITY_CHECK_RESULT_HEADER
 from coordinate_transformation_api.models import (
+    CrsNotFoundError,
     DataValidationError,
     DensityCheckFailedError,
     DensityCheckResult,
+    NotFoundError,
 )
 from coordinate_transformation_api.settings import app_settings
 
@@ -63,6 +65,8 @@ class ProblemResponse(Response):
             p = from_request_validation_error(content)
         elif isinstance(content, DataValidationError):
             p = from_data_validation_error(content)
+        elif isinstance(content, NotFoundError):
+            p = from_not_found_error(content)
         elif isinstance(content, ResponseValidationError):
             p = from_response_validation_error(content)
         elif isinstance(content, Exception):
@@ -266,6 +270,16 @@ def from_data_validation_error(exc: DataValidationError) -> ProblemError:
 
     return ProblemError(
         type=exc.type_str, title=exc.title, status=400, detail=str(exc), **extra  # type: ignore
+    )
+
+
+def from_not_found_error(exc: NotFoundError) -> ProblemError:
+    extra = {}
+    if isinstance(exc, CrsNotFoundError):
+        extra = {"crs-id": exc.crs_id}
+
+    return ProblemError(
+        type=exc.type_str, title=exc.title, status=404, detail=str(exc), **extra  # type: ignore
     )
 
 

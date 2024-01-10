@@ -35,6 +35,7 @@ from coordinate_transformation_api.limit_middleware.middleware import (
 from coordinate_transformation_api.models import (
     Conformance,
     Crs,
+    CrsNotFoundError,
     DensityCheckError,
     DensityCheckFailedError,
     DensityCheckReport,
@@ -78,9 +79,9 @@ OPEN_API_SPEC: dict
 API_VERSION: str
 CRS_LIST: list[Crs]
 OPEN_API_SPEC, API_TITLE, API_VERSION = init_oas(CRS_CONFIG)
-crs_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"]["crs-enum"]["enum"]
+crs_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"]["CrsEnum"]["enum"]
 crs_header_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"][
-    "crs-header-enum"
+    "CrsHeaderEnum"
 ]["enum"]
 CRS_LIST = [Crs.from_crs_str(x) for x in crs_identifiers]
 BASE_DIR: str = os.path.dirname(__file__)
@@ -136,7 +137,7 @@ if app_settings.cors_allow_origins:
     )
 
 app.mount(
-    "/static",
+    "/assets",
     StaticFiles(directory=f"{BASE_DIR}/assets/static"),
     name="static",
 )
@@ -253,18 +254,8 @@ async def crs(crs_id: str) -> Crs | Response:
     result = next(gen, None)
 
     if result is None:
-        return Response(
-            content=json.dumps(
-                {
-                    "type": "unknown-crs",
-                    "title": "Crs Not Found",
-                    "status": 404,
-                    "detail": crs_id,
-                }
-            ),
-            status_code=404,
-            media_type="application/problem+json",
-        )
+        raise CrsNotFoundError(crs_id)
+
     return result
 
 
@@ -272,8 +263,9 @@ async def crs(crs_id: str) -> Crs | Response:
 async def conformance() -> Conformance:
     return Conformance(
         conformsTo=[
-            "https://docs.ogc.org/is/19-072/19-072.html",
-            "https://gitdocumentatie.logius.nl/publicatie/api/adr/",
+            # does not conform to fully to the following standards, but effort has been made to conform as much as possible
+            # "https://docs.ogc.org/is/19-072/19-072.html",
+            # "https://gitdocumentatie.logius.nl/publicatie/api/adr/",
         ]
     )
 
@@ -386,8 +378,8 @@ async def transform(  # noqa: PLR0913, ANN201
         headers = set_response_headers(("epoch", epoch), headers=headers)
 
     if accept == str(TransformGetAcceptHeaders.wkt.value):
-        wkt_string = convert_point_coords_to_wkt(coordinates)
-        PlainTextResponse(wkt_string, headers=headers)
+        wkt_string = convert_point_coords_to_wkt(transformed_coordinates)
+        return PlainTextResponse(wkt_string, headers=headers)
     else:  # default case serve json
         return JSONResponse(
             content={"type": "Point", "coordinates": transformed_coordinates},
@@ -467,7 +459,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
                         val = max_segment_deviation
                     raise DensityCheckFailedError(
                         f"density-check failed, with following query parameters: density-check: True, {val_name.replace('_', '-')}: {val}",
-                        result.model_dump(),  # type: ignore
+                        result.model_dump(by_alias=True),  # type: ignore
                     )
             except GeodenseError as e:
                 if str(e) == "GeoJSON contains only (Multi)Point geometries":
