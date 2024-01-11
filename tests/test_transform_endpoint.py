@@ -9,19 +9,19 @@ client = TestClient(app)
     ("input", "expectation", "source_crs", "target_crs"),
     [
         (
-            "10,10",
+            "128410.0958,445806.4960",
             {
                 "type": "Point",
-                "coordinates": [3.313687707, 47.974858137],
+                "coordinates": [5.0, 52.0],
             },
             "EPSG:28992",
             "EPSG:4326",
         ),
         (
-            "3.313687707,47.974858137",
+            "5.0,52.0",
             {
                 "type": "Point",
-                "coordinates": [10.0, 10.0],
+                "coordinates": [128410.0958, 445806.4960],
             },
             "EPSG:4326",
             "EPSG:28992",

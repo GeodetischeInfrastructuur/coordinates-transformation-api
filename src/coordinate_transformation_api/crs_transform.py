@@ -209,7 +209,45 @@ def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
     return False
 
 
-def get_transformer(source_crs: str, target_crs: str) -> Transformer:
+def needs_epoch(tf: Transformer) -> bool:
+    # Currently the time dependent & specific operation method code are hardcoded
+    # These are extracted from the 'coordinate_operation_method' table in the proj.db
+    #
+    static_coordinate_operation_methode_time_dependent = [
+        "1053",
+        "1054",
+        "1056",
+        "1057",
+    ]
+    static_coordinate_operation_methode_time_specific = ["1065", "1066"]
+    time_coordinate_operation_methodes = (
+        static_coordinate_operation_methode_time_dependent
+        + static_coordinate_operation_methode_time_specific
+    )
+
+    has_epoch = False
+
+    if (
+        tf.target_crs is not None
+        and tf.target_crs.datum is not None
+        and tf.target_crs.datum.type_name == "Dynamic Geodetic Reference Frame"
+    ):
+        has_epoch = True
+
+    if tf.operations is not None:
+        for operation in tf.operations:
+            if (
+                operation.type_name == "Transformation"
+                and operation.method_code in time_coordinate_operation_methodes
+            ):
+                has_epoch = True
+
+    return has_epoch
+
+
+def get_transformer(
+    source_crs: str, target_crs: str, epoch: float | None
+) -> Transformer:  # quit
     s_crs = CRS.from_authority(*source_crs.split(":"))
     t_crs = CRS.from_authority(*target_crs.split(":"))
 
@@ -240,19 +278,28 @@ def get_transformer(source_crs: str, target_crs: str) -> Transformer:
             src_crs=str(s_crs),
             target_crs=str(t_crs),
         )
-    else:
-        # Select 1st result
-        # the first result is based on the input parameters the "best" result
-        return tfg.transformers[0]
+
+    # When no input epoch is given we need to check that we don't perform an time dependent transformation. If we do
+    # the transformation will be done with a default epoch value, which isn't correct. So we need to search for the "best"
+    # transformation that doesn't include a time dependent operation methode.
+    if epoch is None:
+        for tf in tfg.transformers:
+            if needs_epoch(tf) is not True:
+                return tf
+
+    # Select 1st result. The first result is based on the input parameters the "best" result
+    return tfg.transformers[0]
 
 
-def get_transform_crs_fun(
+def get_transform_crs_fun(  #
     source_crs: str,
     target_crs: str,
     precision: int | None = None,
     epoch: float | None = None,
 ) -> Callable[[CoordinatesType], tuple[float, ...],]:
-    transformer = get_transformer(source_crs, target_crs)
+    """TODO: improve type annotation/handling geojson/cityjson transformation, with the current implementation mypy is not complaining"""
+
+    transformer = get_transformer(source_crs, target_crs, epoch)
 
     def my_round(val: float, precision: int | None) -> float | int:
         if precision is None:
