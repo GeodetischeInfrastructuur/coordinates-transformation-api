@@ -269,7 +269,7 @@ def from_data_validation_error(exc: DataValidationError) -> ProblemError:
         extra = {"report": exc.report}
 
     return ProblemError(
-        type=exc.type_str, title=exc.title, status=400, detail=str(exc), **extra  # type: ignore
+        type=exc.type_str, title=exc.title, status=400, detail=str(exc), **extra, **exc.extra  # type: ignore
     )
 
 

@@ -8,7 +8,14 @@ from pyproj import CRS as ProjCrs  # noqa: N811
 class DataValidationError(Exception):
     type_str = "nsgi.nl/data-validation-error"
     title = "Data Validation Error"
-    pass
+
+    def __init__(
+        self: "DataValidationError", message: str, extra: dict | None = None
+    ) -> None:
+        super().__init__(message)
+        if extra is None:
+            extra = {}
+        self.extra = extra
 
 
 class NotFoundError(Exception):
