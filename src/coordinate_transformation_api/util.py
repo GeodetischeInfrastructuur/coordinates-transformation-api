@@ -13,7 +13,6 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from geodense.geojson import CrsFeatureCollection
 from geodense.lib import (  # type: ignore  # type: ignore
-    THREE_DIMENSIONAL,
     GeojsonObject,
     _geom_type_check,
     apply_function_on_geojson_geometries,
@@ -32,7 +31,12 @@ from shapely import STRtree, box
 
 from coordinate_transformation_api import assets
 from coordinate_transformation_api.cityjson.models import CityjsonV113
-from coordinate_transformation_api.constants import DENSIFY_CRS, DEVIATION_VALID_BBOX
+from coordinate_transformation_api.constants import (
+    DENSIFY_CRS_2D,
+    DENSIFY_CRS_3D,
+    DEVIATION_VALID_BBOX,
+    THREE_DIMENSIONAL,
+)
 from coordinate_transformation_api.crs_transform import (
     get_crs_transform_fun,
     get_json_coords_contains_inf_fun,
@@ -63,7 +67,7 @@ def validate_coords_source_crs(
         if source_crs == crs.crs_auth_identifier
     )
     if source_crs_dims != len(coordinates.split(",")):
-        raise_req_validation_error(
+        raise_request_validation_error(
             "number of coordinates must match number of dimensions of source-crs",
             loc=("query", "coordinates"),
             input=source_crs,
@@ -124,8 +128,8 @@ def accept_html(request: Request) -> bool:
 
 
 def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool:
-    if source_crs != DENSIFY_CRS:
-        transform_f = get_transform_crs_fun(DENSIFY_CRS, source_crs)
+    if source_crs not in [DENSIFY_CRS_2D, DENSIFY_CRS_3D]:
+        transform_f = get_transform_crs_fun(DENSIFY_CRS_2D, source_crs)
         bbox = [
             *transform_f(DEVIATION_VALID_BBOX[:2]),
             *transform_f(DEVIATION_VALID_BBOX[2:]),
@@ -157,19 +161,30 @@ def density_check_request_body(
     max_segment_deviation: float | None,
     max_segment_length: float | None,
 ) -> CrsFeatureCollection:
+    """Run density check with langelijnenadvies implementatie, by running density check in DENSIFY_CRS."""
     _geom_type_check(body)
     if max_segment_deviation is not None:
         bbox_check_deviation_set(body, source_crs, max_segment_deviation)
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
-    # TODO: @jochem add comments on langelijnen advies implementatie
-    crs_transform(
-        body, source_crs, DENSIFY_CRS
-    )  # !NOTE: crs_transform is required for langelijnen advies implementatie
-    c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
-    report_fc = density_check_geojson_object(body, c)
-    crs_transform(report_fc, DENSIFY_CRS, source_crs)
-    return report_fc
+    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
+    transform_crs = (
+        DENSIFY_CRS_3D
+        if len(source_crs_crs.axis_info) == THREE_DIMENSIONAL
+        else DENSIFY_CRS_2D
+    )
+    transform = source_crs not in [DENSIFY_CRS_3D, DENSIFY_CRS_2D]
+
+    if transform:
+        crs_transform(
+            body, source_crs, transform_crs
+        )  # !NOTE: crs_transform is required for langelijnen advies implementatie
+    c = DenseConfig(CRS.from_authority(*DENSIFY_CRS_2D.split(":")), max_segment_length)
+    failed_line_segments = density_check_geojson_object(body, c)
+
+    if transform:
+        crs_transform(failed_line_segments, transform_crs, source_crs)
+    return failed_line_segments
 
 
 def bbox_check_deviation_set(
@@ -189,7 +204,7 @@ def densify_request_body(
     max_segment_deviation: float | None,
     max_segment_length: float | None,
 ) -> None:
-    """transform coordinates of request body in place
+    """densify request body according to langelijnenadvies by densifying in DENSIFY_CRS
 
     Args:
         body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
@@ -199,15 +214,24 @@ def densify_request_body(
     if max_segment_deviation is not None:
         bbox_check_deviation_set(body, source_crs, max_segment_deviation)
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
-    # TODO: @jochem add comments on langelijnen advies implementatie
-    crs_transform(body, source_crs, DENSIFY_CRS)
-    c = DenseConfig(CRS.from_authority(*DENSIFY_CRS.split(":")), max_segment_length)
+
+    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
+    transform_crs = (
+        DENSIFY_CRS_3D
+        if len(source_crs_crs.axis_info) == THREE_DIMENSIONAL
+        else DENSIFY_CRS_2D
+    )
+    transform = source_crs not in [DENSIFY_CRS_3D, DENSIFY_CRS_2D]
+
+    if transform:
+        crs_transform(body, source_crs, transform_crs)
+    c = DenseConfig(CRS.from_authority(*transform_crs.split(":")), max_segment_length)
     try:
         densify_geojson_object(body, c)
     except GeodenseError as e:
         raise DensifyError(str(e)) from e
-
-    crs_transform(body, DENSIFY_CRS, source_crs)  # transform back
+    if transform:
+        crs_transform(body, transform_crs, source_crs)  # transform back to source_crs
 
 
 def init_oas(crs_config) -> tuple[dict, str, str]:
@@ -284,35 +308,6 @@ def raise_request_validation_error(
                 ],
             )
         ).errors(include_context=True)
-    )
-
-
-# TODO: remove duplicate method to raise error
-def raise_req_validation_error(
-    error_message,
-    error_type="ValueError",
-    input: Any | None = None,
-    loc: tuple[int | str, ...] | None = None,
-    ctx: Any | None = None,
-):
-    error_type_snake = camel_to_snake(error_type)
-    raise RequestValidationError(
-        errors=(
-            ValidationError.from_exception_data(
-                error_type,
-                [
-                    InitErrorDetails(
-                        type=PydanticCustomError(
-                            error_type_snake,
-                            error_message,
-                        ),
-                        input=input,
-                        **({"ctx": ctx} if ctx is not None else {}),  # type: ignore
-                        **({"loc": loc} if loc is not None else {}),  # type: ignore
-                    )
-                ],
-            )
-        ).errors()
     )
 
 

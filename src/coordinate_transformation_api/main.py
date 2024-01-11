@@ -55,7 +55,7 @@ from coordinate_transformation_api.util import (
     get_transform_get_crss,
     init_oas,
     post_transform_get_crss,
-    raise_req_validation_error,
+    raise_request_validation_error,
     raise_response_validation_error,
     set_response_headers,
     transform_coordinates,
@@ -192,7 +192,7 @@ async def openapi(
         return JSONResponse(
             content=app.openapi(),
             status_code=200,
-            media_type="application/json",
+            media_type="application/vnd.oai.openapi+json;version=3.1",
         )
 
 
@@ -297,12 +297,12 @@ async def densify(  # noqa: ANN201
     densify_request_body(body, s_crs, max_segment_deviation, max_segment_length)
     return JSONResponse(
         content=body.model_dump(exclude_none=True),
-        headers=set_response_headers(("content-crs", s_crs)),
+        headers=set_response_headers(("content-crs", Crs.from_crs_str(s_crs).crs)),
     )
 
 
 @app.post(
-    "/density-check",
+    "/check-density",
     response_model=DensityCheckReport,
     response_model_exclude_none=True,
 )
@@ -326,13 +326,17 @@ async def density_check(  # noqa: ANN201
 
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
     try:  # raises GeodenseError when all geometries in body are (multi)point
-        fc_report = density_check_request_body(
+        failed_line_segments = density_check_request_body(
             body, s_crs, max_segment_deviation, max_segment_length
         )
     except GeodenseError as e:
         raise DensityCheckError(str(e)) from e
 
-    return DensityCheckReport.from_fc_report(fc_report)
+    report = DensityCheckReport.from_fc_report(failed_line_segments)
+    headers = {}
+    if not report.check_result:
+        headers = set_response_headers(("content-crs", Crs.from_crs_str(s_crs).crs))
+    return JSONResponse(report.model_dump(exclude_none=True), headers=headers)
 
 
 @app.get("/transform")
@@ -471,7 +475,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
                         headers=response_headers,
                     )
                 else:
-                    raise_req_validation_error(str(e), loc=tuple("body"))
+                    raise_request_validation_error(str(e), loc=tuple("body"))
         else:
             response_headers = set_response_headers(
                 (DENSITY_CHECK_RESULT_HEADER, DensityCheckResult.not_run.value),

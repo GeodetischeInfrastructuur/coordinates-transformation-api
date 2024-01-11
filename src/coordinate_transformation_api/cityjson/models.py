@@ -14,7 +14,9 @@ from typing import Annotated, Any, Union, cast
 from pydantic import AnyUrl, BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 from pyproj import CRS
 
+from coordinate_transformation_api.constants import THREE_DIMENSIONAL
 from coordinate_transformation_api.crs_transform import get_transform_crs_fun
+from coordinate_transformation_api.models import DataValidationError
 
 CityJSONBoundary = Union[
     list[list[list[int]]],
@@ -1275,6 +1277,23 @@ class CityjsonV113(BaseModel):
     def crs_transform(
         self: CityjsonV113, source_crs: str, target_crs: str, epoch: float | None = None
     ) -> None:
+        from coordinate_transformation_api.models import Crs as MyCrs
+
+        s_crs = MyCrs.from_crs_str(source_crs)
+        t_crs = MyCrs.from_crs_str(target_crs)
+        message = ""
+        extra = {}
+        if len(s_crs.axes) != THREE_DIMENSIONAL:
+            message += f"CityJSON requires 3D source-crs as input. Source CRS {source_crs} is {len(s_crs.axes)}D. "
+            extra["crs"] = ["source-crs"]
+        if len(t_crs.axes) != THREE_DIMENSIONAL:
+            message += f"CityJSON requires 3D target-crs as input. Target CRS {target_crs} is {len(t_crs.axes)}D. "
+            if "crs" in extra:
+                extra["crs"].append("target-crs")
+            else:
+                extra["crs"] = ["target-crs"]
+        if message != "":
+            raise DataValidationError(message, extra=extra)
         callback = get_transform_crs_fun(source_crs, target_crs, epoch=epoch)
         imp_digits = math.ceil(abs(math.log(self.transform.scale[0], 10)))
         self.decompress()
