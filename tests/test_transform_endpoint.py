@@ -12,13 +12,13 @@ client = TestClient(app)
             "128410.0958,445806.4960",
             {
                 "type": "Point",
-                "coordinates": [5.000004848, 52.00000363],
+                "coordinates": [5.0, 52.0],
             },
             "EPSG:28992",
             "EPSG:4326",
         ),
         (
-            "5.000004848,52.00000363",
+            "5.0,52.0",
             {
                 "type": "Point",
                 "coordinates": [128410.0958, 445806.4960],
@@ -50,7 +50,7 @@ def test_transform_get(input, expectation, source_crs, target_crs):
             },
             {
                 "type": "Point",
-                "coordinates": [3.313692373, 47.974861792],
+                "coordinates": [3.313687707, 47.974858137],
             },
             "EPSG:28992",
             "EPSG:4326",
@@ -58,7 +58,7 @@ def test_transform_get(input, expectation, source_crs, target_crs):
         (
             {
                 "type": "Point",
-                "coordinates": [3.313692373, 47.974861792],
+                "coordinates": [3.313687707, 47.974858137],
             },
             {
                 "type": "Point",
