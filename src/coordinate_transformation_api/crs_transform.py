@@ -6,8 +6,6 @@ from typing import Any, Callable, cast
 import yaml
 from geodense.geojson import CrsFeatureCollection
 from geodense.lib import (  # type: ignore  # type: ignore
-    THREE_DIMENSIONAL,
-    TWO_DIMENSIONAL,
     GeojsonObject,
     apply_function_on_geojson_geometries,
 )
@@ -20,7 +18,11 @@ from shapely import GeometryCollection as ShpGeometryCollection
 from shapely.geometry import shape
 
 from coordinate_transformation_api import assets
-from coordinate_transformation_api.constants import DEFAULT_PRECISION
+from coordinate_transformation_api.constants import (
+    DEFAULT_PRECISION,
+    THREE_DIMENSIONAL,
+    TWO_DIMENSIONAL,
+)
 from coordinate_transformation_api.models import Crs as MyCrs
 from coordinate_transformation_api.models import TransformationNotPossibleError
 from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
@@ -249,7 +251,6 @@ def get_transformer(
     s_crs = CRS.from_authority(*source_crs.split(":"))
     t_crs = CRS.from_authority(*target_crs.split(":"))
 
-    # TODO: move validation to seperate function to call early in the request, to prevent unnecessary processing
     if len(s_crs.axis_info) < len(t_crs.axis_info):
         raise TransformationNotPossibleError(
             src_crs=str(s_crs),
