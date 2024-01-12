@@ -27,6 +27,10 @@ from coordinate_transformation_api.models import Crs as MyCrs
 from coordinate_transformation_api.models import TransformationNotPossibleError
 from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
 
+COMPOUND_CRS_LENGTH: int = 2
+HORIZONTAL_AXIS_LENGTH: int = 2
+VERTICAL_AXIS_LENGTH: int = 1
+
 assets_resources = impresources.files(assets)
 api_conf = assets_resources.joinpath("config.yaml")
 with open(str(api_conf)) as f:
@@ -290,6 +294,18 @@ def get_transformer(
     return tfg.transformers[0]
 
 
+def get_individual_epsg_code(compound_crs: CRS) -> tuple[str, str]:
+    horizontal = compound_crs.to_authority()
+    vertical = compound_crs.to_authority()
+    for crs in compound_crs.sub_crs_list:
+        if len(crs.axis_info) == HORIZONTAL_AXIS_LENGTH:
+            horizontal = crs.to_authority()
+        elif len(crs.axis_info) == VERTICAL_AXIS_LENGTH:
+            vertical = crs.to_authority()
+
+    return (f"{horizontal[0]}:{horizontal[1]}", f"{vertical[0]}:{vertical[1]}")
+
+
 def get_transform_crs_fun(  #
     source_crs: str,
     target_crs: str,
@@ -304,27 +320,22 @@ def get_transform_crs_fun(  #
         else:
             return round(val, precision)
 
-    # We need to do something special voor transformation that have a target containing NAP or a LAT-NL height
-    # these are:
+    transformer = get_transformer(source_crs, target_crs, epoch)
+
+    # We need to do something special for transformation targetting a Compound CRS, like NAP or a LAT-NL height
     # - RDNAP (EPSG:7415)
     # - ETRS89 + NAP (EPSG:9286)
     # - ETRS89 + LAT-NL (EPSG:9289)
     # These transformations need to be splitted between a horizontal and vertical transformation.
+    if (
+        transformer.target_crs is not None
+        and transformer.target_crs.type_name == "Compound CRS"
+        and len(transformer.target_crs.sub_crs_list) == COMPOUND_CRS_LENGTH
+    ):
+        horizontal, vertical = get_individual_epsg_code(transformer.target_crs)
 
-    split_target_crs = {
-        "EPSG:7415": {"horizontal": "EPSG:28992", "vertical": "EPSG:5709"},
-        "EPSG:9286": {"horizontal": "EPSG:4258", "vertical": "EPSG:5709"},
-        "EPSG:9289": {"horizontal": "EPSG:4258", "vertical": "EPSG:9287"},
-    }
-
-    if target_crs in split_target_crs:
-        # No epoch
-        h_transformer = get_transformer(
-            source_crs, split_target_crs[target_crs]["horizontal"], epoch
-        )
-        v_transformer = get_transformer(
-            source_crs, split_target_crs[target_crs]["vertical"], epoch
-        )
+        h_transformer = get_transformer(source_crs, horizontal, epoch)
+        v_transformer = get_transformer(source_crs, vertical, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
             input = tuple(
@@ -340,7 +351,6 @@ def get_transform_crs_fun(  #
 
         return transform_compound_crs
     else:
-        transformer = get_transformer(source_crs, target_crs, epoch)
 
         def transform_crs(val: CoordinatesType) -> tuple[float, ...]:
             if transformer.target_crs is None:
