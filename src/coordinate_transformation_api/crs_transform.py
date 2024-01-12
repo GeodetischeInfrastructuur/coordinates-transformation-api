@@ -338,11 +338,7 @@ def get_transform_crs_fun(  #
         v_transformer = get_transformer(source_crs, vertical, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
-            input = tuple(
-                [
-                    *val,
-                ]
-            )
+            input = tuple([*val, float(epoch) if epoch is not None else None])
 
             h = h_transformer.transform(*input)
             v = v_transformer.transform(*input)
