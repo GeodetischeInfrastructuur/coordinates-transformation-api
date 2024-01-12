@@ -212,7 +212,6 @@ def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
 def needs_epoch(tf: Transformer) -> bool:
     # Currently the time dependent & specific operation method code are hardcoded
     # These are extracted from the 'coordinate_operation_method' table in the proj.db
-    #
     static_coordinate_operation_methode_time_dependent = [
         "1053",
         "1054",
