@@ -268,7 +268,7 @@ def get_transformer(
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
     tfg = transformer.TransformerGroup(
-        s_crs, t_crs, allow_ballpark=False, always_xy=True, area_of_interest=aoi
+        s_crs, t_crs, allow_ballpark=False, area_of_interest=aoi
     )
 
     # If everything is 'right' we should always have a transformer
@@ -299,51 +299,87 @@ def get_transform_crs_fun(  #
 ) -> Callable[[CoordinatesType], tuple[float, ...],]:
     """TODO: improve type annotation/handling geojson/cityjson transformation, with the current implementation mypy is not complaining"""
 
-    transformer = get_transformer(source_crs, target_crs, epoch)
-
     def my_round(val: float, precision: int | None) -> float | int:
         if precision is None:
             return val
         else:
             return round(val, precision)
 
-    def transform_crs(val: CoordinatesType) -> tuple[float, ...]:
-        if transformer.target_crs is None:
-            raise ValueError("transformer.target_crs is None")
-        dim = len(transformer.target_crs.axis_info)
-        if (
-            dim is not None
-            and dim != len(val)
-            and TWO_DIMENSIONAL > dim > THREE_DIMENSIONAL
-        ):
-            # check so we can safely cast to tuple[float, float], tuple[float, float, float]
-            raise ValueError(
-                f"number of dimensions of target-crs should be 2 or 3, is {dim}"
+    # We need to do something special voor transformation that have a target containing NAP or a LAT-NL height
+    # these are:
+    # - RDNAP (EPSG:7415)
+    # - ETRS89 + NAP (EPSG:9286)
+    # - ETRS89 + LAT-NL (EPSG:9289)
+    # These transformations need to be splitted between a horizontal and vertical transformation.
+
+    split_target_crs = {
+        "EPSG:7415": {"horizontal": "EPSG:28992", "vertical": "EPSG:5709"},
+        "EPSG:9286": {"horizontal": "EPSG:4258", "vertical": "EPSG:5709"},
+        "EPSG:9289": {"horizontal": "EPSG:4258", "vertical": "EPSG:9287"},
+    }
+
+    if target_crs in split_target_crs:
+        # No epoch
+        h_transformer = get_transformer(
+            source_crs, split_target_crs[target_crs]["horizontal"], epoch
+        )
+        v_transformer = get_transformer(
+            source_crs, split_target_crs[target_crs]["vertical"], epoch
+        )
+
+        def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
+            input = tuple(
+                [
+                    *val,
+                ]
             )
-        val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
-        # TODO: fix epoch handling, should only be added in certain cases
-        # when one of the src or tgt crs has a dynamic time component
-        # or the transformation used has a datetime component
-        # for now simple check on coords length (which is not correct)
-        input = tuple(
-            [
-                *val,
-                float(epoch)
-                if len(val) == THREE_DIMENSIONAL and epoch is not None
-                else None,
-            ]
-        )
 
-        # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
-        # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
-        # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
-        # 'needed' in the result, because there is no conversion of time, e.i. a epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
-        # of the transformer is 'stripped' with [0:dim]
-        return tuple(
-            [
-                float(my_round(x, precision))
-                for x in transformer.transform(*input)[0:dim]
-            ]
-        )
+            h = h_transformer.transform(*input)
+            v = v_transformer.transform(*input)
 
-    return transform_crs
+            return tuple([float(my_round(x, precision)) for x in h[0:2] + v[2:3]])
+
+        return transform_compound_crs
+    else:
+        transformer = get_transformer(source_crs, target_crs, epoch)
+
+        def transform_crs(val: CoordinatesType) -> tuple[float, ...]:
+            if transformer.target_crs is None:
+                raise ValueError("transformer.target_crs is None")
+            dim = len(transformer.target_crs.axis_info)
+            if (
+                dim is not None
+                and dim != len(val)
+                and TWO_DIMENSIONAL > dim > THREE_DIMENSIONAL
+            ):
+                # check so we can safely cast to tuple[float, float], tuple[float, float, float]
+                raise ValueError(
+                    f"number of dimensions of target-crs should be 2 or 3, is {dim}"
+                )
+            val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
+            # TODO: fix epoch handling, should only be added in certain cases
+            # when one of the src or tgt crs has a dynamic time component
+            # or the transformation used has a datetime component
+            # for now simple check on coords length (which is not correct)
+            input = tuple(
+                [
+                    *val,
+                    float(epoch)
+                    if len(val) == THREE_DIMENSIONAL and epoch is not None
+                    else None,
+                ]
+            )
+
+            # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
+            # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
+            # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
+            # 'needed' in the result, because there is no conversion of time, e.i. a epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
+            # of the transformer is 'stripped' with [0:dim]
+            return tuple(
+                [
+                    float(my_round(x, precision))
+                    for x in transformer.transform(*input)[0:dim]
+                ]
+            )
+
+        return transform_crs
