@@ -25,7 +25,10 @@ from geojson_pydantic.geometries import Geometry, GeometryCollection
 import coordinate_transformation_api
 from coordinate_transformation_api import assets
 from coordinate_transformation_api.cityjson.models import CityjsonV113
-from coordinate_transformation_api.constants import DENSITY_CHECK_RESULT_HEADER
+from coordinate_transformation_api.constants import (
+    DENSITY_CHECK_RESULT_HEADER,
+    THREE_DIMENSIONAL,
+)
 from coordinate_transformation_api.crs_transform import CRS_CONFIG
 from coordinate_transformation_api.fastapi_rfc7807 import middleware
 from coordinate_transformation_api.limit_middleware.middleware import (
@@ -57,6 +60,7 @@ from coordinate_transformation_api.util import (
     post_transform_get_crss,
     raise_request_validation_error,
     raise_response_validation_error,
+    remove_height_when_inf_geojson,
     set_response_headers,
     transform_coordinates,
     validate_coords_source_crs,
@@ -372,6 +376,12 @@ async def transform(  # noqa: PLR0913, ANN201
         coordinates, s_crs, t_crs, epoch, CRS_LIST
     )
 
+    # if height/elevation is inf, strip it from response
+    if len(transformed_coordinates) == THREE_DIMENSIONAL and transformed_coordinates[
+        2
+    ] == float("inf"):
+        transformed_coordinates = transformed_coordinates[0:2]
+
     if float("inf") in [abs(x) for x in transformed_coordinates]:
         raise_response_validation_error(
             "Out of range float values are not JSON compliant", ["responseBody"]
@@ -491,7 +501,9 @@ async def post_transform(  # noqa: ANN201, PLR0913
                 ("epoch", epoch), headers=response_headers
             )
 
-        response_body = body.model_dump(exclude_none=True)
+        response_body = remove_height_when_inf_geojson(body).model_dump(
+            exclude_none=True
+        )
         return JSONResponse(
             content=response_body,
             headers=response_headers,

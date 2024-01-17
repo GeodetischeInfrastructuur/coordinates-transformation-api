@@ -21,7 +21,7 @@ from geodense.lib import (  # type: ignore  # type: ignore
     flatten,
 )
 from geodense.models import DenseConfig, GeodenseError
-from geodense.types import Nested
+from geodense.types import GeojsonCoordinates, GeojsonGeomNoGeomCollection, Nested
 from geojson_pydantic import Feature, GeometryCollection
 from geojson_pydantic.geometries import Geometry
 from pydantic import ValidationError
@@ -40,9 +40,12 @@ from coordinate_transformation_api.constants import (
 from coordinate_transformation_api.crs_transform import (
     get_crs_transform_fun,
     get_json_coords_contains_inf_fun,
+    get_json_height_contains_inf_fun,
     get_precision,
+    get_remove_json_height_fun,
     get_shapely_objects,
     get_transform_crs_fun,
+    traverse_geojson_coordinates,
     update_bbox_geojson_object,
 )
 from coordinate_transformation_api.models import (
@@ -346,15 +349,42 @@ def transform_coordinates(
 
 def validate_crs_transformed_geojson(body: GeojsonObject) -> None:
     validate_json_coords_fun = get_json_coords_contains_inf_fun()
-    result: Nested[bool] = apply_function_on_geojson_geometries(
+    contains_inf_coords: Nested[bool] = apply_function_on_geojson_geometries(
         body, validate_json_coords_fun
     )
-    flat_result: Iterable[bool] = flatten(result)
+    flat_contains_inf_coords: Iterable[bool] = flatten(contains_inf_coords)
 
-    if any(flat_result):
+    if any(flat_contains_inf_coords):
         raise_response_validation_error(
             "Out of range float values are not JSON compliant", ["responseBody"]
         )
+
+
+def remove_height_when_inf_geojson(body: GeojsonObject) -> GeojsonObject:
+    # Seperated check on inf height/elevation
+    validate_json_height_fun = get_json_height_contains_inf_fun()
+    contains_inf_height: Nested[bool] = apply_function_on_geojson_geometries(
+        body, validate_json_height_fun
+    )
+    flat_contains_inf_height: Iterable[bool] = flatten(contains_inf_height)
+
+    if any(flat_contains_inf_height):
+
+        def my_fun(
+            geom: GeojsonGeomNoGeomCollection,
+        ) -> GeojsonCoordinates:
+            callback = get_remove_json_height_fun()
+            geom.coordinates = traverse_geojson_coordinates(
+                cast(list[list[Any]] | list[float] | list[int], geom.coordinates),
+                callback=callback,
+            )
+            return geom.coordinates
+
+        _ = apply_function_on_geojson_geometries(body, my_fun)
+
+        return body
+
+    return body
 
 
 def get_source_crs(

@@ -26,6 +26,33 @@ client = TestClient(app)
             "EPSG:4326",
             "EPSG:28992",
         ),
+        (
+            "52.0,5.0,43",
+            {
+                "type": "Point",
+                "coordinates": [128410.0958, 445806.4960, -0.4754],
+            },
+            "EPSG:7931",
+            "EPSG:7415",
+        ),
+        (
+            "2.0,2.0,43",
+            {
+                "type": "Point",
+                "coordinates": [-303977.8041, -5471504.9711],
+            },
+            "EPSG:7931",
+            "EPSG:7415",
+        ),
+        (
+            "2.0,2.0,43",
+            {
+                "type": "Point",
+                "coordinates": [-303977.8041, -5471504.9711],
+            },
+            "EPSG:7931",
+            "EPSG:28992",
+        ),
     ],
 )
 def test_transform_get(input, expectation, source_crs, target_crs):

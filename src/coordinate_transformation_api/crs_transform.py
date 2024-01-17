@@ -84,6 +84,32 @@ def get_crs_transform_fun(
     return my_fun
 
 
+# Strip height/elevation from coordinate
+# [1,2,3] -> [1,2]
+def get_remove_json_height_fun() -> Callable[[CoordinatesType], tuple[float, ...]]:
+    def remove_json_height_fun(
+        val: CoordinatesType,
+    ) -> tuple[float, ...]:
+        return cast(tuple[float, ...], val[0:2])
+
+    return remove_json_height_fun
+
+
+def get_json_height_contains_inf_fun() -> Callable[[GeojsonGeomNoGeomCollection], bool]:
+    def json_height_contains_inf(
+        geometry: GeojsonGeomNoGeomCollection,
+    ) -> bool:
+        coordinates = get_coordinate_from_geometry(geometry)
+        gen = (
+            x
+            for x in explode(coordinates)
+            if len(x) == THREE_DIMENSIONAL and abs(x[2]) == float("inf")
+        )
+        return next(gen, None) is not None
+
+    return json_height_contains_inf
+
+
 def get_json_coords_contains_inf_fun() -> Callable[[GeojsonGeomNoGeomCollection], bool]:
     def json_coords_contains_inf(
         geometry: GeojsonGeomNoGeomCollection,
@@ -157,7 +183,8 @@ def traverse_geojson_coordinates(
         GeoJSON coordinates object
     """
     if all(isinstance(x, (float, int)) for x in geojson_coordinates):
-        return callback(cast(list[float], geojson_coordinates))
+        position = callback(cast(list[float], geojson_coordinates))
+        return position
     else:
         coords = cast(list[list], geojson_coordinates)
         return [
@@ -338,7 +365,8 @@ def get_transform_crs_fun(  #
         v_transformer = get_transformer(source_crs, vertical, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
-            input = tuple([*val, float(epoch) if epoch is not None else None])
+            #
+            input = tuple([*val, float(epoch)]) if epoch is not None else tuple([*val])
 
             h = h_transformer.transform(*input)
             v = v_transformer.transform(*input)
