@@ -1007,11 +1007,11 @@ components:
       type: string
     CrsHeaderEnum:
       enum: [
-          "http://www.opengis.net/EPSG/0/28992",
+          "http://www.opengis.net/def/crs/EPSG/0/28992",
           "http://www.opengis.net/def/crs/EPSG/0/7415",
           "http://www.opengis.net/def/crs/EPSG/0/7931",
         ] # filled in code, dummy values to suppress error by linter
-      example: http://www.opengis.net/EPSG/0/28992
+      example: http://www.opengis.net/def/crs/EPSG/0/28992
       type: string
     DensityCheckReport:
       example:
@@ -1084,13 +1084,13 @@ components:
           type: object
           properties:
             name:
-              type: str
-              pattern: "^urn:ogc:def:crs:.*?:.*?:.*?$"
+              type: string
+              pattern: ^urn:ogc:def:crs:.*?:.*?:.*?$
           required:
             - name
         type:
-          type: str
-          const: "name"
+          type: string
+          const: name
       required:
         - type
         - properties
