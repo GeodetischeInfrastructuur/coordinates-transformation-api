@@ -27,6 +27,10 @@ from coordinate_transformation_api.models import Crs as MyCrs
 from coordinate_transformation_api.models import TransformationNotPossibleError
 from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
 
+COMPOUND_CRS_LENGTH: int = 2
+HORIZONTAL_AXIS_LENGTH: int = 2
+VERTICAL_AXIS_LENGTH: int = 1
+
 assets_resources = impresources.files(assets)
 api_conf = assets_resources.joinpath("config.yaml")
 with open(str(api_conf)) as f:
@@ -78,6 +82,32 @@ def get_crs_transform_fun(
         return geom.coordinates
 
     return my_fun
+
+
+# Strip height/elevation from coordinate
+# [1,2,3] -> [1,2]
+def get_remove_json_height_fun() -> Callable[[CoordinatesType], tuple[float, ...]]:
+    def remove_json_height_fun(
+        val: CoordinatesType,
+    ) -> tuple[float, ...]:
+        return cast(tuple[float, ...], val[0:2])
+
+    return remove_json_height_fun
+
+
+def get_json_height_contains_inf_fun() -> Callable[[GeojsonGeomNoGeomCollection], bool]:
+    def json_height_contains_inf(
+        geometry: GeojsonGeomNoGeomCollection,
+    ) -> bool:
+        coordinates = get_coordinate_from_geometry(geometry)
+        gen = (
+            x
+            for x in explode(coordinates)
+            if len(x) == THREE_DIMENSIONAL and abs(x[2]) == float("inf")
+        )
+        return next(gen, None) is not None
+
+    return json_height_contains_inf
 
 
 def get_json_coords_contains_inf_fun() -> Callable[[GeojsonGeomNoGeomCollection], bool]:
@@ -153,7 +183,8 @@ def traverse_geojson_coordinates(
         GeoJSON coordinates object
     """
     if all(isinstance(x, (float, int)) for x in geojson_coordinates):
-        return callback(cast(list[float], geojson_coordinates))
+        position = callback(cast(list[float], geojson_coordinates))
+        return position
     else:
         coords = cast(list[list], geojson_coordinates)
         return [
@@ -212,7 +243,6 @@ def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
 def needs_epoch(tf: Transformer) -> bool:
     # Currently the time dependent & specific operation method code are hardcoded
     # These are extracted from the 'coordinate_operation_method' table in the proj.db
-    #
     static_coordinate_operation_methode_time_dependent = [
         "1053",
         "1054",
@@ -268,7 +298,7 @@ def get_transformer(
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
     tfg = transformer.TransformerGroup(
-        s_crs, t_crs, allow_ballpark=False, always_xy=True, area_of_interest=aoi
+        s_crs, t_crs, allow_ballpark=False, area_of_interest=aoi
     )
 
     # If everything is 'right' we should always have a transformer
@@ -291,6 +321,18 @@ def get_transformer(
     return tfg.transformers[0]
 
 
+def get_individual_epsg_code(compound_crs: CRS) -> tuple[str, str]:
+    horizontal = compound_crs.to_authority()
+    vertical = compound_crs.to_authority()
+    for crs in compound_crs.sub_crs_list:
+        if len(crs.axis_info) == HORIZONTAL_AXIS_LENGTH:
+            horizontal = crs.to_authority()
+        elif len(crs.axis_info) == VERTICAL_AXIS_LENGTH:
+            vertical = crs.to_authority()
+
+    return (f"{horizontal[0]}:{horizontal[1]}", f"{vertical[0]}:{vertical[1]}")
+
+
 def get_transform_crs_fun(  #
     source_crs: str,
     target_crs: str,
@@ -299,51 +341,78 @@ def get_transform_crs_fun(  #
 ) -> Callable[[CoordinatesType], tuple[float, ...],]:
     """TODO: improve type annotation/handling geojson/cityjson transformation, with the current implementation mypy is not complaining"""
 
-    transformer = get_transformer(source_crs, target_crs, epoch)
-
     def my_round(val: float, precision: int | None) -> float | int:
         if precision is None:
             return val
         else:
             return round(val, precision)
 
-    def transform_crs(val: CoordinatesType) -> tuple[float, ...]:
-        if transformer.target_crs is None:
-            raise ValueError("transformer.target_crs is None")
-        dim = len(transformer.target_crs.axis_info)
-        if (
-            dim is not None
-            and dim != len(val)
-            and TWO_DIMENSIONAL > dim > THREE_DIMENSIONAL
-        ):
-            # check so we can safely cast to tuple[float, float], tuple[float, float, float]
-            raise ValueError(
-                f"number of dimensions of target-crs should be 2 or 3, is {dim}"
+    transformer = get_transformer(source_crs, target_crs, epoch)
+
+    # We need to do something special for transformation targetting a Compound CRS, like NAP or a LAT-NL height
+    # - RDNAP (EPSG:7415)
+    # - ETRS89 + NAP (EPSG:9286)
+    # - ETRS89 + LAT-NL (EPSG:9289)
+    # These transformations need to be splitted between a horizontal and vertical transformation.
+    if (
+        transformer.target_crs is not None
+        and transformer.target_crs.type_name == "Compound CRS"
+        and len(transformer.target_crs.sub_crs_list) == COMPOUND_CRS_LENGTH
+    ):
+        horizontal, vertical = get_individual_epsg_code(transformer.target_crs)
+
+        h_transformer = get_transformer(source_crs, horizontal, epoch)
+        v_transformer = get_transformer(source_crs, vertical, epoch)
+
+        def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
+            #
+            input = tuple([*val, float(epoch)]) if epoch is not None else tuple([*val])
+
+            h = h_transformer.transform(*input)
+            v = v_transformer.transform(*input)
+
+            return tuple([float(my_round(x, precision)) for x in h[0:2] + v[2:3]])
+
+        return transform_compound_crs
+    else:
+
+        def transform_crs(val: CoordinatesType) -> tuple[float, ...]:
+            if transformer.target_crs is None:
+                raise ValueError("transformer.target_crs is None")
+            dim = len(transformer.target_crs.axis_info)
+            if (
+                dim is not None
+                and dim != len(val)
+                and TWO_DIMENSIONAL > dim > THREE_DIMENSIONAL
+            ):
+                # check so we can safely cast to tuple[float, float], tuple[float, float, float]
+                raise ValueError(
+                    f"number of dimensions of target-crs should be 2 or 3, is {dim}"
+                )
+            val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
+            # TODO: fix epoch handling, should only be added in certain cases
+            # when one of the src or tgt crs has a dynamic time component
+            # or the transformation used has a datetime component
+            # for now simple check on coords length (which is not correct)
+            input = tuple(
+                [
+                    *val,
+                    float(epoch)
+                    if len(val) == THREE_DIMENSIONAL and epoch is not None
+                    else None,
+                ]
             )
-        val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
-        # TODO: fix epoch handling, should only be added in certain cases
-        # when one of the src or tgt crs has a dynamic time component
-        # or the transformation used has a datetime component
-        # for now simple check on coords length (which is not correct)
-        input = tuple(
-            [
-                *val,
-                float(epoch)
-                if len(val) == THREE_DIMENSIONAL and epoch is not None
-                else None,
-            ]
-        )
 
-        # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
-        # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
-        # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
-        # 'needed' in the result, because there is no conversion of time, e.i. a epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
-        # of the transformer is 'stripped' with [0:dim]
-        return tuple(
-            [
-                float(my_round(x, precision))
-                for x in transformer.transform(*input)[0:dim]
-            ]
-        )
+            # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
+            # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
+            # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
+            # 'needed' in the result, because there is no conversion of time, e.i. a epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
+            # of the transformer is 'stripped' with [0:dim]
+            return tuple(
+                [
+                    float(my_round(x, precision))
+                    for x in transformer.transform(*input)[0:dim]
+                ]
+            )
 
-    return transform_crs
+        return transform_crs

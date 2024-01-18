@@ -84,7 +84,7 @@ python3 -m coverage run --source=src/coordinate_transformation_api -m pytest -v 
 
 ### Install NSGI proj.db
 
-Execute the following shell one-liner to install the NSGI `proj.db` from the
+Execute the following shell one-liner to install the NSGI `proj.global.time.dependent.transformations.db` as `proj.db` from the
 [GeodetischeInfrastructuur/transformations](https://github.com/GeodetischeInfrastructuur/transformations/releases)
 repo:
 
@@ -93,7 +93,7 @@ proj_data_dir=$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());'
 curl -sL -o "${proj_data_dir}/nl_nsgi_nlgeo2018.tif" https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
     curl -sL -o "${proj_data_dir}/nl_nsgi_rdcorr2018.tif" https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
     curl -sL -o "${proj_data_dir}/nl_nsgi_rdtrans2018.tif" https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
-curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.db").url') -o "${proj_data_dir}/proj.db"
+curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.global.time.dependent.transformations.db").url') -o "${proj_data_dir}/proj.db"
 ```
 
 > :warning: For 'default' usage, like QGIS, use the proj.db. The coordinate

@@ -1,6 +1,6 @@
 FROM python:3.11.4-bullseye as builder
 
-ARG NSGI_PROJ_DB_VERSION="1.0.1"
+ARG NSGI_PROJ_DB_VERSION="1.0.2"
 
 LABEL maintainer="NSGI <info@nsgi.nl>"
 
