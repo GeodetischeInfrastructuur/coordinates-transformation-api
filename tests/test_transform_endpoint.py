@@ -12,18 +12,45 @@ client = TestClient(app)
             "128410.0958,445806.4960",
             {
                 "type": "Point",
-                "coordinates": [5.0, 52.0],
+                "coordinates": [52.0, 5.0],
             },
             "EPSG:28992",
             "EPSG:4326",
         ),
         (
-            "5.0,52.0",
+            "52.0,5.0",
             {
                 "type": "Point",
                 "coordinates": [128410.0958, 445806.4960],
             },
             "EPSG:4326",
+            "EPSG:28992",
+        ),
+        (
+            "52.0,5.0,43",
+            {
+                "type": "Point",
+                "coordinates": [128410.0958, 445806.4960, -0.4754],
+            },
+            "EPSG:7931",
+            "EPSG:7415",
+        ),
+        (
+            "2.0,2.0,43",
+            {
+                "type": "Point",
+                "coordinates": [-303977.8041, -5471504.9711],
+            },
+            "EPSG:7931",
+            "EPSG:7415",
+        ),
+        (
+            "2.0,2.0,43",
+            {
+                "type": "Point",
+                "coordinates": [-303977.8041, -5471504.9711],
+            },
+            "EPSG:7931",
             "EPSG:28992",
         ),
     ],
@@ -50,7 +77,7 @@ def test_transform_get(input, expectation, source_crs, target_crs):
             },
             {
                 "type": "Point",
-                "coordinates": [3.313687707, 47.974858137],
+                "coordinates": [47.974858137, 3.313687707],
             },
             "EPSG:28992",
             "EPSG:4326",
@@ -58,7 +85,7 @@ def test_transform_get(input, expectation, source_crs, target_crs):
         (
             {
                 "type": "Point",
-                "coordinates": [3.313687707, 47.974858137],
+                "coordinates": [47.974858137, 3.313687707],
             },
             {
                 "type": "Point",
@@ -66,6 +93,57 @@ def test_transform_get(input, expectation, source_crs, target_crs):
             },
             "EPSG:4326",
             "EPSG:28992",
+        ),
+        # NOTE: For now we remove the height from the entire GeometryCollection or FeatureCollection.
+        # Preferably only the Geometry or Feature with a height resulting in a 'inf' whould be changed.
+        # This is a known issue.
+        (
+            {
+                "type": "FeatureCollection",
+                "crs": {
+                    "properties": {"name": "urn:ogc:def:crs:EPSG::7931"},
+                    "type": "name",
+                },
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [52, 5, 43]},
+                        "properties": {"prop0": "value0"},
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [2, 2, 43]},
+                        "properties": {"prop0": "value0"},
+                    },
+                ],
+            },
+            {
+                "type": "FeatureCollection",
+                "crs": {
+                    "properties": {"name": "urn:ogc:def:crs:EPSG::7415"},
+                    "type": "name",
+                },
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [128410.0958, 445806.4960],
+                        },
+                        "properties": {"prop0": "value0"},
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [-303977.8041, -5471504.9711],
+                        },
+                        "properties": {"prop0": "value0"},
+                    },
+                ],
+            },
+            "EPSG:7931",
+            "EPSG:7415",
         ),
     ],
 )
