@@ -82,6 +82,13 @@ Check test coverage (install `coverage` with `pip install coverage`):
 python3 -m coverage run --source=src/coordinate_transformation_api -m pytest -v tests && python3 -m coverage report -m
 ```
 
+Validate OAS document:
+
+```sh
+# install spectral with: npm install -g @stoplight/spectral-cli - then validate openapi doc with:
+echo 'extends: "spectral:oas"\n'> ruleset.yaml &&  spectral lint http://127.0.0.1:8000/openapi.json --ruleset ruleset.yaml && rm ruleset.yaml
+```
+
 ### Install NSGI proj.db
 
 Execute the following shell one-liner to install the NSGI `proj.global.time.dependent.transformations.db` as `proj.db` from the

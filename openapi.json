@@ -1,0 +1,1763 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "NSGI Coordinate Transformation API",
+        "version": "2.0rc1",
+        "description": "The Coordinate Transformation API performs coordinate transformations on GeoJSON and CityJSON files using the official RDNAPTRANS™ transformation procedure.\n",
+        "contact": {
+            "name": "NSGI",
+            "email": "info@nsgi.nl",
+            "url": "https://www.nsgi.nl"
+        },
+        "termsOfService": "https://creativecommons.org/licenses/by/4.0/",
+        "x-keywords": [
+            "geospatial",
+            "api",
+            "transformations",
+            "coordinates",
+            "GeoJSON",
+            "CityJSON",
+            "RDNAPTRANS"
+        ]
+    },
+    "servers": [
+        {
+            "url": "https://api.transformation.nsgi.nl/v2"
+        }
+    ],
+    "tags": [
+        {
+            "name": "About"
+        },
+        {
+            "name": "CRS"
+        },
+        {
+            "name": "Density"
+        },
+        {
+            "name": "Transform"
+        }
+    ],
+    "paths": {
+        "/": {
+            "get": {
+                "operationId": "get-landing-page",
+                "tags": [
+                    "About"
+                ],
+                "summary": "Landing Page",
+                "description": "OGC Common API landing page",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LandingPage"
+                                },
+                                "example": {
+                                    "title": "My API",
+                                    "description": "Landing page describing the capabilities of this API",
+                                    "links": [
+                                        {
+                                            "title": "OGC Common Landing Page",
+                                            "type": "application/json",
+                                            "rel": "self",
+                                            "href": "http://example.com/?f=json"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "api-version": {
+                                "$ref": "#/components/headers/api-version"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/openapi": {
+            "get": {
+                "operationId": "get-oas",
+                "tags": [
+                    "About"
+                ],
+                "summary": "OAS",
+                "description": "The Open API Specification (OAS) document of this API.",
+                "responses": {
+                    "200": {
+                        "$ref": "#/components/responses/200-oas"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/conformance": {
+            "get": {
+                "operationId": "get-conformance",
+                "tags": [
+                    "About"
+                ],
+                "summary": "Conformance page",
+                "description": "OGC API Common Conformance page describing the capabilities of this API. Best effort has been made to comply to the OGC API Commons standard, but due to the nature of this API, full compliance is not possible. See for details the [docs](https://github.com/GeodetischeInfrastructuur/coordinate-transformation-api/blob/main/docs/OGC-API-Common.md).\n",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConformanceDeclaration"
+                                }
+                            },
+                            "text/html": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "api-version": {
+                                "$ref": "#/components/headers/api-version"
+                            }
+                        }
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/crss": {
+            "get": {
+                "operationId": "get-crss",
+                "tags": [
+                    "CRS"
+                ],
+                "summary": "Get all supported CRSs in the transformation API",
+                "description": "Get all available coordinate reference systems (CRSs)",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/Crs"
+                                    },
+                                    "type": "array",
+                                    "title": "CRS List"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/crss/{crs-id}": {
+            "get": {
+                "operationId": "get-crs",
+                "tags": [
+                    "CRS"
+                ],
+                "summary": "Get a single coordinate reference system (CRS)",
+                "description": "Endpoint that returns a single coordinate reference system (CRS) by `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).\n",
+                "parameters": [
+                    {
+                        "name": "crs-id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/CrsEnum"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Crs"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404Crs"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/check-density": {
+            "post": {
+                "operationId": "post-density-check",
+                "tags": [
+                    "Density"
+                ],
+                "summary": "Check density of (multi)polygon and (multi)linestring geometries based on geodesic (ellipsoidal great-circle) distance in ETRF2000 (EPSG:9067|EPSG:7931)\n",
+                "description": "Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the `maxSegmentLength/Deviation` (if any).\n",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/sourceCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/contentCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/maxSegmentLength"
+                    },
+                    {
+                        "$ref": "#/components/parameters/maxSegmentDeviation"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "description": "One of:\n- GeoJSON Feature\n- GeoJSON FeatureCollection\n- GeoJSON Geometry\n- GeoJSON GeometryCollection\n\nGeoJSON FeatureCollection objects may contain a `.crs` member containing a named CRS, to indicate the source CRS. See the `GeoJsonCrs` schema for more details.\n\n> **Note:** The `crs` member is not part of the [FeatureCollection schema](https://geojson.org/schema/FeatureCollection.json).\n\nWhen `crs` is specified in the request body, the `source-crs` query parameter or `content-crs` request header may be omitted. Order of precedence of CRS input is: request body > query parameters > headers.\n",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "https://geojson.org/schema/Feature.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/FeatureCollection.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/Geometry.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/GeometryCollection.json"
+                                    }
+                                ],
+                                "example": {
+                                    "type": "FeatureCollection",
+                                    "name": "lijnen",
+                                    "crs": {
+                                        "type": "name",
+                                        "properties": {
+                                            "name": "urn:ogc:def:crs:EPSG::28992"
+                                        }
+                                    },
+                                    "features": [
+                                        {
+                                            "type": "Feature",
+                                            "properties": {},
+                                            "geometry": {
+                                                "type": "LineString",
+                                                "coordinates": [
+                                                    [
+                                                        156264.90635984257,
+                                                        601302.5889194933
+                                                    ],
+                                                    [
+                                                        165681.9644757935,
+                                                        605544.3131644691
+                                                    ]
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DensityCheckReport"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "api-version": {
+                                "$ref": "#/components/headers/api-version"
+                            },
+                            "content-crs": {
+                                "description": "FOOBAR",
+                                "$ref": "#/components/headers/content-crs"
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/densify": {
+            "post": {
+                "operationId": "post-densify",
+                "tags": [
+                    "Density"
+                ],
+                "summary": "Densify (multi)polygon and (multi)linestring geometries using the geodesic (ellipsoidal great-circle) distance in ETRF2000 (EPSG:9067|EPSG:7931)\n",
+                "description": "A POST endpoint that accepts a GeoJSON object and densifies the geometries using the `max-segment-length` threshold.\n",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/sourceCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/contentCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/maxSegmentLength"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "description": "One of:\n- GeoJSON Feature\n- GeoJSON FeatureCollection\n- GeoJSON Geometry\n- GeoJSON GeometryCollection\n\nGeoJSON FeatureCollection objects may contain a `.crs` member containing a named CRS, to indicate the source CRS. See the `GeoJsonCrs` schema for more details.\n\n> **Note:** The `crs` member is not part of the [FeatureCollection schema](https://geojson.org/schema/FeatureCollection.json).\n\nWhen `crs` is specified in the request body, the `source-crs` query parameter or `content-crs` request header may be omitted. Order of precedence of CRS input is: request body > query parameters > headers.\n",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "https://geojson.org/schema/Feature.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/FeatureCollection.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/Geometry.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/GeometryCollection.json"
+                                    }
+                                ]
+                            },
+                            "example": {
+                                "type": "Feature",
+                                "properties": {
+                                    "id": 1
+                                },
+                                "geometry": {
+                                    "type": "LineString",
+                                    "coordinates": [
+                                        [
+                                            156264.90635984257,
+                                            601302.5889194933
+                                        ],
+                                        [
+                                            165681.9644757935,
+                                            605544.3131644691
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "https://geojson.org/schema/FeatureCollection.json",
+                                    "description": "FOOBAR"
+                                },
+                                "example": {
+                                    "type": "FeatureCollection",
+                                    "name": "lijnen",
+                                    "crs": {
+                                        "type": "name",
+                                        "properties": {
+                                            "name": "urn:ogc:def:crs:EPSG::28992"
+                                        }
+                                    },
+                                    "features": [
+                                        {
+                                            "type": "Feature",
+                                            "properties": {},
+                                            "geometry": {
+                                                "type": "LineString",
+                                                "coordinates": [
+                                                    [
+                                                        156264.90635984257,
+                                                        601302.5889194933
+                                                    ],
+                                                    [
+                                                        165681.9644757935,
+                                                        605544.3131644691
+                                                    ]
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "api-version": {
+                                "$ref": "#/components/headers/api-version"
+                            },
+                            "content-crs": {
+                                "$ref": "#/components/headers/content-crs"
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/transform": {
+            "get": {
+                "operationId": "get-transform",
+                "tags": [
+                    "Transform"
+                ],
+                "summary": "Transforms the given coordinates of a point from the source CRS to the target CRS.\n",
+                "description": "A GET endpoint that accepts coordinates of a given source CRS and transforms it to the provided target CRS. The input coordinates are a comma separated list of numbers that can represent the `xy`, `lat/lon` or `lon/lat` with or without a third height dimension.\nSource CRS and target CRS can be defined through either the query parameters or the request headers. Order of precedence is: query parameters > request headers.\n",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/sourceCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/targetCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/epochParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/contentCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/acceptCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/coordinates"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "https://geojson.org/schema/Point.json",
+                                    "example": {
+                                        "type": "Point",
+                                        "coordinates": [
+                                            52.763875,
+                                            4.069801,
+                                            115.904857
+                                        ]
+                                    }
+                                }
+                            },
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "POINT Z (52.763875 4.069801 115.904857)",
+                                    "description": "WKT representation of a point as POINT (...) or POINT Z (...)"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "api-version": {
+                                "$ref": "#/components/headers/api-version"
+                            },
+                            "content-crs": {
+                                "$ref": "#/components/headers/content-crs"
+                            },
+                            "epoch": {
+                                "$ref": "#/components/headers/epoch"
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "post-transform",
+                "tags": [
+                    "Transform"
+                ],
+                "summary": "Transforms the given geometries from the source CRS to the target CRS\n",
+                "description": "A POST endpoint that accepts a file of a given source CRS and transforms it to the provided target CRS.\n",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/sourceCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/targetCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/epochParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/contentCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/acceptCrs"
+                    },
+                    {
+                        "$ref": "#/components/parameters/densityCheck"
+                    },
+                    {
+                        "$ref": "#/components/parameters/maxSegmentLength"
+                    },
+                    {
+                        "$ref": "#/components/parameters/maxSegmentDeviation"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "description": "One of:\n  - GeoJSON Feature\n  - GeoJSON FeatureCollection\n  - GeoJSON Geometry\n  - GeoJSON GeometryCollection\n  - CityJSON Object\n\nGeoJSON FeatureCollection objects may contain a `.crs` member containing a named CRS, to indicate the source CRS. See the `GeoJsonCrs` schema for more details.\n\n> **Note:** The `crs` member is not part of the [FeatureCollection schema](https://geojson.org/schema/FeatureCollection.json).\n\nCityJSON objects may contain a [`metadata.referenceSystem`](https://www.cityjson.org/specs/1.1.3/#referencesystem-crs) member to indicate the source-crs.\n\nWhen `crs` is specified in the request body (either in GeoJSON or in CityJSON), the `source-crs` query parameter or `content-crs` request header may be omitted. Order of precedence of CRS input is: request body > query parameters > headers.\n",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "https://geojson.org/schema/Feature.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/FeatureCollection.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/Geometry.json"
+                                    },
+                                    {
+                                        "$ref": "https://geojson.org/schema/GeometryCollection.json"
+                                    }
+                                ]
+                            },
+                            "examples": {
+                                "GeoJSON": {
+                                    "value": {
+                                        "type": "Feature",
+                                        "geometry": {
+                                            "type": "Point",
+                                            "coordinates": [
+                                                66080.2628,
+                                                531539.0239,
+                                                73.2384
+                                            ]
+                                        },
+                                        "properties": {
+                                            "id": 1
+                                        }
+                                    }
+                                },
+                                "CityJSON": {
+                                    "value": {
+                                        "type": "CityJSON",
+                                        "version": "1.1",
+                                        "metadata": {
+                                            "geographicalExtent": [
+                                                78832.132,
+                                                457822.962,
+                                                6.408,
+                                                78841.183,
+                                                457832.278,
+                                                12.841999999999999
+                                            ],
+                                            "referenceSystem": "https://www.opengis.net/def/crs/EPSG/0/7415"
+                                        },
+                                        "CityObjects": {
+                                            "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F": {
+                                                "type": "Building",
+                                                "children": [
+                                                    "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_1",
+                                                    "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_2"
+                                                ]
+                                            },
+                                            "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_1": {
+                                                "type": "BuildingPart",
+                                                "attributes": {
+                                                    "roofType": "1000",
+                                                    "RelativeEavesHeight": 3.308,
+                                                    "RelativeRidgeHeight": 3.308,
+                                                    "AbsoluteEavesHeight": 9.724,
+                                                    "AbsoluteRidgeHeight": 9.724
+                                                },
+                                                "geometry": [
+                                                    {
+                                                        "type": "Solid",
+                                                        "boundaries": [
+                                                            [
+                                                                [
+                                                                    [
+                                                                        0,
+                                                                        1,
+                                                                        2,
+                                                                        3
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        1,
+                                                                        4,
+                                                                        5,
+                                                                        2
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        4,
+                                                                        6,
+                                                                        7,
+                                                                        5
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        6,
+                                                                        0,
+                                                                        3,
+                                                                        7
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        6,
+                                                                        4,
+                                                                        1,
+                                                                        0
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        3,
+                                                                        2,
+                                                                        5,
+                                                                        7
+                                                                    ]
+                                                                ]
+                                                            ]
+                                                        ],
+                                                        "semantics": {
+                                                            "values": [
+                                                                [
+                                                                    0,
+                                                                    1,
+                                                                    2,
+                                                                    3,
+                                                                    4,
+                                                                    5
+                                                                ]
+                                                            ],
+                                                            "surfaces": [
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "RoofSurface",
+                                                                    "Direction": 0,
+                                                                    "Slope": 90
+                                                                },
+                                                                {
+                                                                    "type": "GroundSurface"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "material": {
+                                                            "": {
+                                                                "values": [
+                                                                    [
+                                                                        0,
+                                                                        0,
+                                                                        0,
+                                                                        0,
+                                                                        1,
+                                                                        2
+                                                                    ]
+                                                                ]
+                                                            }
+                                                        },
+                                                        "lod": "2"
+                                                    }
+                                                ],
+                                                "parents": [
+                                                    "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F"
+                                                ]
+                                            },
+                                            "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_2": {
+                                                "type": "BuildingPart",
+                                                "attributes": {
+                                                    "roofType": "1030",
+                                                    "RelativeEavesHeight": 3.317,
+                                                    "RelativeRidgeHeight": 6.436,
+                                                    "AbsoluteEavesHeight": 9.724,
+                                                    "AbsoluteRidgeHeight": 12.843
+                                                },
+                                                "geometry": [
+                                                    {
+                                                        "type": "Solid",
+                                                        "boundaries": [
+                                                            [
+                                                                [
+                                                                    [
+                                                                        8,
+                                                                        9,
+                                                                        10,
+                                                                        11
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        9,
+                                                                        12,
+                                                                        13,
+                                                                        10
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        12,
+                                                                        14,
+                                                                        15,
+                                                                        13
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        14,
+                                                                        8,
+                                                                        11,
+                                                                        15
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        12,
+                                                                        9,
+                                                                        16
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        8,
+                                                                        14,
+                                                                        17
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        9,
+                                                                        8,
+                                                                        17,
+                                                                        16
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        14,
+                                                                        12,
+                                                                        16,
+                                                                        17
+                                                                    ]
+                                                                ],
+                                                                [
+                                                                    [
+                                                                        11,
+                                                                        10,
+                                                                        13,
+                                                                        15
+                                                                    ]
+                                                                ]
+                                                            ]
+                                                        ],
+                                                        "semantics": {
+                                                            "values": [
+                                                                [
+                                                                    0,
+                                                                    1,
+                                                                    2,
+                                                                    3,
+                                                                    4,
+                                                                    5,
+                                                                    6,
+                                                                    7,
+                                                                    8
+                                                                ]
+                                                            ],
+                                                            "surfaces": [
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "WallSurface"
+                                                                },
+                                                                {
+                                                                    "type": "RoofSurface",
+                                                                    "Direction": 136.033,
+                                                                    "Slope": 49.042
+                                                                },
+                                                                {
+                                                                    "type": "RoofSurface",
+                                                                    "Direction": 316.907,
+                                                                    "Slope": 49.051
+                                                                },
+                                                                {
+                                                                    "type": "GroundSurface"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "material": {
+                                                            "": {
+                                                                "values": [
+                                                                    [
+                                                                        3,
+                                                                        3,
+                                                                        3,
+                                                                        3,
+                                                                        3,
+                                                                        3,
+                                                                        4,
+                                                                        4,
+                                                                        5
+                                                                    ]
+                                                                ]
+                                                            }
+                                                        },
+                                                        "lod": "2"
+                                                    }
+                                                ],
+                                                "parents": [
+                                                    "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F"
+                                                ]
+                                            }
+                                        },
+                                        "vertices": [
+                                            [
+                                                587180,
+                                                227141,
+                                                7261
+                                            ],
+                                            [
+                                                587142,
+                                                227186,
+                                                7261
+                                            ],
+                                            [
+                                                587142,
+                                                227186,
+                                                3953
+                                            ],
+                                            [
+                                                587180,
+                                                227141,
+                                                3953
+                                            ],
+                                            [
+                                                587139,
+                                                227595,
+                                                7261
+                                            ],
+                                            [
+                                                587139,
+                                                227595,
+                                                3953
+                                            ],
+                                            [
+                                                587368,
+                                                227312,
+                                                7261
+                                            ],
+                                            [
+                                                587368,
+                                                227312,
+                                                3953
+                                            ],
+                                            [
+                                                592523,
+                                                222407,
+                                                7261
+                                            ],
+                                            [
+                                                588403,
+                                                218371,
+                                                7261
+                                            ],
+                                            [
+                                                588403,
+                                                218371,
+                                                3945
+                                            ],
+                                            [
+                                                592523,
+                                                222407,
+                                                3945
+                                            ],
+                                            [
+                                                583472,
+                                                223723,
+                                                7261
+                                            ],
+                                            [
+                                                583472,
+                                                223723,
+                                                3945
+                                            ],
+                                            [
+                                                587773,
+                                                227687,
+                                                7261
+                                            ],
+                                            [
+                                                587773,
+                                                227687,
+                                                3945
+                                            ],
+                                            [
+                                                585938,
+                                                221048,
+                                                10379
+                                            ],
+                                            [
+                                                590148,
+                                                225048,
+                                                10379
+                                            ]
+                                        ],
+                                        "transform": {
+                                            "scale": [
+                                                0.001,
+                                                0.001,
+                                                0.001
+                                            ],
+                                            "translate": [
+                                                78248.66,
+                                                457604.591,
+                                                2.463
+                                            ]
+                                        },
+                                        "appearance": {
+                                            "materials": [
+                                                {
+                                                    "name": "UUID_2473ede3-71fc-44aa-847d-ae078d0c36aa",
+                                                    "ambientIntensity": 0.2,
+                                                    "diffuseColor": [
+                                                        0.922,
+                                                        0.922,
+                                                        0.922
+                                                    ]
+                                                },
+                                                {
+                                                    "name": "UUID_29adfd0f-43e4-4cc1-a737-3a3e6799a326",
+                                                    "ambientIntensity": 0.2,
+                                                    "diffuseColor": [
+                                                        0.502,
+                                                        0,
+                                                        0
+                                                    ]
+                                                },
+                                                {
+                                                    "name": "UUID_aa8b64e6-a4a7-4428-97ed-aa138c194bf9",
+                                                    "ambientIntensity": 0.2,
+                                                    "diffuseColor": [
+                                                        0.502,
+                                                        0.502,
+                                                        0.502
+                                                    ]
+                                                },
+                                                {
+                                                    "name": "UUID_a87bb328-5637-42bd-a898-cc9dd43f5a41",
+                                                    "ambientIntensity": 0.2,
+                                                    "diffuseColor": [
+                                                        0.922,
+                                                        0.922,
+                                                        0.922
+                                                    ]
+                                                },
+                                                {
+                                                    "name": "UUID_9510dae2-0d9d-4a38-a244-12d2cd3f988e",
+                                                    "ambientIntensity": 0.2,
+                                                    "diffuseColor": [
+                                                        0.502,
+                                                        0,
+                                                        0
+                                                    ]
+                                                },
+                                                {
+                                                    "name": "UUID_b333279c-4e5f-439b-820b-9c53ab454e32",
+                                                    "ambientIntensity": 0.2,
+                                                    "diffuseColor": [
+                                                        0.502,
+                                                        0.502,
+                                                        0.502
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "https://geojson.org/schema/Feature.json"
+                                        },
+                                        {
+                                            "$ref": "https://geojson.org/schema/FeatureCollection.json"
+                                        },
+                                        {
+                                            "$ref": "https://geojson.org/schema/Geometry.json"
+                                        },
+                                        {
+                                            "$ref": "https://geojson.org/schema/GeometryCollection.json"
+                                        }
+                                    ]
+                                },
+                                "example": {
+                                    "type": "Feature",
+                                    "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [
+                                            52.763875,
+                                            4.069801,
+                                            115.904857
+                                        ]
+                                    },
+                                    "properties": {
+                                        "id": 1
+                                    }
+                                }
+                            }
+                        },
+                        "headers": {
+                            "api-version": {
+                                "$ref": "#/components/headers/api-version"
+                            },
+                            "content-crs": {
+                                "$ref": "#/components/headers/content-crs"
+                            },
+                            "epoch": {
+                                "$ref": "#/components/headers/epoch"
+                            },
+                            "density-check-result": {
+                                "$ref": "#/components/headers/density-check-result"
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400Transform"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "examples": {
+            "404CrsExample": {
+                "value": {
+                    "crs-id": "EPSG:289923",
+                    "type": "nsgi.nl/crs-not-found-error",
+                    "title": "CRS Not Found Error",
+                    "status": 404,
+                    "detail": "CRS with id EPSG:289923 not supported by API"
+                }
+            },
+            "400DensityCheckFailedExample": {
+                "value": {
+                    "type": "nsgi.nl/density-check-failed",
+                    "title": "Density Check Failed",
+                    "status": 400,
+                    "detail": "density-check failed, with following query parameters: density-check: True, max-segment-length: 200.0",
+                    "report": {
+                        "checkResult": false,
+                        "failedLineSegments": {
+                            "bbox": null,
+                            "type": "FeatureCollection",
+                            "features": [
+                                {
+                                    "bbox": null,
+                                    "type": "Feature",
+                                    "geometry": {
+                                        "bbox": null,
+                                        "type": "LineString",
+                                        "coordinates": [
+                                            [
+                                                156264.9064,
+                                                601302.5889
+                                            ],
+                                            [
+                                                165681.9645,
+                                                605544.3131
+                                            ]
+                                        ]
+                                    },
+                                    "properties": {
+                                        "segment_length": 10327.966539495786
+                                    },
+                                    "id": null
+                                }
+                            ],
+                            "crs": {
+                                "properties": {
+                                    "name": "urn:ogc:def:crs:EPSG::28992"
+                                },
+                                "type": "name"
+                            },
+                            "name": "density-check-report"
+                        }
+                    }
+                }
+            },
+            "400Example": {
+                "value": {
+                    "type": "about:blank",
+                    "detail": "HTTP 400 Bad Request",
+                    "status": 400,
+                    "instance": "self",
+                    "title": "Bad Request"
+                }
+            },
+            "500Example": {
+                "value": {
+                    "type": "about:blank",
+                    "detail": "HTTP 500 Internal Server Error",
+                    "status": 500,
+                    "instance": "self",
+                    "title": "Internal Server Error"
+                }
+            }
+        },
+        "headers": {
+            "api-version": {
+                "description": "Open API Specification version number",
+                "schema": {
+                    "type": "string"
+                },
+                "example": "3.0.0"
+            },
+            "content-crs": {
+                "description": "Coordinate reference system (CRS) of the response",
+                "schema": {
+                    "$ref": "#/components/schemas/CrsHeaderEnum"
+                }
+            },
+            "density-check-result": {
+                "description": "Density check result",
+                "schema": {
+                    "$ref": "#/components/schemas/DensityCheckResultEnum"
+                }
+            },
+            "epoch": {
+                "description": "Epoch of the response (if defined through transformation)",
+                "schema": {
+                    "$ref": "#/components/schemas/Epoch"
+                }
+            }
+        },
+        "parameters": {
+            "acceptCrs": {
+                "description": "Target coordinate reference system (CRS)",
+                "in": "header",
+                "name": "accept-crs",
+                "required": false,
+                "example": "http://www.opengis.net/def/crs/EPSG/0/7931",
+                "schema": {
+                    "$ref": "#/components/schemas/CrsHeaderEnum"
+                }
+            },
+            "contentCrs": {
+                "description": "Source coordinate reference system (CRS)",
+                "in": "header",
+                "name": "content-crs",
+                "required": false,
+                "example": "http://www.opengis.net/def/crs/EPSG/0/7415",
+                "schema": {
+                    "$ref": "#/components/schemas/CrsHeaderEnum"
+                }
+            },
+            "coordinates": {
+                "description": "Coordinates of the query point as comma seperated list, see `source-crs` parameter for order and required number of the coordinates",
+                "in": "query",
+                "name": "coordinates",
+                "required": true,
+                "style": "form",
+                "explode": false,
+                "schema": {
+                    "$ref": "#/components/schemas/Coords"
+                }
+            },
+            "densityCheck": {
+                "description": "Run density-check on input before transforming. Will result in HTTP 400 response if density-check fails.\n",
+                "in": "query",
+                "name": "density-check",
+                "example": true,
+                "required": false,
+                "schema": {
+                    "type": "boolean",
+                    "default": true
+                }
+            },
+            "epochParam": {
+                "description": "Epoch of the request payload",
+                "name": "epoch",
+                "in": "query",
+                "required": false,
+                "schema": {
+                    "$ref": "#/components/schemas/Epoch"
+                }
+            },
+            "maxSegmentDeviation": {
+                "description": "Maximum segment deviation for densify and density-check",
+                "in": "query",
+                "name": "max-segment-deviation",
+                "required": false,
+                "schema": {
+                    "type": "number",
+                    "minimum": 0.001
+                }
+            },
+            "maxSegmentLength": {
+                "description": "Maximum segment length for densify and density-check",
+                "in": "query",
+                "name": "max-segment-length",
+                "required": false,
+                "schema": {
+                    "default": 200,
+                    "type": "number",
+                    "minimum": 200
+                }
+            },
+            "sourceCrs": {
+                "description": "Source Coordinate Reference System (CRS)\n",
+                "in": "query",
+                "name": "source-crs",
+                "example": "EPSG:7415",
+                "required": false,
+                "schema": {
+                    "$ref": "#/components/schemas/CrsEnum"
+                }
+            },
+            "targetCrs": {
+                "description": "Target Coordinate Reference System (CRS)",
+                "in": "query",
+                "name": "target-crs",
+                "required": false,
+                "schema": {
+                    "$ref": "#/components/schemas/CrsEnum"
+                },
+                "example": "EPSG:7931"
+            }
+        },
+        "responses": {
+            "200-oas": {
+                "description": "OK",
+                "content": {
+                    "application/openapi+json": {},
+                    "text/html": {
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "headers": {
+                    "api-version": {
+                        "$ref": "#/components/headers/api-version"
+                    }
+                }
+            },
+            "400Transform": {
+                "description": "Bad request. The request body does not contain a valid payload or the query is not supported by the API.",
+                "content": {
+                    "application/problem+json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "400": {
+                                "$ref": "#/components/examples/400Example"
+                            },
+                            "400-density-check-failed": {
+                                "$ref": "#/components/examples/400DensityCheckFailedExample"
+                            }
+                        }
+                    }
+                },
+                "headers": {
+                    "api-version": {
+                        "$ref": "#/components/headers/api-version"
+                    }
+                }
+            },
+            "404Crs": {
+                "description": "CRS Not Found.",
+                "content": {
+                    "application/problem+json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "404Crs": {
+                                "$ref": "#/components/examples/404CrsExample"
+                            }
+                        }
+                    }
+                },
+                "headers": {
+                    "api-version": {
+                        "$ref": "#/components/headers/api-version"
+                    }
+                }
+            },
+            "400": {
+                "description": "Bad request. The request body does not contain a valid payload or the query is not supported by the API.",
+                "content": {
+                    "application/problem+json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "400": {
+                                "$ref": "#/components/examples/400Example"
+                            }
+                        }
+                    }
+                },
+                "headers": {
+                    "api-version": {
+                        "$ref": "#/components/headers/api-version"
+                    }
+                }
+            },
+            "500": {
+                "description": "An internal server error occurred.",
+                "content": {
+                    "application/problem+json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "examples": {
+                            "500": {
+                                "$ref": "#/components/examples/500Example"
+                            }
+                        }
+                    }
+                },
+                "headers": {
+                    "api-version": {
+                        "$ref": "#/components/headers/api-version"
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "Axis": {
+                "properties": {
+                    "abbrev": {
+                        "title": "Abbrev",
+                        "type": "string"
+                    },
+                    "direction": {
+                        "title": "Direction",
+                        "type": "string"
+                    },
+                    "name": {
+                        "title": "Name",
+                        "type": "string"
+                    },
+                    "unit_auth_code": {
+                        "title": "Unit Auth Code",
+                        "type": "string"
+                    },
+                    "unit_code": {
+                        "title": "Unit Code",
+                        "type": "string"
+                    },
+                    "unit_conversion_factor": {
+                        "title": "Unit Conversion Factor",
+                        "type": "number"
+                    },
+                    "unit_name": {
+                        "title": "Unit Name",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name",
+                    "abbrev",
+                    "direction",
+                    "unit_conversion_factor",
+                    "unit_name",
+                    "unit_auth_code",
+                    "unit_code"
+                ],
+                "title": "Axis",
+                "type": "object"
+            },
+            "ConformanceDeclaration": {
+                "example": {
+                    "conformsTo": []
+                },
+                "description": "The URIs of all conformance classes supported by the server.\n\nTo support \"generic\" clients that want to access multiple\nOGC API Features implementations - and not \"just\" a specific\nAPI / server, the server declares the conformance\nclasses it implements and conforms to.",
+                "properties": {
+                    "conformsTo": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array"
+                    }
+                },
+                "type": "object"
+            },
+            "Coords": {
+                "default": [
+                    66080.2628,
+                    531539.0239,
+                    73.2384
+                ],
+                "items": {
+                    "type": "number"
+                },
+                "maxItems": 3,
+                "minItems": 2,
+                "nullable": false,
+                "type": "array"
+            },
+            "Crs": {
+                "properties": {
+                    "authority": {
+                        "title": "Authority",
+                        "type": "string"
+                    },
+                    "axes": {
+                        "items": {
+                            "$ref": "#/components/schemas/Axis"
+                        },
+                        "title": "Axes",
+                        "type": "array"
+                    },
+                    "crs_auth_identifier": {
+                        "$ref": "#/components/schemas/CrsEnum"
+                    },
+                    "identifier": {
+                        "title": "Identifier",
+                        "type": "string"
+                    },
+                    "name": {
+                        "title": "Name",
+                        "type": "string"
+                    },
+                    "type_name": {
+                        "title": "Type Name",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name",
+                    "type_name",
+                    "authority",
+                    "identifier",
+                    "axes"
+                ],
+                "title": "CRS",
+                "type": "object"
+            },
+            "CrsEnum": {
+                "enum": [
+                    "EPSG:28992",
+                    "EPSG:4258",
+                    "EPSG:4936",
+                    "EPSG:3035",
+                    "EPSG:3034",
+                    "EPSG:3043",
+                    "EPSG:3044",
+                    "EPSG:9067",
+                    "EPSG:9000",
+                    "EPSG:7789",
+                    "EPSG:4326",
+                    "OGC:CRS84",
+                    "EPSG:9755",
+                    "EPSG:3857",
+                    "EPSG:32631",
+                    "EPSG:32632",
+                    "EPSG:4937",
+                    "EPSG:4979",
+                    "EPSG:7415",
+                    "EPSG:7912",
+                    "EPSG:7930",
+                    "EPSG:7931",
+                    "EPSG:9286",
+                    "EPSG:9753",
+                    "EPSG:9754",
+                    "OGC:CRS84h"
+                ],
+                "example": "EPSG:28992",
+                "type": "string"
+            },
+            "CrsHeaderEnum": {
+                "enum": [
+                    "http://www.opengis.net/def/crs/EPSG/0/28992",
+                    "http://www.opengis.net/def/crs/EPSG/0/4258",
+                    "http://www.opengis.net/def/crs/EPSG/0/4936",
+                    "http://www.opengis.net/def/crs/EPSG/0/3035",
+                    "http://www.opengis.net/def/crs/EPSG/0/3034",
+                    "http://www.opengis.net/def/crs/EPSG/0/3043",
+                    "http://www.opengis.net/def/crs/EPSG/0/3044",
+                    "http://www.opengis.net/def/crs/EPSG/0/9067",
+                    "http://www.opengis.net/def/crs/EPSG/0/9000",
+                    "http://www.opengis.net/def/crs/EPSG/0/7789",
+                    "http://www.opengis.net/def/crs/EPSG/0/4326",
+                    "http://www.opengis.net/def/crs/OGC/0/CRS84",
+                    "http://www.opengis.net/def/crs/EPSG/0/9755",
+                    "http://www.opengis.net/def/crs/EPSG/0/3857",
+                    "http://www.opengis.net/def/crs/EPSG/0/32631",
+                    "http://www.opengis.net/def/crs/EPSG/0/32632",
+                    "http://www.opengis.net/def/crs/EPSG/0/4937",
+                    "http://www.opengis.net/def/crs/EPSG/0/4979",
+                    "http://www.opengis.net/def/crs/EPSG/0/7415",
+                    "http://www.opengis.net/def/crs/EPSG/0/7912",
+                    "http://www.opengis.net/def/crs/EPSG/0/7930",
+                    "http://www.opengis.net/def/crs/EPSG/0/7931",
+                    "http://www.opengis.net/def/crs/EPSG/0/9286",
+                    "http://www.opengis.net/def/crs/EPSG/0/9753",
+                    "http://www.opengis.net/def/crs/EPSG/0/9754",
+                    "http://www.opengis.net/def/crs/OGC/0/CRS84h"
+                ],
+                "example": "http://www.opengis.net/def/crs/EPSG/0/28992",
+                "type": "string"
+            },
+            "DensityCheckReport": {
+                "example": {
+                    "checkResult": false,
+                    "failedLineSegments": {
+                        "crs": {
+                            "properties": {
+                                "name": "urn:ogc:def:crs:EPSG::28992"
+                            },
+                            "type": "name"
+                        },
+                        "features": [
+                            {
+                                "geometry": {
+                                    "coordinates": [
+                                        [
+                                            156264.9064,
+                                            601302.5889
+                                        ],
+                                        [
+                                            165681.9645,
+                                            605544.3131
+                                        ]
+                                    ],
+                                    "type": "LineString"
+                                },
+                                "properties": {
+                                    "segment_length": 10327.966539495786
+                                },
+                                "type": "Feature"
+                            }
+                        ],
+                        "name": "failed-line-segments",
+                        "type": "FeatureCollection"
+                    }
+                },
+                "properties": {
+                    "checkResult": {
+                        "description": "Result of density-check",
+                        "type": "boolean"
+                    },
+                    "failedLineSegments": {
+                        "description": "FeatureCollection containing line segments that failed density-check. If all line segments passed density-check, value of `failedLineSegments` is `null`.",
+                        "oneOf": [
+                            {
+                                "type": "null"
+                            },
+                            {
+                                "$ref": "https://geojson.org/schema/FeatureCollection.json"
+                            }
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "DensityCheckResultEnum": {
+                "enum": [
+                    "not-run",
+                    "success",
+                    "failed",
+                    "not-applicable-geom-type",
+                    "not-implemented"
+                ],
+                "example": "success",
+                "type": "string"
+            },
+            "Epoch": {
+                "example": 2010.1,
+                "type": "number"
+            },
+            "Error": {
+                "description": "Object specified according to https://tools.ietf.org/html/rfc7807.",
+                "properties": {
+                    "detail": {
+                        "type": "string"
+                    },
+                    "instance": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "format": "int32",
+                        "type": "integer"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "description": "URI to a page with more information about this error.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "title",
+                    "status",
+                    "detail"
+                ],
+                "type": "object"
+            },
+            "GeoJsonCrs": {
+                "description": "Optional `.crs` field for GeoJSON FeatureCollection. The  `.properties.name` value should conform to the [OGC URN scheme](https://www.ogc.org/about-ogc/policies/ogc-urn-policy/).",
+                "type": "object",
+                "properties": {
+                    "properties": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "pattern": "^urn:ogc:def:crs:.*?:.*?:.*?$"
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ]
+                    },
+                    "type": {
+                        "type": "string",
+                        "const": "name"
+                    }
+                },
+                "required": [
+                    "type",
+                    "properties"
+                ],
+                "example": {
+                    "type": "name",
+                    "properties": {
+                        "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+                    }
+                }
+            },
+            "LandingPage": {
+                "properties": {
+                    "description": {
+                        "example": "Landing page of the Coordinatetransformation API\n",
+                        "type": "string"
+                    },
+                    "links": {
+                        "items": {
+                            "$ref": "#/components/schemas/Link"
+                        },
+                        "type": "array"
+                    },
+                    "title": {
+                        "example": "Coordinatetransformation API",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "links"
+                ],
+                "type": "object"
+            },
+            "Link": {
+                "properties": {
+                    "href": {
+                        "example": "http://www.opengis.net/def/crs/EPSG/0/28992",
+                        "type": "string"
+                    },
+                    "hreflang": {
+                        "example": "en",
+                        "type": "string"
+                    },
+                    "length": {
+                        "type": "integer"
+                    },
+                    "rel": {
+                        "example": "alternate",
+                        "type": "string"
+                    },
+                    "title": {
+                        "example": "EPSG:28992",
+                        "type": "string"
+                    },
+                    "type": {
+                        "example": "application/json",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "href",
+                    "rel"
+                ],
+                "type": "object"
+            }
+        }
+    }
+}
