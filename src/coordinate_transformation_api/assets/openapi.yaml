@@ -1086,7 +1086,8 @@ components:
             name:
               type: str
               pattern: "^urn:ogc:def:crs:.*?:.*?:.*?$"
-          required: name
+          required:
+            - name
         type:
           type: str
           const: "name"
