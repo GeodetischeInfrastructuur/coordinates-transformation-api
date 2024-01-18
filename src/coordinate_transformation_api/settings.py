@@ -89,6 +89,16 @@ class AppSettings(BaseSettings):
         default=False,
         description="enable access log, defaults to False",
     )
+    api_key_in_oas: bool = Field(
+        alias="API_KEY_IN_OAS",
+        default=False,
+        description="add required api key to oas document",
+    )
+    example_api_key: str | None = Field(
+        alias="EXAMPLE_API_KEY",
+        default=None,
+        description="default api key to expose in oas document",
+    )
 
     @classmethod
     def settings_customise_sources(  # type: ignore  # noqa: PLR0913
