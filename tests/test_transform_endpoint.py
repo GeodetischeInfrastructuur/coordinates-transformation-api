@@ -94,6 +94,57 @@ def test_transform_get(input, expectation, source_crs, target_crs):
             "EPSG:4326",
             "EPSG:28992",
         ),
+        # NOTE: For now we remove the height from the entire GeometryCollection or FeatureCollection.
+        # Preferably only the Geometry or Feature with a height resulting in a 'inf' whould be changed.
+        # This is a known issue.
+        (
+            {
+                "type": "FeatureCollection",
+                "crs": {
+                    "properties": {"name": "urn:ogc:def:crs:EPSG::7931"},
+                    "type": "name",
+                },
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [52, 5, 43]},
+                        "properties": {"prop0": "value0"},
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [2, 2, 43]},
+                        "properties": {"prop0": "value0"},
+                    },
+                ],
+            },
+            {
+                "type": "FeatureCollection",
+                "crs": {
+                    "properties": {"name": "urn:ogc:def:crs:EPSG::7415"},
+                    "type": "name",
+                },
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [128410.0958, 445806.4960],
+                        },
+                        "properties": {"prop0": "value0"},
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [-303977.8041, -5471504.9711],
+                        },
+                        "properties": {"prop0": "value0"},
+                    },
+                ],
+            },
+            "EPSG:7931",
+            "EPSG:7415",
+        ),
     ],
 )
 def test_transform_post(request_body, expectation, source_crs, target_crs):
