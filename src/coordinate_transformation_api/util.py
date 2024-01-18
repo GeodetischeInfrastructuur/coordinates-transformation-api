@@ -259,6 +259,29 @@ def init_oas(crs_config) -> tuple[dict, str, str]:
         oas["info"]["version"] = version("coordinate_transformation_api")
         oas["components"]["schemas"]["CrsEnum"]["enum"] = available_crss
         oas["components"]["schemas"]["CrsHeaderEnum"]["enum"] = available_crss_uri
+
+        if app_settings.api_key_in_oas:
+            api_key_header_def = {
+                "APIKeyHeader": {
+                    "type": "apiKey",
+                    "in": "header",
+                    "name": "apikey",
+                }
+            }
+            security: dict = {"security": [{"APIKeyHeader": []}]}
+            if app_settings.example_api_key is not None:
+                api_key_description = f"\n\nDemo API key is `{app_settings.example_api_key}` en is bedoeld voor exploratief gebruik van de API. "
+                oas["info"]["description"] = (
+                    oas["info"]["description"] + api_key_description
+                )
+
+            oas["components"]["securitySchemes"] = api_key_header_def
+
+            for path in oas["paths"]:
+                if path != "/openapi":
+                    for op in oas["paths"][path]:
+                        oas["paths"][path][op] = oas["paths"][path][op] | security
+
     api_title = oas["info"]["title"]
     return (oas, api_title, oas["info"]["version"])
 
