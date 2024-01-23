@@ -317,6 +317,17 @@ def get_transformer(
             if needs_epoch(tf) is not True:
                 return tf
 
+    # When reaching this point and the 'only' transformation available is an time dependent transformation, but no epoch is provided
+    # we don't want to use the 'default' epoch associated with the transformation but the won't execute the transformation. Because
+    # when the transformation is done with the default epoch (e.i 2010) but the coords are from 2023 the deviation will be too large.
+    # Resulting in wrong result, there for we prefer giving an exception, rather then a wrong result.
+    if needs_epoch(tfg.transformers[0]) is True and epoch is None:
+        raise TransformationNotPossibleError(
+            src_crs=str(s_crs),
+            target_crs=str(t_crs),
+            reason=f"Transformation from source-crs: {len(s_crs.axis_info)} too target-crs: {len(t_crs.axis_info)} is not possible without an input epoch",
+        )
+
     # Select 1st result. The first result is based on the input parameters the "best" result
     return tfg.transformers[0]
 
