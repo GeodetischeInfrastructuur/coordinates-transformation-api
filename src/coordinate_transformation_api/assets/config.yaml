@@ -246,6 +246,28 @@
 "OGC:CRS84h":
   exclude-transformations: []
   uri: http://www.opengis.net/def/crs/OGC/0/CRS84h
+"NSGI:DPnet_KADpeil_Bonaire":
+  exclude-transformations:
+    - "EPSG:7415"
+    - "EPSG:28992"
+    - "EPSG:4258"
+    - "EPSG:4937"
+    - "EPSG:4936"
+    - "EPSG:3035"
+    - "EPSG:3034"
+    - "EPSG:3043"
+    - "EPSG:3044"
+    - "EPSG:7931"
+    - "EPSG:9067"
+    - "EPSG:7930"
+    - "EPSG:7432"
+    - "EPSG:7423"
+    - "EPSG:9423"
+    - "EPSG:9289"
+    - "EPSG:9000"
+    - "EPSG:7912"
+    - "EPSG:7789"
+  uri: http://www.nsgi.nl/def/crs/NSGI/0/DPnet_Bonaire
 "NSGI:DPnet_Bonaire":
   exclude-transformations:
     - "EPSG:7415"
