@@ -267,7 +267,7 @@
     - "EPSG:9000"
     - "EPSG:7912"
     - "EPSG:7789"
-  uri: http://www.nsgi.nl/def/crs/NSGI/0/DPnet_Bonaire
+  uri: http://www.nsgi.nl/def/crs/NSGI/0/DPnet_KADpeil_Bonaire
 "NSGI:DPnet_Bonaire":
   exclude-transformations:
     - "EPSG:7415"
