@@ -264,6 +264,9 @@
     - "EPSG:7423"
     - "EPSG:9423"
     - "EPSG:9289"
+    - "EPSG:9000"
+    - "EPSG:7912"
+    - "EPSG:7789"
   uri: http://www.nsgi.nl/def/crs/NSGI/0/DPnet_Bonaire
 "NSGI:DPnet_Saba":
   exclude-transformations:
