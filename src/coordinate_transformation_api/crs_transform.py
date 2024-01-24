@@ -291,15 +291,9 @@ def get_transformer(
     if exclude_transformation(source_crs, target_crs):
         raise TransformationNotPossibleError(source_crs, target_crs)
 
-    # Area of interest spanning NL
-    # coord from EPSG.org Netherlands - onshore
-    aoi = transformer.AreaOfInterest(3.2, 50.75, 7.22, 53.7)
-
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
-    tfg = transformer.TransformerGroup(
-        s_crs, t_crs, allow_ballpark=False, area_of_interest=aoi
-    )
+    tfg = transformer.TransformerGroup(s_crs, t_crs, allow_ballpark=False)
 
     # If everything is 'right' we should always have a transformer
     # based on our configured proj.db. Therefor this error.
