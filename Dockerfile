@@ -1,6 +1,6 @@
 FROM python:3.11.4-bullseye as builder
 
-ARG NSGI_PROJ_DB_VERSION="1.0.2"
+ARG NSGI_PROJ_DB_VERSION="1.0.3"
 
 LABEL maintainer="NSGI <info@nsgi.nl>"
 
@@ -25,6 +25,8 @@ WORKDIR /assets
 RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
     curl -sL -o nl_nsgi_rdcorr2018.tif https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
     curl -sL -o nl_nsgi_rdtrans2018.tif https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
+    curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="bq_nsgi_bongeo2004.tif").url') -o bq_nsgi_bongeo2004.tif && \
+    curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="nllat2018.gtx").url') -o nllat2018.gtx && \
     curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.global.time.dependent.transformations.db").url') -o proj.db
 
 RUN ls -lah /src/dist/ >&2
@@ -38,6 +40,7 @@ COPY --from=builder /src/dist/coordinate_transformation_api-2*.whl .
 RUN pip install coordinate_transformation_api-2*.whl
 
 COPY --from=builder /assets/*.tif /usr/local/lib/python3.11/site-packages/pyproj/proj_dir/share/proj
+COPY --from=builder /assets/*.gtx /usr/local/lib/python3.11/site-packages/pyproj/proj_dir/share/proj
 COPY --from=builder /assets/proj.db /usr/local/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/proj.db
 
 # PORT for serving out API

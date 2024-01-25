@@ -270,7 +270,7 @@ def init_oas(crs_config) -> tuple[dict, str, str]:
             }
             security: dict = {"security": [{"APIKeyHeader": []}]}
             if app_settings.example_api_key is not None:
-                api_key_description = f"\n\nDemo API key is `{app_settings.example_api_key}` en is bedoeld voor exploratief gebruik van de API. "
+                api_key_description = f"\n\nThe Demo API key is `{app_settings.example_api_key}` and is intended for exploratory use of the API only. "
                 oas["info"]["description"] = (
                     oas["info"]["description"] + api_key_description
                 )
