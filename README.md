@@ -1,6 +1,6 @@
 # Coordinate Transformation API
 
-RESTful Coordinate Transformation API offering NSGI approved transformations for
+RESTful Coordinate Transformation API offering NSGI defined and NSGI recommended transformations for
 the Netherlands. Build on top of pyproj and FastAPI.
 
 ## Assumptions
@@ -20,16 +20,12 @@ Pyproj with default configuration is not capable in performing the right
 transformations, because our primary transformations layer on the following
 transformation grids:
 
-Variant 1:
+Recommended RDNAPTRANS(TM)2018 variant 1:
 
 1. <https://cdn.proj.org/nl_nsgi_nlgeo2018.tif>
 1. <https://cdn.proj.org/nl_nsgi_rdcorr2018.tif>
 
-The recommended variant.
-
-Variant 2:
-
-1. <https://cdn.proj.org/nl_nsgi_rdtrans2018.tif>
+JL: and the geoid for BESTRANS2020
 
 These transformation grids need to be downloaded from the [PROJ.org Datumgrid
 CDN](https://cdn.proj.org/) and put in the correct directory. This can be done
@@ -91,7 +87,7 @@ echo 'extends: "spectral:oas"\n'> ruleset.yaml &&  spectral lint http://127.0.0.
 
 ### Install NSGI proj.db
 
-Execute the following shell one-liner to install the NSGI `proj.global.time.dependent.transformations.db` as `proj.db` from the
+Execute the following shell one-liner to install the NSGI `proj.time.dependent.transformations.db` as `proj.db` from the
 [GeodetischeInfrastructuur/transformations](https://github.com/GeodetischeInfrastructuur/transformations/releases)
 repo:
 
@@ -100,12 +96,12 @@ proj_data_dir=$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());'
 curl -sL -o "${proj_data_dir}/nl_nsgi_nlgeo2018.tif" https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
     curl -sL -o "${proj_data_dir}/nl_nsgi_rdcorr2018.tif" https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
     curl -sL -o "${proj_data_dir}/nl_nsgi_rdtrans2018.tif" https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
-curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.global.time.dependent.transformations.db").url') -o "${proj_data_dir}/proj.db"
+curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.time.dependent.transformations.db").url') -o "${proj_data_dir}/proj.db"
 ```
 
 > :warning: For 'default' usage, like QGIS, use the proj.db. The coordinate
 > transformation API it self uses the
-> proj.global.time.dependent.transformations.db for specific time dependent
+> proj.time.dependent.transformations.db for specific time-dependent
 > transformations.
 
 ## Install
