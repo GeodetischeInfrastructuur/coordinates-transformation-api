@@ -84,7 +84,7 @@ def get_crs_transform_fun(
     return my_fun
 
 
-# Strip height/elevation from coordinate
+# Strip height from coordinates
 # [1,2,3] -> [1,2]
 def get_remove_json_height_fun() -> Callable[[CoordinatesType], tuple[float, ...]]:
     def remove_json_height_fun(
@@ -228,7 +228,7 @@ def get_bbox_from_coordinates(coordinates: Any) -> BBox:  # noqa: ANN401
         return min(x), min(y), min(z), max(x), max(y), max(z)
     else:
         raise ValueError(
-            f"expected length of coordinate tuple is either 2 or 3, got {len(coordinate_tuples)}"
+            f"expected dimension of coordinates is either 2 or 3, got {len(coordinate_tuples)}"
         )
 
 
@@ -241,7 +241,7 @@ def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
 
 
 def needs_epoch(tf: Transformer) -> bool:
-    # Currently the time dependent & specific operation method code are hardcoded
+    # Currently the time-dependent & specific operation method code are hardcoded
     # These are extracted from the 'coordinate_operation_method' table in the proj.db
     static_coordinate_operation_methode_time_dependent = [
         "1053",
@@ -303,18 +303,18 @@ def get_transformer(
             target_crs=str(t_crs),
         )
 
-    # When no input epoch is given we need to check that we don't perform an time dependent transformation. If we do
-    # the transformation will be done with a default epoch value, which isn't correct. So we need to search for the "best"
-    # transformation that doesn't include a time dependent operation methode.
+    # When no input epoch is given we need to check that we don't perform an time-dependent transformation. Otherwise
+    # the transformation would be done with a default epoch value, which isn't correct. So we need to search for the "best"
+    # transformation that doesn't include a time-dependent operation methode.
     if epoch is None:
         for tf in tfg.transformers:
             if needs_epoch(tf) is not True:
                 return tf
 
-    # When reaching this point and the 'only' transformation available is an time dependent transformation, but no epoch is provided
-    # we don't want to use the 'default' epoch associated with the transformation but the won't execute the transformation. Because
-    # when the transformation is done with the default epoch (e.i 2010) but the coords are from 2023 the deviation will be too large.
-    # Resulting in wrong result, there for we prefer giving an exception, rather then a wrong result.
+    # When reaching this point and the 'only' transformation available is an time-dependent transformation, but no epoch is provided,
+    # we don't want to use the 'default' epoch associated with the transformation. Instead, we won't execute the transformation. Because
+    # when the transformation is done with the default epoch (e.g. 2010), but the coords are from 2023 this 
+    # results in wrong results. We prefer giving an exception, rather than a wrong result.
     if needs_epoch(tfg.transformers[0]) is True and epoch is None:
         raise TransformationNotPossibleError(
             src_crs=str(s_crs),
@@ -354,11 +354,11 @@ def get_transform_crs_fun(  #
 
     transformer = get_transformer(source_crs, target_crs, epoch)
 
-    # We need to do something special for transformation targetting a Compound CRS, like NAP or a LAT-NL height
-    # - RDNAP (EPSG:7415)
+    # We need to do something special for transformation targetting a Compound CRS of 2D coordinates with another height system, like NAP or a LAT height
+    # - RD + NAP (EPSG:7415)
     # - ETRS89 + NAP (EPSG:9286)
-    # - ETRS89 + LAT-NL (EPSG:9289)
-    # These transformations need to be splitted between a horizontal and vertical transformation.
+    # - ETRS89 + LAT (EPSG:9289)
+    # These transformations need to be splitted in a horizontal and vertical transformation.
     if (
         transformer.target_crs is not None
         and transformer.target_crs.type_name == "Compound CRS"
@@ -392,7 +392,7 @@ def get_transform_crs_fun(  #
             ):
                 # check so we can safely cast to tuple[float, float], tuple[float, float, float]
                 raise ValueError(
-                    f"number of dimensions of target-crs should be 2 or 3, is {dim}"
+                    f"dimension of target-crs should be 2 or 3, is {dim}"
                 )
             val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
             # TODO: fix epoch handling, should only be added in certain cases
@@ -411,7 +411,7 @@ def get_transform_crs_fun(  #
             # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
             # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
             # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
-            # 'needed' in the result, because there is no conversion of time, e.i. a epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
+            # 'needed' in the result, because there is no conversion of time, e.i. an epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
             # of the transformer is 'stripped' with [0:dim]
             return tuple(
                 [
