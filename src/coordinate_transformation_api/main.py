@@ -258,7 +258,7 @@ async def crs(crs_id: str) -> Crs | Response:
 async def conformance() -> Conformance:
     return Conformance(
         conformsTo=[
-            # does not conform to fully to the following standards, but effort has been made to conform as much as possible
+            # does not conform fully to the following standards, but effort has been made to conform as much as possible
             # "https://docs.ogc.org/is/19-072/19-072.html",
             # "https://gitdocumentatie.logius.nl/publicatie/api/adr/",
         ]
@@ -275,7 +275,7 @@ async def densify(  # noqa: ANN201
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
     max_segment_deviation: Annotated[
-        float | None, Query(alias="max-segment-deviation", ge=0.0001)
+        float | None, Query(alias="max-segment-deviation", ge=0.001)
     ] = None,
     max_segment_length: Annotated[
         float | None, Query(alias="max-segment-length", ge=200)
@@ -306,7 +306,7 @@ async def density_check(  # noqa: ANN201
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
     max_segment_deviation: Annotated[
-        float | None, Query(alias="max-segment-deviation", ge=0.0001)
+        float | None, Query(alias="max-segment-deviation", ge=0.001)
     ] = None,
     max_segment_length: Annotated[
         float | None, Query(alias="max-segment-length", ge=200)
@@ -410,7 +410,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
     epoch: Annotated[float | None, Query(alias="epoch")] = None,
     density_check: Annotated[bool, Query(alias="density-check")] = True,
     max_segment_deviation: Annotated[
-        float | None, Query(alias="max-segment-deviation", ge=0.0001)
+        float | None, Query(alias="max-segment-deviation", ge=0.001)
     ] = None,
     max_segment_length: Annotated[
         float | None, Query(alias="max-segment-length", ge=200)
