@@ -7,9 +7,9 @@ the Netherlands. Build on top of pyproj and FastAPI.
 
 - API metadata, documentation and source code is in English
 - Easily accessible, but correct
-- Conforms (as much is possible) to the [OGC API
-  Common](https://ogcapi.ogc.org/common/) and the [NL API Design
-  rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/)
+- Conforms (as much is possible) to the
+  [OGC API Common](https://ogcapi.ogc.org/common/) and the
+  [NL API Design rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/)
 
 ## pyproj
 
@@ -31,9 +31,9 @@ Variant 2:
 
 1. <https://cdn.proj.org/nl_nsgi_rdtrans2018.tif>
 
-These transformation grids need to be downloaded from the [PROJ.org Datumgrid
-CDN](https://cdn.proj.org/) and put in the correct directory. This can be done
-in a couple of ways.
+These transformation grids need to be downloaded from the
+[PROJ.org Datumgrid CDN](https://cdn.proj.org/) and put in the correct
+directory. This can be done in a couple of ways.
 
 1. Enable PROJ_NETWORK environment variable
 1. Edit proj.ini file by setting `network = on`
@@ -91,7 +91,8 @@ echo 'extends: "spectral:oas"\n'> ruleset.yaml &&  spectral lint http://127.0.0.
 
 ### Install NSGI proj.db
 
-Execute the following shell one-liner to install the NSGI `proj.global.time.dependent.transformations.db` as `proj.db` from the
+Execute the following shell one-liner to install the NSGI
+`proj.global.time.dependent.transformations.db` as `proj.db` from the
 [GeodetischeInfrastructuur/transformations](https://github.com/GeodetischeInfrastructuur/transformations/releases)
 repo:
 
@@ -165,7 +166,7 @@ cjio test_1.city.json crs_reproject 4937 save test_1_4937.city.json
 flowchart
     input([/transform endpoint]) ==> filetype{content-type<br>request body}
     filetype==> | GeoJSON | dc_param{density-check parameter}
-    filetype==> | CityJSON | a4[add response header:<br>density-check-result: not-implemented] 
+    filetype==> | CityJSON | a4[add response header:<br>density-check-result: not-implemented]
     a4 --> tf
     dc_param ==> |"`default: *true*`"|ms_param{max_segment param}
     ms_param -.-> |max_segment_deviation param| bc[check if data within bbox]
@@ -173,13 +174,13 @@ flowchart
     bc --> |failure| output_error_bbox([HTTP 400 with bbox error])
 
     ms_param ==> |"`max_segment_length param (default: *200*)`"| dc[density check]
-    dc_param -.-> |"`*false*`"| a5[add response header:<br>density-check-result: not-run] 
-    
+    dc_param -.-> |"`*false*`"| a5[add response header:<br>density-check-result: not-run]
+
     a5 --> tf[transform]
-    
+
     dc --> |"not applicable: geometrytype is point" | a2[add response header:<br>density-check-result: not-applicable-geom-type]
     dc --> |"success"| a3[add response header:<br>density-check-result: success]
-    dc --> |"failure"| a6[add response header:<br>density-check-result: failed] 
+    dc --> |"failure"| a6[add response header:<br>density-check-result: failed]
     a6 --> output_error([HTTP 400 with density check report])
     a2 --> tf
     a3 --> tf

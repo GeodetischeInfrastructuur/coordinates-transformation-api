@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 
 .gitconfig
+.vscode/settings.json

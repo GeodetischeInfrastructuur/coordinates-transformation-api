@@ -4,8 +4,9 @@ info:
   title: NSGI Coordinate Transformation API
   version: "" # replaced in code
   description: >
-    The Coordinate Transformation API performs coordinate transformations on GeoJSON and CityJSON files using the official RDNAPTRANS™
-    transformation procedure and other transformations defined or recommended by NSGI.
+    The Coordinate Transformation API performs coordinate transformations on
+    GeoJSON and CityJSON files using the official RDNAPTRANS™ transformation
+    procedure and other transformations defined or recommended by NSGI.
   contact:
     name: NSGI
     email: rd@kadaster.nl
@@ -43,7 +44,8 @@ paths:
                 $ref: "#/components/schemas/LandingPage"
               example:
                 title: My API
-                description: Landing page describing the capabilities of this API
+                description:
+                  Landing page describing the capabilities of this API
                 links:
                   - title: OGC Common Landing Page
                     type: application/json
@@ -71,7 +73,11 @@ paths:
         - About
       summary: Conformance page
       description: >
-        OGC API Common Conformance page describing the capabilities of this API. Best effort has been made to comply to the OGC API Commons standard, but due to the nature of this API, full compliance is not possible. See for details the [docs](https://github.com/GeodetischeInfrastructuur/coordinate-transformation-api/blob/main/docs/OGC-API-Common.md).
+        OGC API Common Conformance page describing the capabilities of this API.
+        Best effort has been made to comply to the OGC API Commons standard, but
+        due to the nature of this API, full compliance is not possible. See for
+        details the
+        [docs](https://github.com/GeodetischeInfrastructuur/coordinate-transformation-api/blob/main/docs/OGC-API-Common.md).
       responses:
         "200":
           description: OK
@@ -113,7 +119,8 @@ paths:
         - CRS
       summary: Get a single coordinate reference system (CRS)
       description: >
-        Endpoint that returns a single coordinate reference system (CRS) by `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
+        Endpoint that returns a single coordinate reference system (CRS) by
+        `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
       parameters:
         - name: "crs-id"
           in: path
@@ -139,8 +146,9 @@ paths:
       tags:
         - Density
       summary: >
-        Check density of (multi)polygon and (multi)linestring geometries based on geodesic (ellipsoidal great-circle) distance
-        on the ellipsoid of the (base) CRS
+        Check density of (multi)polygon and (multi)linestring geometries based
+        on geodesic (ellipsoidal great-circle) distance on the ellipsoid of the
+        (base) CRS
       description: |
         Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the `maxSegmentLength/Deviation` (if any).
       parameters:
@@ -213,10 +221,12 @@ paths:
       tags:
         - Density
       summary: >
-        Densify (multi)polygon and (multi)linestring geometries using the geodesic (ellipsoidal great-circle) trajectory
-        on the ellipsoid of the (base) CRS
+        Densify (multi)polygon and (multi)linestring geometries using the
+        geodesic (ellipsoidal great-circle) trajectory on the ellipsoid of the
+        (base) CRS
       description: >
-        A POST endpoint that accepts a GeoJSON object and densifies the geometries using the `max-segment-length` threshold.
+        A POST endpoint that accepts a GeoJSON object and densifies the
+        geometries using the `max-segment-length` threshold.
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/contentCrs"
@@ -296,14 +306,17 @@ paths:
       tags:
         - Transform
       summary: >
-        Transformation of the given coordinates of a point from the source CRS to the
-        target CRS.
+        Transformation of the given coordinates of a point from the source CRS
+        to the target CRS.
       description: >
-        A GET endpoint that accepts coordinates of a given source CRS
-        and performs the transformation to the provided target CRS. The input coordinates are
-        a comma separated list of numbers that can represent the `xy`, `lat/lon` or `lon/lat` with or without a third height dimension.
+        A GET endpoint that accepts coordinates of a given source CRS and
+        performs the transformation to the provided target CRS. The input
+        coordinates are a comma separated list of numbers that can represent the
+        `xy`, `lat/lon` or `lon/lat` with or without a third height dimension.
 
-        Source CRS and target CRS can be defined through either the query parameters or the request headers. Order of precedence is: query parameters > request headers.
+        Source CRS and target CRS can be defined through either the query
+        parameters or the request headers. Order of precedence is: query
+        parameters > request headers.
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/targetCrs"
@@ -328,7 +341,8 @@ paths:
               schema:
                 type: string
                 example: "POINT Z (52.763875 4.069801 115.904857)"
-                description: WKT representation of a point as POINT (...) or POINT Z (...)
+                description:
+                  WKT representation of a point as POINT (...) or POINT Z (...)
           headers:
             api-version:
               $ref: "#/components/headers/api-version"
@@ -346,9 +360,11 @@ paths:
       tags:
         - Transform
       summary: >
-        Transformation of the given geometries from the source CRS to the target CRS
+        Transformation of the given geometries from the source CRS to the target
+        CRS
       description: >
-        A POST endpoint that accepts a file in a given source CRS and performs the transformation to the provided target CRS.
+        A POST endpoint that accepts a file in a given source CRS and performs
+        the transformation to the provided target CRS.
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/targetCrs"
@@ -716,7 +732,9 @@ components:
         type: nsgi.nl/density-check-failed
         title: Density Check Failed
         status: 400
-        detail: "density-check failed, with following query parameters: density-check: True, max-segment-length: 200.0"
+        detail:
+          "density-check failed, with following query parameters: density-check:
+          True, max-segment-length: 200.0"
         report:
           checkResult: false
           failedLineSegments:
@@ -771,7 +789,8 @@ components:
       schema:
         $ref: "#/components/schemas/DensityCheckResultEnum"
     epoch:
-      description: Epoch of the coordinates in the response (if defined in the input)
+      description:
+        Epoch of the coordinates in the response (if defined in the input)
       schema:
         $ref: "#/components/schemas/Epoch"
   parameters:
@@ -792,7 +811,9 @@ components:
       schema:
         $ref: "#/components/schemas/CrsHeaderEnum"
     coordinates:
-      description: Coordinates of the query point as comma seperated list, see `source-crs` parameter for order and required dimension of the coordinates
+      description:
+        Coordinates of the query point as comma seperated list, see `source-crs`
+        parameter for order and required dimension of the coordinates
       in: query
       name: coordinates
       required: true
@@ -863,7 +884,9 @@ components:
         api-version:
           $ref: "#/components/headers/api-version"
     "400Transform":
-      description: Bad request. The request body does not contain a valid payload or the query is not supported by the API.
+      description:
+        Bad request. The request body does not contain a valid payload or the
+        query is not supported by the API.
       content:
         application/problem+json:
           schema:
@@ -889,7 +912,9 @@ components:
         api-version:
           $ref: "#/components/headers/api-version"
     "400":
-      description: Bad request. The request body does not contain a valid payload or the query is not supported by the API.
+      description:
+        Bad request. The request body does not contain a valid payload or the
+        query is not supported by the API.
       content:
         application/problem+json:
           schema:
@@ -1040,7 +1065,10 @@ components:
           description: Result of density-check
           type: boolean
         failedLineSegments:
-          description: FeatureCollection containing line segments that failed density-check. If all line segments passed density-check, value of `failedLineSegments` is `null`.
+          description:
+            FeatureCollection containing line segments that failed
+            density-check. If all line segments passed density-check, value of
+            `failedLineSegments` is `null`.
           oneOf:
             - type: "null" # Note the quotes around 'null'
             - $ref: https://geojson.org/schema/FeatureCollection.json
@@ -1058,7 +1086,8 @@ components:
       example: 2010.1
       type: number
     Error:
-      description: Object specified according to https://tools.ietf.org/html/rfc7807.
+      description:
+        Object specified according to https://tools.ietf.org/html/rfc7807.
       properties:
         detail:
           type: string
@@ -1078,7 +1107,10 @@ components:
         - detail
       type: object
     GeoJsonCrs:
-      description: Optional `.crs` field for GeoJSON FeatureCollection. The  `.properties.name` value should conform to the [OGC URN scheme](https://www.ogc.org/about-ogc/policies/ogc-urn-policy/).
+      description:
+        Optional `.crs` field for GeoJSON FeatureCollection.
+        The  `.properties.name` value should conform to the [OGC URN
+        scheme](https://www.ogc.org/about-ogc/policies/ogc-urn-policy/).
       type: object
       properties:
         properties:

@@ -1,39 +1,41 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python: FastAPI",
-            "type": "python",
-            "request": "launch",
-            "module": "uvicorn",
-            "args": [
-                "--reload",
-                "--port", "8000",
-                "coordinate_transformation_api.main:app",
-                "--log-config", "${workspaceFolder}/.vscode/debug-logging.yaml"
-            ],
-            "env": {
-                "LOG_LEVEL": "DEBUG",
-                "DEBUG": "true",
-                "MAX_SIZE_REQUEST_BODY": "5000000",
-                "CORS_ALLOW_ORIGINS": "*",
-                "API_KEY_IN_OAS": "true",
-                "EXAMPLE_API_KEY": "FOOBAR"
-            },
-            "jinja": true,
-            "justMyCode": false
-        },
-        {
-            "name": "Python: Debug Tests",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "purpose": ["debug-test"],
-            "console": "integratedTerminal",
-            "justMyCode": false
-          }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: FastAPI",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "--reload",
+        "--port",
+        "8000",
+        "coordinate_transformation_api.main:app",
+        "--log-config",
+        "${workspaceFolder}/.vscode/debug-logging.yaml"
+      ],
+      "env": {
+        "LOG_LEVEL": "DEBUG",
+        "DEBUG": "true",
+        "MAX_SIZE_REQUEST_BODY": "5000000",
+        "CORS_ALLOW_ORIGINS": "*",
+        "API_KEY_IN_OAS": "true",
+        "EXAMPLE_API_KEY": "FOOBAR"
+      },
+      "jinja": true,
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Debug Tests",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "purpose": ["debug-test"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
 }
