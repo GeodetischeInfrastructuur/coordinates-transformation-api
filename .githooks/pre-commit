@@ -41,35 +41,29 @@ then
   exit 0
 fi
 
-PY_FILES=$(git ls-files --cached --modified --other --exclude-standard | { grep -E "\.py$" || test $? = 1; })
-YAML_FILES=$(git ls-files --cached --modified --other --exclude-standard | { grep -E "\.ya?ml$" || test $? = 1; })
+print_message "start pre-commit hook" 1 "WARNING" true
 
-if [ -n "$PY_FILES" ]; then
-    command_available "mypy"
-    print_message "running mypy static type checking" 1 "" true
-    if ! mypy src;then
-        print_message "mypy static type check failed - commit aborted" 1 "ERROR" true
-        exit 1
-    fi
-
-    command_available "black"
-    print_message "running Black formatting" 1 "" true
-    black .
-
-    command_available "ruff"
-    print_message "running ruff linting" 1 "" true
-    ruff --fix .
-
-    echo "$PY_FILES"  | xargs git add
+command_available "mypy"
+print_message "running mypy static type checking" 2 "" false
+if ! mypy src;then # in if, otherwise script exits early due to set -eu
+    print_message "mypy static type check failed - commit aborted" 2 "ERROR" true
+    exit 1
 fi
 
-if [ -n "$YAML_FILES" ]; then
-    command_available "prettier"
-    print_message "running prettier yaml formatting" 1 "" true
-    echo "$YAML_FILES" | xargs prettier --ignore-unknown --stdin-filepath --write > /dev/null
-    echo "$YAML_FILES" | xargs git add
-fi
+command_available "black"
+print_message "running Black formatting" 2 "" true
+black .
 
-[[ -z $YAML_FILES ]] && [[ -z $PY_FILES ]] && print_message "no python and yaml files in commit to format and lint" -1 "" true && exit 0
+command_available "ruff"
+print_message "running ruff linting" 2 "" true
+ruff --fix .
 
+command_available "prettier"
+print_message "running prettier formatting" 2 "" true
+prettier "**/*.(json|yaml|md)" -w --prose-wrap always --list-different
+
+git add --update # only add files that already exist; --update: Update the index just where it already has an entry matching <pathspec>
+
+
+print_message "pre-commit hook ran succesfully" 1 "INFO" true
 exit 0
