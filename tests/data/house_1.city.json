@@ -1,463 +1,205 @@
 {
-    "type": "CityJSON",
-    "version": "1.1",
-    "CityObjects": {
-        "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F": {
-            "type": "Building",
-            "children": [
-                "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_1",
-                "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_2"
-            ]
-        },
-        "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_1": {
-            "type": "BuildingPart",
-            "attributes": {
-                "roofType": "1000",
-                "RelativeEavesHeight": 3.308,
-                "RelativeRidgeHeight": 3.308,
-                "AbsoluteEavesHeight": 9.724,
-                "AbsoluteRidgeHeight": 9.724
-            },
-            "geometry": [
-                {
-                    "type": "Solid",
-                    "boundaries": [
-                        [
-                            [
-                                [
-                                    0,
-                                    1,
-                                    2,
-                                    3
-                                ]
-                            ],
-                            [
-                                [
-                                    1,
-                                    4,
-                                    5,
-                                    2
-                                ]
-                            ],
-                            [
-                                [
-                                    4,
-                                    6,
-                                    7,
-                                    5
-                                ]
-                            ],
-                            [
-                                [
-                                    6,
-                                    0,
-                                    3,
-                                    7
-                                ]
-                            ],
-                            [
-                                [
-                                    6,
-                                    4,
-                                    1,
-                                    0
-                                ]
-                            ],
-                            [
-                                [
-                                    3,
-                                    2,
-                                    5,
-                                    7
-                                ]
-                            ]
-                        ]
-                    ],
-                    "semantics": {
-                        "values": [
-                            [
-                                0,
-                                1,
-                                2,
-                                3,
-                                4,
-                                5
-                            ]
-                        ],
-                        "surfaces": [
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "RoofSurface",
-                                "Direction": 0,
-                                "Slope": 90
-                            },
-                            {
-                                "type": "GroundSurface"
-                            }
-                        ]
-                    },
-                    "material": {
-                        "": {
-                            "values": [
-                                [
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                    1,
-                                    2
-                                ]
-                            ]
-                        }
-                    },
-                    "lod": "2"
-                }
-            ],
-            "parents": [
-                "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F"
-            ]
-        },
-        "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_2": {
-            "type": "BuildingPart",
-            "attributes": {
-                "roofType": "1030",
-                "RelativeEavesHeight": 3.317,
-                "RelativeRidgeHeight": 6.436,
-                "AbsoluteEavesHeight": 9.724,
-                "AbsoluteRidgeHeight": 12.843
-            },
-            "geometry": [
-                {
-                    "type": "Solid",
-                    "boundaries": [
-                        [
-                            [
-                                [
-                                    8,
-                                    9,
-                                    10,
-                                    11
-                                ]
-                            ],
-                            [
-                                [
-                                    9,
-                                    12,
-                                    13,
-                                    10
-                                ]
-                            ],
-                            [
-                                [
-                                    12,
-                                    14,
-                                    15,
-                                    13
-                                ]
-                            ],
-                            [
-                                [
-                                    14,
-                                    8,
-                                    11,
-                                    15
-                                ]
-                            ],
-                            [
-                                [
-                                    12,
-                                    9,
-                                    16
-                                ]
-                            ],
-                            [
-                                [
-                                    8,
-                                    14,
-                                    17
-                                ]
-                            ],
-                            [
-                                [
-                                    9,
-                                    8,
-                                    17,
-                                    16
-                                ]
-                            ],
-                            [
-                                [
-                                    14,
-                                    12,
-                                    16,
-                                    17
-                                ]
-                            ],
-                            [
-                                [
-                                    11,
-                                    10,
-                                    13,
-                                    15
-                                ]
-                            ]
-                        ]
-                    ],
-                    "semantics": {
-                        "values": [
-                            [
-                                0,
-                                1,
-                                2,
-                                3,
-                                4,
-                                5,
-                                6,
-                                7,
-                                8
-                            ]
-                        ],
-                        "surfaces": [
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "WallSurface"
-                            },
-                            {
-                                "type": "RoofSurface",
-                                "Direction": 136.033,
-                                "Slope": 49.042
-                            },
-                            {
-                                "type": "RoofSurface",
-                                "Direction": 316.907,
-                                "Slope": 49.051
-                            },
-                            {
-                                "type": "GroundSurface"
-                            }
-                        ]
-                    },
-                    "material": {
-                        "": {
-                            "values": [
-                                [
-                                    3,
-                                    3,
-                                    3,
-                                    3,
-                                    3,
-                                    3,
-                                    4,
-                                    4,
-                                    5
-                                ]
-                            ]
-                        }
-                    },
-                    "lod": "2"
-                }
-            ],
-            "parents": [
-                "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F"
-            ]
-        }
+  "type": "CityJSON",
+  "version": "1.1",
+  "CityObjects": {
+    "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F": {
+      "type": "Building",
+      "children": [
+        "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_1",
+        "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_2"
+      ]
     },
-    "vertices": [
-        [
-            587180,
-            227141,
-            7261
-        ],
-        [
-            587142,
-            227186,
-            7261
-        ],
-        [
-            587142,
-            227186,
-            3953
-        ],
-        [
-            587180,
-            227141,
-            3953
-        ],
-        [
-            587139,
-            227595,
-            7261
-        ],
-        [
-            587139,
-            227595,
-            3953
-        ],
-        [
-            587368,
-            227312,
-            7261
-        ],
-        [
-            587368,
-            227312,
-            3953
-        ],
-        [
-            592523,
-            222407,
-            7261
-        ],
-        [
-            588403,
-            218371,
-            7261
-        ],
-        [
-            588403,
-            218371,
-            3945
-        ],
-        [
-            592523,
-            222407,
-            3945
-        ],
-        [
-            583472,
-            223723,
-            7261
-        ],
-        [
-            583472,
-            223723,
-            3945
-        ],
-        [
-            587773,
-            227687,
-            7261
-        ],
-        [
-            587773,
-            227687,
-            3945
-        ],
-        [
-            585938,
-            221048,
-            10379
-        ],
-        [
-            590148,
-            225048,
-            10379
-        ]
-    ],
-    "transform": {
-        "scale": [
-            0.001,
-            0.001,
-            0.001
-        ],
-        "translate": [
-            78248.66,
-            457604.591,
-            2.463
-        ]
-    },
-    "appearance": {
-        "materials": [
-            {
-                "name": "UUID_2473ede3-71fc-44aa-847d-ae078d0c36aa",
-                "ambientIntensity": 0.2,
-                "diffuseColor": [
-                    0.922,
-                    0.922,
-                    0.922
-                ]
-            },
-            {
-                "name": "UUID_29adfd0f-43e4-4cc1-a737-3a3e6799a326",
-                "ambientIntensity": 0.2,
-                "diffuseColor": [
-                    0.502,
-                    0,
-                    0
-                ]
-            },
-            {
-                "name": "UUID_aa8b64e6-a4a7-4428-97ed-aa138c194bf9",
-                "ambientIntensity": 0.2,
-                "diffuseColor": [
-                    0.502,
-                    0.502,
-                    0.502
-                ]
-            },
-            {
-                "name": "UUID_a87bb328-5637-42bd-a898-cc9dd43f5a41",
-                "ambientIntensity": 0.2,
-                "diffuseColor": [
-                    0.922,
-                    0.922,
-                    0.922
-                ]
-            },
-            {
-                "name": "UUID_9510dae2-0d9d-4a38-a244-12d2cd3f988e",
-                "ambientIntensity": 0.2,
-                "diffuseColor": [
-                    0.502,
-                    0,
-                    0
-                ]
-            },
-            {
-                "name": "UUID_b333279c-4e5f-439b-820b-9c53ab454e32",
-                "ambientIntensity": 0.2,
-                "diffuseColor": [
-                    0.502,
-                    0.502,
-                    0.502
-                ]
+    "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_1": {
+      "type": "BuildingPart",
+      "attributes": {
+        "roofType": "1000",
+        "RelativeEavesHeight": 3.308,
+        "RelativeRidgeHeight": 3.308,
+        "AbsoluteEavesHeight": 9.724,
+        "AbsoluteRidgeHeight": 9.724
+      },
+      "geometry": [
+        {
+          "type": "Solid",
+          "boundaries": [
+            [
+              [[0, 1, 2, 3]],
+              [[1, 4, 5, 2]],
+              [[4, 6, 7, 5]],
+              [[6, 0, 3, 7]],
+              [[6, 4, 1, 0]],
+              [[3, 2, 5, 7]]
+            ]
+          ],
+          "semantics": {
+            "values": [[0, 1, 2, 3, 4, 5]],
+            "surfaces": [
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "RoofSurface",
+                "Direction": 0,
+                "Slope": 90
+              },
+              {
+                "type": "GroundSurface"
+              }
+            ]
+          },
+          "material": {
+            "": {
+              "values": [[0, 0, 0, 0, 1, 2]]
             }
-        ]
+          },
+          "lod": "2"
+        }
+      ],
+      "parents": ["GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F"]
     },
-    "metadata": {
-        "geographicalExtent": [
-            78832.132,
-            457822.962,
-            6.408,
-            78841.183,
-            457832.278,
-            12.841999999999999
-        ],
-        "referenceSystem": "https://www.opengis.net/def/crs/EPSG/0/7415"
+    "GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_2": {
+      "type": "BuildingPart",
+      "attributes": {
+        "roofType": "1030",
+        "RelativeEavesHeight": 3.317,
+        "RelativeRidgeHeight": 6.436,
+        "AbsoluteEavesHeight": 9.724,
+        "AbsoluteRidgeHeight": 12.843
+      },
+      "geometry": [
+        {
+          "type": "Solid",
+          "boundaries": [
+            [
+              [[8, 9, 10, 11]],
+              [[9, 12, 13, 10]],
+              [[12, 14, 15, 13]],
+              [[14, 8, 11, 15]],
+              [[12, 9, 16]],
+              [[8, 14, 17]],
+              [[9, 8, 17, 16]],
+              [[14, 12, 16, 17]],
+              [[11, 10, 13, 15]]
+            ]
+          ],
+          "semantics": {
+            "values": [[0, 1, 2, 3, 4, 5, 6, 7, 8]],
+            "surfaces": [
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "WallSurface"
+              },
+              {
+                "type": "RoofSurface",
+                "Direction": 136.033,
+                "Slope": 49.042
+              },
+              {
+                "type": "RoofSurface",
+                "Direction": 316.907,
+                "Slope": 49.051
+              },
+              {
+                "type": "GroundSurface"
+              }
+            ]
+          },
+          "material": {
+            "": {
+              "values": [[3, 3, 3, 3, 3, 3, 4, 4, 5]]
+            }
+          },
+          "lod": "2"
+        }
+      ],
+      "parents": ["GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F"]
     }
+  },
+  "vertices": [
+    [587180, 227141, 7261],
+    [587142, 227186, 7261],
+    [587142, 227186, 3953],
+    [587180, 227141, 3953],
+    [587139, 227595, 7261],
+    [587139, 227595, 3953],
+    [587368, 227312, 7261],
+    [587368, 227312, 3953],
+    [592523, 222407, 7261],
+    [588403, 218371, 7261],
+    [588403, 218371, 3945],
+    [592523, 222407, 3945],
+    [583472, 223723, 7261],
+    [583472, 223723, 3945],
+    [587773, 227687, 7261],
+    [587773, 227687, 3945],
+    [585938, 221048, 10379],
+    [590148, 225048, 10379]
+  ],
+  "transform": {
+    "scale": [0.001, 0.001, 0.001],
+    "translate": [78248.66, 457604.591, 2.463]
+  },
+  "appearance": {
+    "materials": [
+      {
+        "name": "UUID_2473ede3-71fc-44aa-847d-ae078d0c36aa",
+        "ambientIntensity": 0.2,
+        "diffuseColor": [0.922, 0.922, 0.922]
+      },
+      {
+        "name": "UUID_29adfd0f-43e4-4cc1-a737-3a3e6799a326",
+        "ambientIntensity": 0.2,
+        "diffuseColor": [0.502, 0, 0]
+      },
+      {
+        "name": "UUID_aa8b64e6-a4a7-4428-97ed-aa138c194bf9",
+        "ambientIntensity": 0.2,
+        "diffuseColor": [0.502, 0.502, 0.502]
+      },
+      {
+        "name": "UUID_a87bb328-5637-42bd-a898-cc9dd43f5a41",
+        "ambientIntensity": 0.2,
+        "diffuseColor": [0.922, 0.922, 0.922]
+      },
+      {
+        "name": "UUID_9510dae2-0d9d-4a38-a244-12d2cd3f988e",
+        "ambientIntensity": 0.2,
+        "diffuseColor": [0.502, 0, 0]
+      },
+      {
+        "name": "UUID_b333279c-4e5f-439b-820b-9c53ab454e32",
+        "ambientIntensity": 0.2,
+        "diffuseColor": [0.502, 0.502, 0.502]
+      }
+    ]
+  },
+  "metadata": {
+    "geographicalExtent": [
+      78832.132, 457822.962, 6.408, 78841.183, 457832.278, 12.841999999999999
+    ],
+    "referenceSystem": "https://www.opengis.net/def/crs/EPSG/0/7415"
+  }
 }
