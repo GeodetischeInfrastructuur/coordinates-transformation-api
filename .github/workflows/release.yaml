@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  packages: write
+  contents: write
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lowercase org/repo
+        shell: bash
+        id: lowercaserepo
+        run: |
+          GH_REPO=${{ github.repository }}
+          echo "REPO_LC=${GH_REPO,,}" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: "Login to GitHub Container Registry"
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: "Build image"
+        run: |
+          docker build . --tag ghcr.io/${{ steps.lowercaserepo.outputs.REPO_LC }}:latest
+          docker push ghcr.io/${{ steps.lowercaserepo.outputs.REPO_LC }}:latest
+          docker tag ghcr.io/${{ steps.lowercaserepo.outputs.REPO_LC }}:latest ghcr.io/${{ steps.lowercaserepo.outputs.REPO_LC }}:${{ github.event.release.tag_name }}
+          docker push ghcr.io/${{ steps.lowercaserepo.outputs.REPO_LC }}:${{ github.event.release.tag_name }}
