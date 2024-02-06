@@ -338,7 +338,9 @@ async def density_check(  # noqa: ANN201
 async def transform(  # noqa: PLR0913, ANN201
     coordinates: Annotated[
         str,
-        Query(alias="coordinates", pattern=r"^(\d+\.?\d*),(\d+\.?\d*)(,\d+\.?\d*)?$"),
+        Query(
+            alias="coordinates", pattern=r"^(-?\d+\.?\d*),(-?\d+\.?\d*)(,-?\d+\.?\d*)?$"
+        ),
     ],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,
