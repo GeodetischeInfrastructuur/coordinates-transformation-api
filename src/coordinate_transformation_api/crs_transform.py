@@ -20,6 +20,7 @@ from shapely.geometry import shape
 from coordinate_transformation_api import assets
 from coordinate_transformation_api.constants import (
     DEFAULT_PRECISION,
+    HEIGHT_PRECISION,
     THREE_DIMENSIONAL,
     TWO_DIMENSIONAL,
 )
@@ -373,10 +374,20 @@ def get_transform_crs_fun(  #
             #
             input = tuple([*val, float(epoch)]) if epoch is not None else tuple([*val])
 
-            h = h_transformer.transform(*input)
-            v = v_transformer.transform(*input)
+            h = tuple(
+                [
+                    float(my_round(x, DEFAULT_PRECISION))
+                    for x in h_transformer.transform(*input)
+                ]
+            )
+            v = tuple(
+                [
+                    float(my_round(x, HEIGHT_PRECISION))
+                    for x in v_transformer.transform(*input)
+                ]
+            )
 
-            return tuple([float(my_round(x, precision)) for x in h[0:2] + v[2:3]])
+            return h[0:2] + v[2:3]
 
         return transform_compound_crs
     else:
@@ -395,6 +406,7 @@ def get_transform_crs_fun(  #
                     f"number of dimensions of target-crs should be 2 or 3, is {dim}"
                 )
             val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
+
             # TODO: fix epoch handling, should only be added in certain cases
             # when one of the src or tgt crs has a dynamic time component
             # or the transformation used has a datetime component
@@ -413,11 +425,19 @@ def get_transform_crs_fun(  #
             # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
             # 'needed' in the result, because there is no conversion of time, e.i. a epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
             # of the transformer is 'stripped' with [0:dim]
-            return tuple(
+            output = tuple(
                 [
                     float(my_round(x, precision))
                     for x in transformer.transform(*input)[0:dim]
                 ]
             )
+
+            if len(output) >= THREE_DIMENSIONAL:
+                height = my_round(output[2:3][0], HEIGHT_PRECISION)
+                return output[0:2] + tuple(
+                    [height],
+                )
+
+            return output
 
         return transform_crs
