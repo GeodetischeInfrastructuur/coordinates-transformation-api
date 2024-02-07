@@ -336,11 +336,11 @@ paths:
                   coordinates:
                     - 52.763875
                     - 4.069801
-                    - 115.904857
+                    - 115.9049
             text/plain:
               schema:
                 type: string
-                example: "POINT Z (52.763875 4.069801 115.904857)"
+                example: "POINT Z (52.763875 4.069801 115.9049)"
                 description:
                   WKT representation of a point as POINT (...) or POINT Z (...)
           headers:
@@ -700,7 +700,7 @@ paths:
                   coordinates:
                     - 52.763875
                     - 4.069801
-                    - 115.904857
+                    - 115.9049
                 properties:
                   id: 1
 

@@ -1,4 +1,7 @@
 DEFAULT_PRECISION = 4
+HEIGHT_PRECISION = (
+    4  # height will always be in metres, therefor fixed precision of 4 decimals
+)
 DENSIFY_CRS_2D = "EPSG:9067"
 DENSIFY_CRS_3D = "EPSG:7931"
 DEVIATION_VALID_BBOX = [

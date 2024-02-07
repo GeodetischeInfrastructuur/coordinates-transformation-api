@@ -6,7 +6,7 @@ client = TestClient(app)
 
 
 @pytest.mark.parametrize(
-    ("input", "expectation", "source_crs", "target_crs"),
+    ("input", "expectation", "source_crs", "target_crs", "epoch"),
     [
         (
             "128410.0958,445806.4960",
@@ -16,6 +16,7 @@ client = TestClient(app)
             },
             "EPSG:28992",
             "EPSG:4326",
+            None,
         ),
         (
             "52.0,5.0",
@@ -25,6 +26,7 @@ client = TestClient(app)
             },
             "EPSG:4326",
             "EPSG:28992",
+            None,
         ),
         (
             "52.0,5.0,43",
@@ -34,6 +36,7 @@ client = TestClient(app)
             },
             "EPSG:7931",
             "EPSG:7415",
+            None,
         ),
         (
             "2.0,2.0,43",
@@ -43,6 +46,7 @@ client = TestClient(app)
             },
             "EPSG:7931",
             "EPSG:7415",
+            None,
         ),
         (
             "2.0,2.0,43",
@@ -52,13 +56,40 @@ client = TestClient(app)
             },
             "EPSG:7931",
             "EPSG:28992",
+            None,
+        ),
+        (
+            "78835.84,457831.732,9.724",
+            {
+                "type": "Point",
+                "coordinates": [3914987.7917, 292686.6338, 5009926.0202],
+            },
+            "EPSG:7415",
+            "EPSG:9753",
+            "2010.00",
+        ),
+        (
+            "78835.84,457831.732,9.724",
+            {
+                "type": "Point",
+                "coordinates": [52.103482881, 4.275510253, 53.122],
+            },
+            "EPSG:7415",
+            "EPSG:9754",
+            "2010.00",
         ),
     ],
 )
-def test_transform_get(input, expectation, source_crs, target_crs):
-    response = client.get(
-        f"/transform?coordinates={input}&source-crs={source_crs}&target-crs={target_crs}",
-    )
+def test_transform_get(input, expectation, source_crs, target_crs, epoch):
+    if epoch is not None:
+        response = client.get(
+            f"/transform?coordinates={input}&source-crs={source_crs}&target-crs={target_crs}&epoch={epoch}",
+        )
+    else:
+        response = client.get(
+            f"/transform?coordinates={input}&source-crs={source_crs}&target-crs={target_crs}",
+        )
+
     response_object = response.json()
     assert response.status_code == 200  # noqa: PLR2004
     assert response_object == expectation
