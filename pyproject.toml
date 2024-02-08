@@ -10,8 +10,8 @@ classifiers = [
 ]
 readme = { file = "./README.md", content-type = "text/markdown" }
 dependencies = [
-    "fastapi[all] == 0.109.0",
-    "uvicorn == 0.27.0",
+    "fastapi[all] == 0.109.2",
+    "uvicorn == 0.27.0.post1",
     "pyyaml == 6.0.1",
     "geojson_pydantic == 1.0.2",
     "pyproj == 3.6.1",
@@ -24,14 +24,14 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
-    "black == 23.12.1",
-    "coverage == 7.4.0",
+    "black == 24.1.1",
+    "coverage == 7.4.1",
     "mypy == 1.8.0",
-    "pytest == 7.4.4",
-    "ruff == 0.1.14",
+    "pytest == 8.0.0",
+    "ruff == 0.2.1",
     "types-ujson == 5.9.0.0",
     "types-PyYAML == 6.0.12.12",
-    "pytest-asyncio == 0.23.3",
+    "pytest-asyncio == 0.23.4",
 ]
 
 [build-system]
