@@ -344,7 +344,10 @@ def get_transform_crs_fun(  #
     target_crs: str,
     precision: int | None = None,
     epoch: float | None = None,
-) -> Callable[[CoordinatesType], tuple[float, ...],]:
+) -> Callable[
+    [CoordinatesType],
+    tuple[float, ...],
+]:
     """TODO: improve type annotation/handling geojson/cityjson transformation, with the current implementation mypy is not complaining"""
 
     def my_round(val: float, precision: int | None) -> float | int:
@@ -412,9 +415,11 @@ def get_transform_crs_fun(  #
             input = tuple(
                 [
                     *val,
-                    float(epoch)
-                    if len(val) == THREE_DIMENSIONAL and epoch is not None
-                    else None,
+                    (
+                        float(epoch)
+                        if len(val) == THREE_DIMENSIONAL and epoch is not None
+                        else None
+                    ),
                 ]
             )
 

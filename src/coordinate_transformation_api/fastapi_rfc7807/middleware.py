@@ -373,9 +373,9 @@ def get_exception_handler(
         await exec_hooks(pre_hooks, request, exc)
         response = ProblemResponse(exc, debug=debug)
         if response.problem.type == "nsgi.nl/density-check-failed":
-            response.headers[
-                DENSITY_CHECK_RESULT_HEADER
-            ] = DensityCheckResult.failed.value
+            response.headers[DENSITY_CHECK_RESULT_HEADER] = (
+                DensityCheckResult.failed.value
+            )
         await exec_hooks(post_hooks, request, response, exc)
 
         return response
