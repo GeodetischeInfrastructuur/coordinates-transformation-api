@@ -71,7 +71,7 @@ class AppSettings(BaseSettings):
     precision: int = Field(
         alias="PRECISION",
         default=4,
-        description="precision for output coordinates in GeoJSON format for CRS in meters, precision for degrees based CRS is PRECISION+5",
+        description="number of decimals for output coordinates in GeoJSON format for CRS in meters, number of decimals for degrees-based CRS is PRECISION+5",
     )
     base_url: str = Field(
         alias="BASE_URL",
@@ -82,7 +82,7 @@ class AppSettings(BaseSettings):
     cors_allow_origins: Union[list[AnyHttpUrl], CorsAllOrNone] = Field(
         alias="CORS_ALLOW_ORIGINS",
         default=None,
-        description="CORS origins, either a comma separated list of HTTPS urls of the value `*` to allow CORS on all origins",
+        description="Cross-Origin Resource Sharing (CORS), either a comma separated list of HTTPS urls of the value `*` to allow CORS on all origins",
     )
     access_log: bool = Field(
         alias="ACCESS_LOG",

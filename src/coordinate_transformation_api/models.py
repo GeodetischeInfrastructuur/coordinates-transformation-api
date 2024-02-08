@@ -73,7 +73,7 @@ class DensityCheckFailedError(DataValidationError):
 
 class DeviationOutOfBboxError(DataValidationError):
     type_str = "nsgi.nl/deviation-data-outside-bbox"
-    title = "Data Outside Bounding Box when Using Deviation"
+    title = "Data Outside Bounding Box when Using a max. Deviation"
     pass
 
 
@@ -204,6 +204,6 @@ class Crs(BaseModel):
         unit_name = axe.unit_name
         if unit_name not in ["degree", "metre"]:
             raise ValueError(
-                f"Unexpected unit in x axis (x, e, lon) CRS {self.crs_auth_identifier} - expected values: degree, meter, actual value: {unit_name}"
+                f"Unexpected unit of first axis (x, E, lon) of CRS {self.crs_auth_identifier} - expected values: degree, meter, actual value: {unit_name}"
             )
         return unit_name

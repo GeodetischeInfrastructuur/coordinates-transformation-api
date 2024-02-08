@@ -164,7 +164,7 @@ def density_check_request_body(
     max_segment_deviation: float | None,
     max_segment_length: float | None,
 ) -> CrsFeatureCollection:
-    """Run density check with langelijnenadvies implementatie, by running density check in DENSIFY_CRS."""
+    """Run density check with geodense implementation, by running density check in DENSIFY_CRS."""
     _geom_type_check(body)
     if max_segment_deviation is not None:
         bbox_check_deviation_set(body, source_crs, max_segment_deviation)
@@ -181,7 +181,7 @@ def density_check_request_body(
     if transform:
         crs_transform(
             body, source_crs, transform_crs
-        )  # !NOTE: crs_transform is required for langelijnen advies implementatie
+        )  # !NOTE: crs_transform is required for density_check and densify
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS_2D.split(":")), max_segment_length)
     failed_line_segments = density_check_geojson_object(body, c)
 
@@ -207,7 +207,7 @@ def densify_request_body(
     max_segment_deviation: float | None,
     max_segment_length: float | None,
 ) -> None:
-    """densify request body according to langelijnenadvies by densifying in DENSIFY_CRS
+    """densify request body according to geodense by densifying in DENSIFY_CRS
 
     Args:
         body (Feature | FeatureCollection | _GeometryBase | GeometryCollection): request body to transform, will be transformed in place
@@ -270,7 +270,7 @@ def init_oas(crs_config) -> tuple[dict, str, str]:
             }
             security: dict = {"security": [{"APIKeyHeader": []}]}
             if app_settings.example_api_key is not None:
-                api_key_description = f"\n\nThe Demo API key is `{app_settings.example_api_key}` and is intended for exploratory use of the API only. "
+                api_key_description = f"\n\nThe Demo API key is `{app_settings.example_api_key}` and is intended for exploratory use of the API only. This key may stop working without warning."
                 oas["info"]["description"] = (
                     oas["info"]["description"] + api_key_description
                 )
@@ -384,7 +384,7 @@ def validate_crs_transformed_geojson(body: GeojsonObject) -> None:
 
 
 def remove_height_when_inf_geojson(body: GeojsonObject) -> GeojsonObject:
-    # Seperated check on inf height/elevation
+    # Seperated check on inf height
     validate_json_height_fun = get_json_height_contains_inf_fun()
     contains_inf_height: Nested[bool] = apply_function_on_geojson_geometries(
         body, validate_json_height_fun

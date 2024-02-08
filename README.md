@@ -1,7 +1,7 @@
 # Coordinate Transformation API
 
-RESTful Coordinate Transformation API offering NSGI approved transformations for
-the Netherlands. Build on top of pyproj and FastAPI.
+RESTful Coordinate Transformation API offering NSGI defined and NSGI recommended
+transformations for the Netherlands. Build on top of pyproj and FastAPI.
 
 ## Assumptions
 
@@ -20,23 +20,19 @@ Pyproj with default configuration is not capable in performing the right
 transformations, because our primary transformations layer on the following
 transformation grids:
 
-Variant 1:
+Recommended RDNAPTRANS(TM)2018 variant:
 
-1. <https://cdn.proj.org/nl_nsgi_nlgeo2018.tif>
-1. <https://cdn.proj.org/nl_nsgi_rdcorr2018.tif>
+- <https://cdn.proj.org/nl_nsgi_nlgeo2018.tif>
+- <https://cdn.proj.org/nl_nsgi_rdcorr2018.tif>
 
-The recommended variant.
-
-Variant 2:
-
-1. <https://cdn.proj.org/nl_nsgi_rdtrans2018.tif>
+And the geoid for BESTRANS2020
 
 These transformation grids need to be downloaded from the
 [PROJ.org Datumgrid CDN](https://cdn.proj.org/) and put in the correct
 directory. This can be done in a couple of ways.
 
 1. Enable PROJ_NETWORK environment variable
-1. Edit proj.ini file by setting `network = on`
+2. Edit proj.ini file by setting `network = on`
 
 These will download the necessary files to a cache so they can be use for the
 correct transformation. But this requires a network connection, preferable we
