@@ -1,6 +1,6 @@
 FROM python:3.11.4-bullseye as builder
 
-ARG NSGI_PROJ_DB_VERSION="1.0.3"
+ARG NSGI_PROJ_DB_VERSION="1.1.0"
 
 LABEL maintainer="NSGI <info@nsgi.nl>"
 
@@ -27,7 +27,7 @@ RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif
     curl -sL -o nl_nsgi_rdtrans2018.tif https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
     curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="bq_nsgi_bongeo2004.tif").url') -o bq_nsgi_bongeo2004.tif && \
     curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="nllat2018.gtx").url') -o nllat2018.gtx && \
-    curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.global.time.dependent.transformations.db").url') -o proj.db
+    curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.time.dependent.transformations.db").url') -o proj.db
 
 RUN ls -lah /src/dist/ >&2
 
