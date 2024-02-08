@@ -19,8 +19,8 @@ from shapely.geometry import shape
 
 from coordinate_transformation_api import assets
 from coordinate_transformation_api.constants import (
-    DEFAULT_PRECISION,
-    HEIGHT_PRECISION,
+    DEFAULT_DIGITS_FOR_ROUNDING,
+    HEIGHT_DIGITS_FOR_ROUNDING,
     THREE_DIMENSIONAL,
     TWO_DIMENSIONAL,
 )
@@ -41,8 +41,8 @@ with open(str(api_conf)) as f:
 def get_precision(target_crs_crs: MyCrs) -> int:
     unit = target_crs_crs.get_x_unit_crs()
     if unit == "degree":
-        return DEFAULT_PRECISION + 5
-    return DEFAULT_PRECISION
+        return DEFAULT_DIGITS_FOR_ROUNDING + 5
+    return DEFAULT_DIGITS_FOR_ROUNDING
 
 
 def get_shapely_objects(
@@ -376,13 +376,13 @@ def get_transform_crs_fun(  #
 
             h = tuple(
                 [
-                    float(my_round(x, DEFAULT_PRECISION))
+                    float(my_round(x, DEFAULT_DIGITS_FOR_ROUNDING))
                     for x in h_transformer.transform(*input)
                 ]
             )
             v = tuple(
                 [
-                    float(my_round(x, HEIGHT_PRECISION))
+                    float(my_round(x, HEIGHT_DIGITS_FOR_ROUNDING))
                     for x in v_transformer.transform(*input)
                 ]
             )
@@ -433,7 +433,7 @@ def get_transform_crs_fun(  #
             )
 
             if len(output) >= THREE_DIMENSIONAL:
-                height = my_round(output[2:3][0], HEIGHT_PRECISION)
+                height = my_round(output[2:3][0], HEIGHT_DIGITS_FOR_ROUNDING)
                 return output[0:2] + tuple(
                     [height],
                 )
