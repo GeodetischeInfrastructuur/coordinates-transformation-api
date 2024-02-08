@@ -1,5 +1,5 @@
-DEFAULT_PRECISION = 4
-HEIGHT_PRECISION = (
+DEFAULT_DIGITS_FOR_ROUNDING = 4
+HEIGHT_DIGITS_FOR_ROUNDING = (
     4  # height will always be in metres, therefor fixed precision of 4 decimals
 )
 DENSIFY_CRS_2D = "EPSG:9067"
