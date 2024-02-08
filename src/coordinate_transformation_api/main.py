@@ -258,7 +258,7 @@ async def crs(crs_id: str) -> Crs | Response:
 async def conformance() -> Conformance:
     return Conformance(
         conformsTo=[
-            # does not conform to fully to the following standards, but effort has been made to conform as much as possible
+            # does not conform fully to the following standards, but effort has been made to conform as much as possible
             # "https://docs.ogc.org/is/19-072/19-072.html",
             # "https://gitdocumentatie.logius.nl/publicatie/api/adr/",
         ]
