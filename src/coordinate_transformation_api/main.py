@@ -156,9 +156,9 @@ async def add_api_version(request: Request, call_next: Callable) -> Response:
         # overwrite response in case route is a know route with trailing slash
         for route in app.routes:
             if isinstance(route, APIRoute) and request.url.path == f"{route.path}/":
-                response_body[
-                    "detail"
-                ] = f"not found, path contains trailing slash try {route.path}"
+                response_body["detail"] = (
+                    f"not found, path contains trailing slash try {route.path}"
+                )
                 response = Response(
                     content=json.dumps(response_body),
                     status_code=404,

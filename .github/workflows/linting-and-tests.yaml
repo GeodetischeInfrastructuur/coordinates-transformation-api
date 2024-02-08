@@ -40,7 +40,7 @@ jobs:
           curl -sL -o "${proj_data_dir}/nl_nsgi_nlgeo2018.tif" https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
           curl -sL -o "${proj_data_dir}/nl_nsgi_rdcorr2018.tif" https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
           curl -sL -o "${proj_data_dir}/nl_nsgi_rdtrans2018.tif" https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
-          curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.global.time.dependent.transformations.db").url') -o "${proj_data_dir}/proj.db"
+          curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.time.dependent.transformations.db").url') -o "${proj_data_dir}/proj.db"
 
       - name: Lint with black
         run: |
