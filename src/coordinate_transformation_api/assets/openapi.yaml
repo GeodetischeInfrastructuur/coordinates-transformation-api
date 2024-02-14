@@ -150,7 +150,7 @@ paths:
         on geodesic (ellipsoidal great-circle) distance on the ellipsoid of the
         (base) CRS
       description: |
-        Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the `maxSegmentLength/Deviation` (if any).
+        Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the `maxSegmentLength`/`Deviation` (if any).
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/contentCrs"
