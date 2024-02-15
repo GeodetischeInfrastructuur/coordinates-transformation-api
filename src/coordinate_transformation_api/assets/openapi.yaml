@@ -227,7 +227,8 @@ paths:
         (base) CRS
       description: >
         A POST endpoint that accepts a GeoJSON object and densifies the
-        geometries using the `max-segment-length` threshold.
+        geometries using the maximum segment length 'maxSegmentLength' or
+        maximum segment deviation `maxSegmentDeviation` threshold.
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/contentCrs"
@@ -903,7 +904,7 @@ components:
         api-version:
           $ref: "#/components/headers/api-version"
     "404Crs":
-      description: CRS Not Found.
+      description: Coordinate reference system (CRS) Not Found.
       content:
         application/problem+json:
           schema:
@@ -1138,14 +1139,14 @@ components:
       properties:
         description:
           example: |
-            Landing page of the Coordinatetransformation API
+            Landing page of the Coordinate Transformation API
           type: string
         links:
           items:
             $ref: "#/components/schemas/Link"
           type: array
         title:
-          example: Coordinatetransformation API
+          example: Coordinate Transformation API
           type: string
       required:
         - links
