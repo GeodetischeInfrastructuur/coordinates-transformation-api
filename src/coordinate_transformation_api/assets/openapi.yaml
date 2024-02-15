@@ -150,7 +150,7 @@ paths:
         on geodesic (ellipsoidal great-circle) distance on the ellipsoid of the
         (base) CRS
       description: |
-        Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the `maxSegmentLength/Deviation` (if any).
+        Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the maximum segment length 'maxSegmentLength' or maximum segment deviation `maxSegmentDeviation`.
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/contentCrs"
@@ -192,10 +192,10 @@ paths:
                     geometry:
                       type: LineString
                       coordinates:
-                        - - 156264.906359842570964
-                          - 601302.588919493253343
-                        - - 165681.964475793502061
-                          - 605544.313164469087496
+                        - - 156264.9063
+                          - 601302.5889
+                        - - 165681.9644
+                          - 605544.3131
       responses:
         "200":
           description: OK
@@ -208,7 +208,8 @@ paths:
             api-version:
               $ref: "#/components/headers/api-version"
             content-crs:
-              description: FOOBAR
+              description:
+                Coordinate reference system (CRS) of the input coordinates
               $ref: "#/components/headers/content-crs"
         "400":
           $ref: "#/components/responses/400"
@@ -226,11 +227,13 @@ paths:
         (base) CRS
       description: >
         A POST endpoint that accepts a GeoJSON object and densifies the
-        geometries using the `max-segment-length` threshold.
+        geometries using the maximum segment length 'maxSegmentLength' or
+        maximum segment deviation `maxSegmentDeviation` threshold.
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/contentCrs"
         - $ref: "#/components/parameters/maxSegmentLength"
+        - $ref: "#/components/parameters/maxSegmentDeviation"
 
       requestBody:
         required: true
@@ -261,10 +264,10 @@ paths:
               geometry:
                 type: LineString
                 coordinates:
-                  - - 156264.90635984257
-                    - 601302.5889194933
-                  - - 165681.9644757935
-                    - 605544.3131644691
+                  - - 156264.9063
+                    - 601302.5889
+                  - - 165681.9644
+                    - 605544.3131
       responses:
         "200":
           description: OK
@@ -272,7 +275,6 @@ paths:
             application/json:
               schema:
                 $ref: https://geojson.org/schema/FeatureCollection.json
-                description: FOOBAR
               example:
                 type: FeatureCollection
                 name: lijnen
@@ -286,10 +288,10 @@ paths:
                     geometry:
                       type: LineString
                       coordinates:
-                        - - 156264.906359842570964
-                          - 601302.588919493253343
-                        - - 165681.964475793502061
-                          - 605544.313164469087496
+                        - - 156264.9063
+                          - 601302.5889
+                        - - 165681.9644
+                          - 605544.3131
           headers:
             api-version:
               $ref: "#/components/headers/api-version"
@@ -752,7 +754,7 @@ components:
                     - - 165681.9645
                       - 605544.3131
                 properties:
-                  segment_length: 10327.966539495786
+                  segment_length: 10327.9665
                 id: null
             crs:
               properties:
@@ -839,7 +841,8 @@ components:
       schema:
         $ref: "#/components/schemas/Epoch"
     maxSegmentDeviation:
-      description: Maximum segment deviation for densify and density-check
+      description:
+        Maximum segment deviation in metres for densify and density-check
       in: query
       name: max-segment-deviation
       required: false
@@ -847,7 +850,8 @@ components:
         type: number
         minimum: 0.001
     maxSegmentLength:
-      description: Maximum segment length for densify and density-check
+      description:
+        Maximum segment length in metres for densify and density-check
       in: query
       name: max-segment-length
       required: false
@@ -857,7 +861,7 @@ components:
         minimum: 200
     sourceCrs:
       description: |
-        Source Coordinate Reference System (CRS)
+        Source coordinate reference system (CRS)
       in: query
       name: source-crs
       example: EPSG:7415
@@ -865,7 +869,7 @@ components:
       schema:
         $ref: "#/components/schemas/CrsEnum"
     targetCrs:
-      description: Target Coordinate Reference System (CRS)
+      description: Target coordinate reference system (CRS)
       in: query
       name: target-crs
       required: false
@@ -900,7 +904,7 @@ components:
         api-version:
           $ref: "#/components/headers/api-version"
     "404Crs":
-      description: CRS Not Found.
+      description: Coordinate reference system (CRS) Not Found.
       content:
         application/problem+json:
           schema:
@@ -1056,7 +1060,7 @@ components:
                     - 605544.3131
                 type: LineString
               properties:
-                segment_length: 10327.966539495786
+                segment_length: 10327.9665
               type: Feature
           name: failed-line-segments
           type: FeatureCollection
@@ -1135,14 +1139,14 @@ components:
       properties:
         description:
           example: |
-            Landing page of the Coordinatetransformation API
+            Landing page of the Coordinate Transformation API
           type: string
         links:
           items:
             $ref: "#/components/schemas/Link"
           type: array
         title:
-          example: Coordinatetransformation API
+          example: Coordinate Transformation API
           type: string
       required:
         - links
