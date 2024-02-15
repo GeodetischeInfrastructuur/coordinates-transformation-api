@@ -192,10 +192,10 @@ paths:
                     geometry:
                       type: LineString
                       coordinates:
-                        - - 156264.906359842570964
-                          - 601302.588919493253343
-                        - - 165681.964475793502061
-                          - 605544.313164469087496
+                        - - 156264.9063
+                          - 601302.5889
+                        - - 165681.9644
+                          - 605544.3131
       responses:
         "200":
           description: OK
@@ -263,10 +263,10 @@ paths:
               geometry:
                 type: LineString
                 coordinates:
-                  - - 156264.90635984257
-                    - 601302.5889194933
-                  - - 165681.9644757935
-                    - 605544.3131644691
+                  - - 156264.9063
+                    - 601302.5889
+                  - - 165681.9644
+                    - 605544.3131
       responses:
         "200":
           description: OK
@@ -287,10 +287,10 @@ paths:
                     geometry:
                       type: LineString
                       coordinates:
-                        - - 156264.906359842570964
-                          - 601302.588919493253343
-                        - - 165681.964475793502061
-                          - 605544.313164469087496
+                        - - 156264.9063
+                          - 601302.5889
+                        - - 165681.9644
+                          - 605544.3131
           headers:
             api-version:
               $ref: "#/components/headers/api-version"
@@ -753,7 +753,7 @@ components:
                     - - 165681.9645
                       - 605544.3131
                 properties:
-                  segment_length: 10327.966539495786
+                  segment_length: 10327.9665
                 id: null
             crs:
               properties:
@@ -1059,7 +1059,7 @@ components:
                     - 605544.3131
                 type: LineString
               properties:
-                segment_length: 10327.966539495786
+                segment_length: 10327.9665
               type: Feature
           name: failed-line-segments
           type: FeatureCollection
