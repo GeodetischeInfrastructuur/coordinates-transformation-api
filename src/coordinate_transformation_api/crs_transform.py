@@ -294,7 +294,9 @@ def get_transformer(
 
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
-    tfg = transformer.TransformerGroup(s_crs, t_crs, allow_ballpark=False)
+    tfg = transformer.TransformerGroup(
+        s_crs, t_crs, allow_ballpark=False, always_xy=True
+    )
 
     # If everything is 'right' we should always have a transformer
     # based on our configured proj.db. Therefor this error.
@@ -406,7 +408,7 @@ def get_transform_crs_fun(  #
             ):
                 # check so we can safely cast to tuple[float, float], tuple[float, float, float]
                 raise ValueError(f"dimension of target-crs should be 2 or 3, is {dim}")
-            val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
+            val = cast(tuple[float, float] | tuple[float, float, float], val)
 
             # TODO: fix epoch handling, should only be added in certain cases
             # when one of the src or tgt crs has a dynamic time component

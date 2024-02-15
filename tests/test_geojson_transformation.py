@@ -1,4 +1,5 @@
 import json
+import math
 from contextlib import nullcontext as does_not_raise
 
 import pytest
@@ -159,3 +160,59 @@ def test_validate_crs_transformed_geojson(feature):
     crs_transform(feature_no_exc, "EPSG:28992", "EPSG:4326")
     with does_not_raise():
         validate_crs_transformed_geojson(feature_no_exc)
+
+
+def test_wgs_epoch():
+    with open("tests/data/test_wgs_epoch.json") as f:
+        data = json.load(f)
+        feature_2024 = Feature(**data)
+        feature_2010 = Feature(**data)
+        feature_epoch_none = Feature(**data)
+
+        crs_transform(feature_2024, "EPSG:28992", "EPSG:32631", 2024)
+        crs_transform(feature_2010, "EPSG:28992", "EPSG:32631", 2010)
+        crs_transform(feature_epoch_none, "EPSG:28992", "EPSG:32631")
+
+        assert feature_2024 != feature_2010
+        assert feature_2010 != feature_epoch_none
+        assert feature_epoch_none != feature_2024
+
+        coords_2024 = feature_2024.geometry.coordinates
+        coords_2010 = feature_2010.geometry.coordinates
+        coords_epoch_none = feature_epoch_none.geometry.coordinates
+
+        dif_2024_2010 = 0.34
+        dif_2024_epoch_none = 0.86
+
+        assert (
+            round(
+                math.sqrt(
+                    (
+                        (coords_2024[0] - coords_2010[0])
+                        * (coords_2024[0] - coords_2010[0])
+                    )
+                    + (
+                        (coords_2024[1] - coords_2010[1])
+                        * (coords_2024[1] - coords_2010[1])
+                    )
+                ),
+                2,
+            )
+            == dif_2024_2010
+        )
+        assert (
+            round(
+                math.sqrt(
+                    (
+                        (coords_2024[0] - coords_epoch_none[0])
+                        * (coords_2024[0] - coords_epoch_none[0])
+                    )
+                    + (
+                        (coords_2024[1] - coords_epoch_none[1])
+                        * (coords_2024[1] - coords_epoch_none[1])
+                    )
+                ),
+                2,
+            )
+            == dif_2024_epoch_none
+        )
