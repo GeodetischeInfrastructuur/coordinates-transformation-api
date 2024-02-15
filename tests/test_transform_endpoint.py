@@ -12,14 +12,14 @@ client = TestClient(app)
             "128410.0958,445806.4960",
             {
                 "type": "Point",
-                "coordinates": [52.0, 5.0],
+                "coordinates": [5.0, 52.0],
             },
             "EPSG:28992",
             "EPSG:4326",
             None,
         ),
         (
-            "52.0,5.0",
+            "5.0,52.0",
             {
                 "type": "Point",
                 "coordinates": [128410.0958, 445806.4960],
@@ -29,7 +29,7 @@ client = TestClient(app)
             None,
         ),
         (
-            "52.0,5.0,43",
+            "5.0,52.0,43",
             {
                 "type": "Point",
                 "coordinates": [128410.0958, 445806.4960, -0.4754],
@@ -72,7 +72,7 @@ client = TestClient(app)
             "78835.84,457831.732,9.724",
             {
                 "type": "Point",
-                "coordinates": [52.103482881, 4.275510253, 53.122],
+                "coordinates": [4.275510253, 52.103482881, 53.122],
             },
             "EPSG:7415",
             "EPSG:9754",
@@ -108,7 +108,7 @@ def test_transform_get(input, expectation, source_crs, target_crs, epoch):
             },
             {
                 "type": "Point",
-                "coordinates": [47.974858137, 3.313687707],
+                "coordinates": [3.313687707, 47.974858137],
             },
             "EPSG:28992",
             "EPSG:4326",
@@ -116,7 +116,7 @@ def test_transform_get(input, expectation, source_crs, target_crs, epoch):
         (
             {
                 "type": "Point",
-                "coordinates": [47.974858137, 3.313687707],
+                "coordinates": [3.313687707, 47.974858137],
             },
             {
                 "type": "Point",
@@ -138,7 +138,7 @@ def test_transform_get(input, expectation, source_crs, target_crs, epoch):
                 "features": [
                     {
                         "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [52, 5, 43]},
+                        "geometry": {"type": "Point", "coordinates": [5, 52, 43]},
                         "properties": {"prop0": "value0"},
                     },
                     {

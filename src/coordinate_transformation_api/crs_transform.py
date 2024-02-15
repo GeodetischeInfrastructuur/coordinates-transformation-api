@@ -294,7 +294,9 @@ def get_transformer(
 
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
-    tfg = transformer.TransformerGroup(s_crs, t_crs, allow_ballpark=False)
+    tfg = transformer.TransformerGroup(
+        s_crs, t_crs, allow_ballpark=False, always_xy=True
+    )
 
     # If everything is 'right' we should always have a transformer
     # based on our configured proj.db. Therefor this error.
