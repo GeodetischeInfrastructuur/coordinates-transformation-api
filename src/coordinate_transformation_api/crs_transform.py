@@ -406,7 +406,7 @@ def get_transform_crs_fun(  #
             ):
                 # check so we can safely cast to tuple[float, float], tuple[float, float, float]
                 raise ValueError(f"dimension of target-crs should be 2 or 3, is {dim}")
-            val = cast(tuple[float, float] | tuple[float, float, float], val[0:dim])
+            val = cast(tuple[float, float] | tuple[float, float, float], val)
 
             # TODO: fix epoch handling, should only be added in certain cases
             # when one of the src or tgt crs has a dynamic time component
