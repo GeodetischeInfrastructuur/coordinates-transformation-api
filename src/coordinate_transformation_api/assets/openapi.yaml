@@ -150,7 +150,7 @@ paths:
         on geodesic (ellipsoidal great-circle) distance on the ellipsoid of the
         (base) CRS
       description: |
-        Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the `maxSegmentLength/Deviation` (if any).
+        Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the maximum segment length 'maxSegmentLength' or maximum segment deviation `maxSegmentDeviation`.
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/contentCrs"
@@ -208,7 +208,8 @@ paths:
             api-version:
               $ref: "#/components/headers/api-version"
             content-crs:
-              description: FOOBAR
+              description:
+                Coordinate reference system (CRS) of the input coordinates
               $ref: "#/components/headers/content-crs"
         "400":
           $ref: "#/components/responses/400"
@@ -231,6 +232,7 @@ paths:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/contentCrs"
         - $ref: "#/components/parameters/maxSegmentLength"
+        - $ref: "#/components/parameters/maxSegmentDeviation"
 
       requestBody:
         required: true
@@ -272,7 +274,6 @@ paths:
             application/json:
               schema:
                 $ref: https://geojson.org/schema/FeatureCollection.json
-                description: FOOBAR
               example:
                 type: FeatureCollection
                 name: lijnen
@@ -839,7 +840,8 @@ components:
       schema:
         $ref: "#/components/schemas/Epoch"
     maxSegmentDeviation:
-      description: Maximum segment deviation for densify and density-check
+      description:
+        Maximum segment deviation in metres for densify and density-check
       in: query
       name: max-segment-deviation
       required: false
@@ -847,7 +849,8 @@ components:
         type: number
         minimum: 0.001
     maxSegmentLength:
-      description: Maximum segment length for densify and density-check
+      description:
+        Maximum segment length in metres for densify and density-check
       in: query
       name: max-segment-length
       required: false
@@ -857,7 +860,7 @@ components:
         minimum: 200
     sourceCrs:
       description: |
-        Source Coordinate Reference System (CRS)
+        Source coordinate reference system (CRS)
       in: query
       name: source-crs
       example: EPSG:7415
@@ -865,7 +868,7 @@ components:
       schema:
         $ref: "#/components/schemas/CrsEnum"
     targetCrs:
-      description: Target Coordinate Reference System (CRS)
+      description: Target coordinate reference system (CRS)
       in: query
       name: target-crs
       required: false
