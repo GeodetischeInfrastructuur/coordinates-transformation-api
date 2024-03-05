@@ -162,6 +162,17 @@ def test_validate_crs_transformed_geojson(feature):
         validate_crs_transformed_geojson(feature_no_exc)
 
 
+def test_2d_with_epoch():
+    with open("tests/data/test_2d_with_epoch.json") as f:
+        data = json.load(f)
+        feature_2d = Feature(**data)
+        feature_2d_org = Feature(**data)
+
+        crs_transform(feature_2d, "EPSG:3043", "EPSG:32631", 2024)
+
+        assert feature_2d == feature_2d_org
+
+
 def test_wgs_epoch():
     with open("tests/data/test_wgs_epoch.json") as f:
         data = json.load(f)
