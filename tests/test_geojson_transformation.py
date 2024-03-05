@@ -165,12 +165,55 @@ def test_validate_crs_transformed_geojson(feature):
 def test_2d_with_epoch():
     with open("tests/data/test_2d_with_epoch.json") as f:
         data = json.load(f)
-        feature_2d = Feature(**data)
+        feature_2d_2000 = Feature(**data)
+        feature_2d_2020 = Feature(**data)
         feature_2d_org = Feature(**data)
 
-        crs_transform(feature_2d, "EPSG:3043", "EPSG:32631", 2024)
+        crs_transform(feature_2d_2000, "EPSG:3043", "EPSG:32631", 2000)
+        crs_transform(feature_2d_2020, "EPSG:3043", "EPSG:32631", 2020)
 
-        assert feature_2d == feature_2d_org
+        assert feature_2d_2000 != feature_2d_org
+        assert feature_2d_2020 != feature_2d_org
+
+        coords_2000 = feature_2d_2000.geometry.coordinates
+        coords_2020 = feature_2d_2020.geometry.coordinates
+        coords_org = feature_2d_org.geometry.coordinates
+
+        dif_2000_org = 0.29
+        dif_2020_org = 0.76
+
+        assert (
+            round(
+                math.sqrt(
+                    (
+                        (coords_2000[0] - coords_org[0])
+                        * (coords_2000[0] - coords_org[0])
+                    )
+                    + (
+                        (coords_2000[1] - coords_org[1])
+                        * (coords_2000[1] - coords_org[1])
+                    )
+                ),
+                2,
+            )
+            == dif_2000_org
+        )
+        assert (
+            round(
+                math.sqrt(
+                    (
+                        (coords_2020[0] - coords_org[0])
+                        * (coords_2020[0] - coords_org[0])
+                    )
+                    + (
+                        (coords_2020[1] - coords_org[1])
+                        * (coords_2020[1] - coords_org[1])
+                    )
+                ),
+                2,
+            )
+            == dif_2020_org
+        )
 
 
 def test_wgs_epoch():

@@ -341,6 +341,32 @@ def get_individual_epsg_code(compound_crs: CRS) -> tuple[str, str]:
     return (f"{horizontal[0]}:{horizontal[1]}", f"{vertical[0]}:{vertical[1]}")
 
 
+def build_input_coord(coord: CoordinatesType, epoch: float | None) -> CoordinatesType:
+
+    # When 2D input is given with an epoch we need to add a height. So pyproj knows to
+    # that the epoch is an epoch and not the height, without this intervention the epoch
+    # would be place in the firth position of the tuple.
+    if len(coord) == TWO_DIMENSIONAL and epoch is not None:
+        return tuple([*coord, 0.0, epoch])
+
+    # Default behaviour
+    # The input_coord == coord that are given. When an epoch is provided with a 3D coord
+    # this is added or the value None is given for any other. Note: with 2D the additional None
+    # is the height. But this doesn't influence the result, because it's None.
+    input_coord = tuple(
+        [
+            *coord,
+            (
+                float(epoch)
+                if len(coord) == THREE_DIMENSIONAL and epoch is not None
+                else None
+            ),
+        ]
+    )
+
+    return input_coord
+
+
 def get_transform_crs_fun(  #
     source_crs: str,
     target_crs: str,
@@ -414,16 +440,7 @@ def get_transform_crs_fun(  #
             # when one of the src or tgt crs has a dynamic time component
             # or the transformation used has a datetime component
             # for now simple check on coords length (which is not correct)
-            input = tuple(
-                [
-                    *val,
-                    (
-                        float(epoch)
-                        if len(val) == THREE_DIMENSIONAL and epoch is not None
-                        else None
-                    ),
-                ]
-            )
+            input = build_input_coord(val, epoch)
 
             # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
             # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
