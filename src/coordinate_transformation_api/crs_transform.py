@@ -393,6 +393,7 @@ def get_transform_crs_fun(  #
     # These transformations need to be splitted in a horizontal and vertical transformation.
     if (
         transformer.target_crs is not None
+        and source_crs != target_crs
         and transformer.target_crs.type_name == "Compound CRS"
         and len(transformer.target_crs.sub_crs_list) == COMPOUND_CRS_LENGTH
     ):
@@ -402,7 +403,7 @@ def get_transform_crs_fun(  #
         v_transformer = get_transformer(source_crs, vertical, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
-            #
+
             input = tuple([*val, float(epoch)]) if epoch is not None else tuple([*val])
 
             h = tuple(
