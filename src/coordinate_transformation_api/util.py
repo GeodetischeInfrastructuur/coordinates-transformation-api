@@ -254,7 +254,7 @@ def init_oas(crs_config) -> tuple[dict, str, str]:
 
     with oas_filepath.open("rb") as oas_file:
         oas = yaml.load(oas_file, yaml.SafeLoader)
-        servers = [{"url": app_settings.base_url}]
+        servers = [{"url": app_settings.base_url.strip("/")}]
         oas["servers"] = servers
         oas["info"]["version"] = version("coordinate_transformation_api")
         oas["components"]["schemas"]["CrsEnum"]["enum"] = available_crss
