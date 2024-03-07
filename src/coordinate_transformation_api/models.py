@@ -204,6 +204,6 @@ class Crs(BaseModel):
         unit_name = axe.unit_name
         if unit_name not in ["degree", "metre"]:
             raise ValueError(
-                f"Unexpected unit of first axis (x, E, lon) of CRS {self.crs_auth_identifier} - expected values: degree, meter, actual value: {unit_name}"
+                f"Unexpected unit of first axis (x, E, lon) of CRS {self.crs_auth_identifier} - expected values: degree, metre, actual value: {unit_name}"
             )
         return unit_name
