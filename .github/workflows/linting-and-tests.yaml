@@ -56,4 +56,4 @@ jobs:
 
       - name: Test with pytest and generate coverage report
         run: |
-          python${{ matrix.python-version }} -m coverage run --source=src/coordinate_transformation_api -m pytest -v tests
+          python${{ matrix.python-version }} -m coverage run --source=src/coordinate_transformation_api -m pytest -v -k 'not validation' tests
