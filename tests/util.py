@@ -93,7 +93,5 @@ def validation_data():
                             "({} {} {} {})".format(*source_coord),
                         )
                     )
-                    # fwrite.write('\n'.join(','.join((source_crs, target_crs))))
-                    # json.dump(json.dumps(tuple[source_crs, target_crs, source_coord]), fwrite)
 
         validation_data()
