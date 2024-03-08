@@ -397,20 +397,32 @@ def get_transform_crs_fun(  #
         and transformer.target_crs.type_name == "Compound CRS"
         and len(transformer.target_crs.sub_crs_list) == COMPOUND_CRS_LENGTH
     ):
-        horizontal, vertical = get_individual_epsg_code(transformer.target_crs)
+        target_crs_horizontal, target_crs_vertical = get_individual_epsg_code(
+            transformer.target_crs
+        )
 
-        h_transformer = get_transformer(source_crs, horizontal, epoch)
-        v_transformer = get_transformer(source_crs, vertical, epoch)
+        if (
+            transformer.source_crs is not None
+            and transformer.source_crs.type_name == "Compound CRS"
+        ):
+            source_crs_horizontal, source_crs_vertical = get_individual_epsg_code(
+                transformer.source_crs
+            )
+        else:
+            source_crs_horizontal = source_crs
+            source_crs_vertical = source_crs
+
+        h_transformer = get_transformer(
+            source_crs_horizontal, target_crs_horizontal, epoch
+        )
+        v_transformer = get_transformer(source_crs_vertical, target_crs_vertical, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
 
             input = tuple([*val, float(epoch)]) if epoch is not None else tuple([*val])
 
             h = tuple(
-                [
-                    float(my_round(x, DEFAULT_DIGITS_FOR_ROUNDING))
-                    for x in h_transformer.transform(*input)
-                ]
+                [float(my_round(x, precision)) for x in h_transformer.transform(*input)]
             )
             v = tuple(
                 [
