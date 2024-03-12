@@ -25,7 +25,7 @@ servers:
 tags:
   - name: About
   - name: CRS
-  - name: Density
+  - name: Densify
   - name: Transform
 paths:
   /:
@@ -144,7 +144,7 @@ paths:
     post:
       operationId: "post-density-check"
       tags:
-        - Density
+        - Densify
       summary: >
         Check density of (multi)polygon and (multi)linestring geometries based
         on geodesic (ellipsoidal great-circle) distance on the ellipsoid of the
@@ -220,7 +220,7 @@ paths:
     post:
       operationId: "post-densify"
       tags:
-        - Density
+        - Densify
       summary: >
         Densify (multi)polygon and (multi)linestring geometries using the
         geodesic (ellipsoidal great-circle) trajectory on the ellipsoid of the
