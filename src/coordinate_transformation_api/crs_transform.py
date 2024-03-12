@@ -326,7 +326,7 @@ def get_transformer(
         raise TransformationNotPossibleError(
             src_crs=str(s_crs),
             target_crs=str(t_crs),
-            reason=f"Transformation from source-crs: {len(s_crs.axis_info)} too target-crs: {len(t_crs.axis_info)} is not possible without an input epoch",
+            reason="Transformation is not possible without an input epoch",
         )
 
     # Select 1st result. The first result is based on the input parameters the "best" result
