@@ -69,9 +69,11 @@ def validation_data():
         "EPSG:7789",
         "EPSG:9754",
         "EPSG:9753",
+        "EPSG:9289",
+        "EPSG:3395",
     ]
     seed_init_crs = "EPSG:7415"
-    seed_coord = (100000, 300000, 43, 2000)
+    seed_coord = (0, 400000, 43, 2000)
 
     file = os.path.join(test_dir, "data", "validation_data.csv")
 
