@@ -421,10 +421,22 @@ def get_transform_crs_fun(  # noqa: C901
             source_crs_horizontal, target_crs_horizontal, epoch
         )
 
+        # Not all transformation that are possible are defined
+        # When no transformation is found we fall back on the original COMPOUND CRS
+        # Issue is that in some case a transformation is found but not the correct one
+        # These we identify by the laking of a AUTO:CODE, because all our CRS should be
+        # coded. These are also defaulted to the original COMPOUND CRS.
         try:
             v_transformer = get_transformer(
                 source_crs_vertical, target_crs_vertical, epoch
             )
+            if (
+                v_transformer.source_crs is not None
+                and v_transformer.source_crs.to_authority() is None
+            ):
+                raise TransformationNotPossibleError(
+                    "", ""
+                )  # empty str, str we catch it the line below
         except TransformationNotPossibleError:
             v_transformer = get_transformer(source_crs_code, target_crs_code, epoch)
 
