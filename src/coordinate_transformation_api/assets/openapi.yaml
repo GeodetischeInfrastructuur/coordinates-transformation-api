@@ -25,7 +25,7 @@ servers:
 tags:
   - name: About
   - name: CRS
-  - name: Density
+  - name: Densify
   - name: Transform
 paths:
   /:
@@ -144,7 +144,7 @@ paths:
     post:
       operationId: "post-density-check"
       tags:
-        - Density
+        - Densify
       summary: >
         Check density of (multi)polygon and (multi)linestring geometries based
         on geodesic (ellipsoidal great-circle) distance on the ellipsoid of the
@@ -220,7 +220,7 @@ paths:
     post:
       operationId: "post-densify"
       tags:
-        - Density
+        - Densify
       summary: >
         Densify (multi)polygon and (multi)linestring geometries using the
         geodesic (ellipsoidal great-circle) trajectory on the ellipsoid of the
@@ -336,13 +336,13 @@ paths:
                 example:
                   type: Point
                   coordinates:
-                    - 52.763875
-                    - 4.069801
-                    - 115.9049
+                    - 5.387203649
+                    - 52.155172887
+                    - 43.2772
             text/plain:
               schema:
                 type: string
-                example: "POINT Z (52.763875 4.069801 115.9049)"
+                example: "POINT Z (5.387203649 52.155172887 43.2772)"
                 description:
                   WKT representation of a point as POINT (...) or POINT Z (...)
           headers:
@@ -405,12 +405,16 @@ paths:
               GeoJSON:
                 value:
                   type: Feature
+                  crs:
+                    type: name
+                    properties:
+                      name: urn:ogc:def:crs:EPSG::7415
                   geometry:
                     type: Point
                     coordinates:
-                      - 66080.2628
-                      - 531539.0239
-                      - 73.2384
+                      - 155000.0
+                      - 463000.0
+                      - 0.0
                   properties:
                     id: 1
               CityJSON:
@@ -700,9 +704,9 @@ paths:
                 geometry:
                   type: Point
                   coordinates:
-                    - 52.763875
-                    - 4.069801
-                    - 115.9049
+                    - 5.387203649
+                    - 52.155172887
+                    - 43.2772
                 properties:
                   id: 1
 
@@ -993,9 +997,9 @@ components:
       type: object
     Coords:
       default:
-        - 66080.2628
-        - 531539.0239
-        - 73.2384
+        - 155000.0
+        - 463000.0
+        - 0.0
       items:
         type: number
       maxItems: 3

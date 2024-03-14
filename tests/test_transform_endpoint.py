@@ -62,21 +62,29 @@ client = TestClient(app)
             "78835.84,457831.732,9.724",
             {
                 "type": "Point",
-                "coordinates": [3914987.7917, 292686.6338, 5009926.0202],
+                "coordinates": [
+                    3914987.764,
+                    292686.6764,
+                    5009926.0544,
+                ],  # [3914987.7917, 292686.6338, 5009926.0202],
             },
             "EPSG:7415",
-            "EPSG:9753",
-            "2010.00",
+            "EPSG:7789",
+            "2012.5",
         ),
         (
             "78835.84,457831.732,9.724",
             {
                 "type": "Point",
-                "coordinates": [4.275510253, 52.103482881, 53.122],
+                "coordinates": [
+                    4.275510904,
+                    52.103483244,
+                    53.134,
+                ],  # [4.275510253, 52.103482881, 53.122],
             },
             "EPSG:7415",
-            "EPSG:9754",
-            "2010.00",
+            "EPSG:7912",
+            "2012.5",
         ),
     ],
 )
@@ -299,3 +307,46 @@ def test_transform_get_invalid_crs_returns_400(
     assert len(error_locs) == len(expectation)
     for item in expectation:
         assert item in error_locs
+
+
+@pytest.mark.parametrize(
+    ("request_body", "expectation", "source_crs", "target_crs"),
+    [
+        (
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-87853.9838, 228817.8356],
+                        [318159.6959, 894090.7466],
+                    ],
+                },
+                "properties": {"id": "1"},
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[2.0, 50.0], [8.0, 55.999999996]],
+                },
+                "properties": {"id": "1"},
+            },
+            "EPSG:28992",
+            "EPSG:9067",
+        ),
+    ],
+)
+def test_transform_densify_check_post(
+    request_body, expectation, source_crs, target_crs
+):
+    response = client.post(
+        f"/transform?source-crs={source_crs}&target-crs={target_crs}&density-check=true&max-segment-length=10000000",
+        json=request_body,
+    )
+    response_object = response.json()
+    assert response.status_code == 200  # noqa: PLR2004
+    assert response_object == expectation
+    api_version_headers_vals = response.headers.get_list("api-version")
+    assert len(api_version_headers_vals) == 1
+    assert api_version_headers_vals[0].startswith("2")

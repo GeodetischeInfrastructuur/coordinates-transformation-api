@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import enum
 import json
 import logging
@@ -450,8 +451,9 @@ async def post_transform(  # noqa: ANN201, PLR0913
     else:
         if density_check:
             try:  # raises GeodenseError when all geometries in body are (multi)point
+                d_body = copy.deepcopy(body)
                 fc_report = density_check_request_body(
-                    body, s_crs, max_segment_deviation, max_segment_length
+                    d_body, s_crs, max_segment_deviation, max_segment_length
                 )
                 result = DensityCheckReport.from_fc_report(fc_report)
                 if result.check_result:
@@ -484,6 +486,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
                 (DENSITY_CHECK_RESULT_HEADER, DensityCheckResult.not_run.value),
                 headers=response_headers,
             )
+
         crs_transform(body, s_crs, t_crs, epoch)
         validate_crs_transformed_geojson(body)
         response_headers = set_response_headers(

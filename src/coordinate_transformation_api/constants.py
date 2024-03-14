@@ -2,8 +2,8 @@ DEFAULT_DIGITS_FOR_ROUNDING = 4
 HEIGHT_DIGITS_FOR_ROUNDING = (
     4  # height will always be in metres, therefor fixed precision of 4 decimals
 )
-DENSIFY_CRS_2D = "EPSG:9067"
-DENSIFY_CRS_3D = "EPSG:7931"
+DENSIFY_CRS_2D = "OGC:CRS84"
+DENSIFY_CRS_3D = "OGC:CRS84h"
 DEVIATION_VALID_BBOX = [
     2.0,
     50.0,
