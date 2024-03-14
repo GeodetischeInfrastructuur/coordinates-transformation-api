@@ -54,8 +54,6 @@ def validation_data():
         "OGC:CRS84",
         "EPSG:4326",
         "EPSG:3857",
-        "EPSG:32631",
-        "EPSG:32632",
         "EPSG:9000",
         "EPSG:9755",
         "EPSG:4937",

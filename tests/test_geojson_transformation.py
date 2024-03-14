@@ -169,8 +169,9 @@ def test_2d_with_epoch():
         feature_2d_2020 = Feature(**data)
         feature_2d_org = Feature(**data)
 
-        crs_transform(feature_2d_2000, "EPSG:3043", "EPSG:32631", 2000)
-        crs_transform(feature_2d_2020, "EPSG:3043", "EPSG:32631", 2020)
+        crs_transform(feature_2d_org, "EPSG:3857", "EPSG:28992")
+        crs_transform(feature_2d_2000, "EPSG:3857", "EPSG:28992", 2000)
+        crs_transform(feature_2d_2020, "EPSG:3857", "EPSG:28992", 2020)
 
         assert feature_2d_2000 != feature_2d_org
         assert feature_2d_2020 != feature_2d_org
@@ -179,8 +180,8 @@ def test_2d_with_epoch():
         coords_2020 = feature_2d_2020.geometry.coordinates
         coords_org = feature_2d_org.geometry.coordinates
 
-        dif_2000_org = 0.29
-        dif_2020_org = 0.76
+        dif_2000_org = 0.39  # 0.29
+        dif_2020_org = 1.12  # 0.76
 
         assert (
             round(
@@ -216,16 +217,16 @@ def test_2d_with_epoch():
         )
 
 
-def test_wgs_epoch():
-    with open("tests/data/test_wgs_epoch.json") as f:
+def test_wm_epoch():
+    with open("tests/data/test_wm_epoch.json") as f:
         data = json.load(f)
         feature_2024 = Feature(**data)
         feature_2010 = Feature(**data)
         feature_epoch_none = Feature(**data)
 
-        crs_transform(feature_2024, "EPSG:28992", "EPSG:32631", 2024)
-        crs_transform(feature_2010, "EPSG:28992", "EPSG:32631", 2010)
-        crs_transform(feature_epoch_none, "EPSG:28992", "EPSG:32631")
+        crs_transform(feature_2024, "EPSG:28992", "EPSG:3857", 2024)
+        crs_transform(feature_2010, "EPSG:28992", "EPSG:3857", 2010)
+        crs_transform(feature_epoch_none, "EPSG:28992", "EPSG:3857")
 
         assert feature_2024 != feature_2010
         assert feature_2010 != feature_epoch_none
@@ -235,8 +236,8 @@ def test_wgs_epoch():
         coords_2010 = feature_2010.geometry.coordinates
         coords_epoch_none = feature_epoch_none.geometry.coordinates
 
-        dif_2024_2010 = 0.34
-        dif_2024_epoch_none = 0.86
+        dif_2024_2010 = 0.55  # 0.34
+        dif_2024_epoch_none = 1.4  # 0.86
 
         assert (
             round(
