@@ -43,7 +43,6 @@ from coordinate_transformation_api.crs_transform import (
     get_json_height_contains_inf_fun,
     get_precision,
     get_remove_json_height_fun,
-    get_shapely_objects,
     get_transform_crs_fun,
     traverse_geojson_coordinates,
     update_bbox_geojson_object,
@@ -57,6 +56,8 @@ from coordinate_transformation_api.models import (
 )
 from coordinate_transformation_api.settings import app_settings
 from coordinate_transformation_api.types import CoordinatesType
+
+BBOX_3D_DIMENSION = 6
 
 logger = logging.getLogger(__name__)
 
@@ -132,15 +133,31 @@ def accept_html(request: Request) -> bool:
 
 def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool:
     if source_crs not in [DENSIFY_CRS_2D, DENSIFY_CRS_3D]:
-        transform_f = get_transform_crs_fun(DENSIFY_CRS_2D, source_crs)
-        bbox = [
-            *transform_f(DEVIATION_VALID_BBOX[:2]),
-            *transform_f(DEVIATION_VALID_BBOX[2:]),
-        ]
-    coll = get_shapely_objects(body)
-    tree = STRtree(coll)
-    contains_index = tree.query(box(*bbox), predicate="contains").tolist()
-    if len(coll) != len(contains_index):
+        transform_f = get_transform_crs_fun(source_crs, DENSIFY_CRS_2D)
+
+        if body.bbox is None:
+            body.bbox = (0, 0, 0, 0)
+            update_bbox_geojson_object(body)
+
+        if len(body.bbox) == BBOX_3D_DIMENSION:
+            lower = body.bbox[:2]
+            upper = body.bbox[3:5]
+            body_bbox = [
+                *transform_f(lower),
+                *transform_f(upper),
+            ]
+        else:
+            body_bbox = [
+                *transform_f(body.bbox[:2]),
+                *transform_f(body.bbox[2:]),
+            ]
+
+    shapely_bbox = [box(*body_bbox)]
+    tree = STRtree(shapely_bbox)
+    contains_index = tree.query(
+        box(*DEVIATION_VALID_BBOX), predicate="contains"
+    ).tolist()
+    if len(shapely_bbox) != len(contains_index):
         return False
     return True
 
