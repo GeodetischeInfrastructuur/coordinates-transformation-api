@@ -409,14 +409,15 @@ paths:
                     type: name
                     properties:
                       name: urn:ogc:def:crs:EPSG::7415
-                  geometry:
-                    type: Point
-                    coordinates:
-                      - 155000.0
-                      - 463000.0
-                      - 0.0
                   properties:
                     id: 1
+                  geometry:
+                    type: LineString
+                    coordinates:
+                      - - 156264.9063
+                        - 601302.5889
+                      - - 165681.9644
+                        - 605544.3131
               CityJSON:
                 value:
                   type: CityJSON
@@ -829,7 +830,7 @@ components:
         $ref: "#/components/schemas/Coords"
     densityCheck:
       description: |
-        Run density-check on input before transformation. Will result in HTTP 400 response if density-check fails.
+        Run density-check on input before transformation. Will result in HTTP 400 response if the density-check fails. When set on `true` one of the following parameters needs to be set `max-segment-length` or `max-segment-deviation`
       in: query
       name: density-check
       example: True
@@ -845,8 +846,7 @@ components:
       schema:
         $ref: "#/components/schemas/Epoch"
     maxSegmentDeviation:
-      description:
-        Maximum segment deviation in metres for densify and density-check
+      description: Maximum segment deviation in metres
       in: query
       name: max-segment-deviation
       required: false
@@ -854,8 +854,7 @@ components:
         type: number
         minimum: 0.001
     maxSegmentLength:
-      description:
-        Maximum segment length in metres for densify and density-check
+      description: Maximum segment length in metres
       in: query
       name: max-segment-length
       required: false
@@ -1091,7 +1090,7 @@ components:
       example: success
       type: string
     Epoch:
-      example: 2010.1
+      example: ""
       type: number
     Error:
       description:

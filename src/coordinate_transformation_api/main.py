@@ -323,7 +323,7 @@ async def density_check(  # noqa: ANN201
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
     try:  # raises GeodenseError when all geometries in body are (multi)point
         failed_line_segments = density_check_request_body(
-            body, s_crs, max_segment_deviation, max_segment_length
+            body, s_crs, max_segment_deviation, max_segment_length, epoch=None
         )
     except GeodenseError as e:
         raise DensityCheckError(str(e)) from e
@@ -453,7 +453,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
             try:  # raises GeodenseError when all geometries in body are (multi)point
                 d_body = copy.deepcopy(body)
                 fc_report = density_check_request_body(
-                    d_body, s_crs, max_segment_deviation, max_segment_length
+                    d_body, s_crs, max_segment_deviation, max_segment_length, epoch
                 )
                 result = DensityCheckReport.from_fc_report(fc_report)
                 if result.check_result:

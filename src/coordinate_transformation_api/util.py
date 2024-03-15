@@ -163,6 +163,7 @@ def density_check_request_body(
     source_crs: str,
     max_segment_deviation: float | None,
     max_segment_length: float | None,
+    epoch: float | None,
 ) -> CrsFeatureCollection:
     """Run density check with geodense implementation, by running density check in DENSIFY_CRS."""
     _geom_type_check(body)
@@ -180,13 +181,13 @@ def density_check_request_body(
 
     if transform:
         crs_transform(
-            body, source_crs, transform_crs
+            body, source_crs, transform_crs, epoch=epoch
         )  # !NOTE: crs_transform is required for density_check and densify
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS_2D.split(":")), max_segment_length)
     failed_line_segments = density_check_geojson_object(body, c)
 
     if transform:
-        crs_transform(failed_line_segments, transform_crs, source_crs)
+        crs_transform(failed_line_segments, transform_crs, source_crs, epoch=epoch)
     return failed_line_segments
 
 
