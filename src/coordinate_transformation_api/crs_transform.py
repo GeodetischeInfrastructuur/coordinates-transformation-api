@@ -25,7 +25,10 @@ from coordinate_transformation_api.constants import (
     TWO_DIMENSIONAL,
 )
 from coordinate_transformation_api.models import Crs as MyCrs
-from coordinate_transformation_api.models import TransformationNotPossibleError
+from coordinate_transformation_api.models import (
+    TransformationNotPossibleError,
+    UnknownCrsError,
+)
 from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
 
 COMPOUND_CRS_LENGTH: int = 2
@@ -434,10 +437,8 @@ def get_transform_crs_fun(  # noqa: C901
                 v_transformer.source_crs is not None
                 and v_transformer.source_crs.to_authority() is None
             ):
-                raise TransformationNotPossibleError(
-                    "", ""
-                )  # empty str, str we catch it the line below
-        except TransformationNotPossibleError:
+                raise UnknownCrsError()  # empty error, we catch it the line below
+        except (TransformationNotPossibleError, UnknownCrsError):
             v_transformer = get_transformer(source_crs_code, target_crs_code, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
