@@ -1,4 +1,4 @@
-FROM python:3.11.4-bullseye as builder
+FROM python:3.11.8-bullseye as builder
 
 ARG NSGI_PROJ_DB_VERSION="1.1.1"
 
@@ -31,7 +31,7 @@ RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif
 
 RUN ls -lah /src/dist/ >&2
 
-FROM python:3.11.4-slim-bullseye as runner
+FROM python:3.11.8-slim-bullseye as runner
 
 ENV ENV PIP_ROOT_USER_ACTION=ignore
 
