@@ -25,7 +25,8 @@ servers:
 tags:
   - name: About
   - name: CRS
-  - name: Densify
+  - name: Check-density
+  - name: Experimental
   - name: Transform
 paths:
   /:
@@ -144,7 +145,7 @@ paths:
     post:
       operationId: "post-density-check"
       tags:
-        - Densify
+        - Check-density
       summary: >
         Check density of (multi)polygon and (multi)linestring geometries based
         on geodesic (ellipsoidal great-circle) distance on the ellipsoid of the
@@ -220,12 +221,14 @@ paths:
     post:
       operationId: "post-densify"
       tags:
-        - Densify
+        - Experimental
       summary: >
         Densify (multi)polygon and (multi)linestring geometries using the
         geodesic (ellipsoidal great-circle) trajectory on the ellipsoid of the
         (base) CRS
-      description: >
+      description: |
+        **Warning**: This endpoint is currently in an experimental phase!
+
         A POST endpoint that accepts a GeoJSON object and densifies the
         geometries using the maximum segment length 'maxSegmentLength' or
         maximum segment deviation `maxSegmentDeviation` threshold.
