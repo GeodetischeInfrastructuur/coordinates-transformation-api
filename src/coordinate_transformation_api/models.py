@@ -24,6 +24,12 @@ class NotFoundError(Exception):
     pass
 
 
+class UnknownCrsError(Exception):
+    type_str = "nsgi.nl/unknown-crs-error"
+    title = "Unknown CRS Error"
+    pass
+
+
 class CrsNotFoundError(NotFoundError):
     type_str = "nsgi.nl/crs-not-found-error"
     title = "CRS Not Found Error"

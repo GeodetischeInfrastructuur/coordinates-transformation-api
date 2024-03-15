@@ -25,7 +25,10 @@ from coordinate_transformation_api.constants import (
     TWO_DIMENSIONAL,
 )
 from coordinate_transformation_api.models import Crs as MyCrs
-from coordinate_transformation_api.models import TransformationNotPossibleError
+from coordinate_transformation_api.models import (
+    TransformationNotPossibleError,
+    UnknownCrsError,
+)
 from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
 
 COMPOUND_CRS_LENGTH: int = 2
@@ -421,11 +424,21 @@ def get_transform_crs_fun(  # noqa: C901
             source_crs_horizontal, target_crs_horizontal, epoch
         )
 
+        # Not all transformation that are possible are defined
+        # When no transformation is found we fall back on the original COMPOUND CRS
+        # Issue is that in some case a transformation is found but not the correct one
+        # These we identify by the laking of a AUTO:CODE, because all our CRS should be
+        # coded. These are also defaulted to the original COMPOUND CRS.
         try:
             v_transformer = get_transformer(
                 source_crs_vertical, target_crs_vertical, epoch
             )
-        except TransformationNotPossibleError:
+            if (
+                v_transformer.source_crs is not None
+                and v_transformer.source_crs.to_authority() is None
+            ):
+                raise UnknownCrsError()  # empty error, we catch it the line below
+        except (TransformationNotPossibleError, UnknownCrsError):
             v_transformer = get_transformer(source_crs_code, target_crs_code, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
