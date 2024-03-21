@@ -147,11 +147,10 @@ paths:
       tags:
         - Check-density
       summary: >
-        Check density of (multi)polygon and (multi)linestring geometries based
-        on geodesic (ellipsoidal great-circle) distance on the ellipsoid of the
-        (base) CRS
+        Check segment length of (multi)polygon and (multi)linestring geometries based
+        on the geodesic (ellipsoidal great-circle) distance on the GRS80 ellipsoid
       description: |
-        Check density of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the maximum segment length 'maxSegmentLength' or maximum segment deviation `maxSegmentDeviation`.
+        Check segment length of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the maximum segment length 'maxSegmentLength' or maximum segment deviation `maxSegmentDeviation`.
       parameters:
         - $ref: "#/components/parameters/sourceCrs"
         - $ref: "#/components/parameters/contentCrs"
@@ -224,8 +223,7 @@ paths:
         - Experimental
       summary: >
         Densify (multi)polygon and (multi)linestring geometries using the
-        geodesic (ellipsoidal great-circle) trajectory on the ellipsoid of the
-        (base) CRS
+        geodesic (ellipsoidal great-circle) trajectory on the GR80 ellipsoid
       description: |
         **Warning**: This endpoint is currently in an experimental phase!
 
