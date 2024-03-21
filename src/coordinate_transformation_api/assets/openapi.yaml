@@ -315,7 +315,7 @@ paths:
         A GET endpoint that accepts coordinates of a given source CRS and
         performs the transformation to the provided target CRS. The input
         coordinates are a comma separated list of numbers that can represent the
-        `x, y` or (depending on the EPSG definition of CRS) `lat, lon` / `lon, lat` coordinates with or without a height or `X, Y, Z` coordinates.
+        `x, y` or (depending on the EPSG definition of CRS) `lat, lon` / `lon, lat` coordinates (with or without a height), or `X, Y, Z` coordinates.
 
         Source CRS and target CRS can be defined through either the query
         parameters or the request headers. Order of precedence is: query
