@@ -803,7 +803,7 @@ components:
         $ref: "#/components/schemas/Epoch"
   parameters:
     acceptCrs:
-      description: Target coordinate reference system (CRS)
+      description: Target coordinate reference system (CRS); Usage discouraged: use `target-crs` instead
       in: header
       name: accept-crs
       required: false
@@ -811,7 +811,7 @@ components:
       schema:
         $ref: "#/components/schemas/CrsHeaderEnum"
     contentCrs:
-      description: Source coordinate reference system (CRS)
+      description: Source coordinate reference system (CRS); Usage discouraged: use `source-crs` instead
       in: header
       name: content-crs
       required: false
@@ -865,7 +865,7 @@ components:
         minimum: 200
     sourceCrs:
       description: |
-        Source coordinate reference system (CRS)
+        Source coordinate reference system (CRS); NB: Overruled by CRS in request body (e.g. GeoJSON)
       in: query
       name: source-crs
       example: EPSG:7415
