@@ -100,7 +100,7 @@ paths:
       tags:
         - CRS
       summary: Get all CRSs supported by the transformation API
-      description: Get all available coordinate reference systems (CRSs)
+      description: Returns definitions of all supported coordinate reference systems (CRSs) 
       responses:
         "200":
           description: Successful Response
@@ -118,9 +118,9 @@ paths:
       operationId: "get-crs"
       tags:
         - CRS
-      summary: Get a single coordinate reference system (CRS)
+      summary: Get a single CRS
       description: >
-        Endpoint that returns a single coordinate reference system (CRS) by
+        Returns the definition of a single coordinate reference system (CRS) by
         `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
       parameters:
         - name: "crs-id"
