@@ -840,7 +840,7 @@ components:
         type: boolean
         default: true
     epochParam:
-      description: Epoch of the request payload
+      description: Epoch of source coordinate reference system (CRS). Leave empty for null transformation recommended for most applications.
       name: epoch
       in: query
       required: false
