@@ -842,7 +842,7 @@ components:
         type: boolean
         default: true
     epochParam:
-      description: Epoch of the request payload
+      description: Epoch of the coordinates in the source and target coordinate reference systems (CRSs) 
       name: epoch
       in: query
       required: false
