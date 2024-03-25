@@ -840,7 +840,7 @@ components:
         type: boolean
         default: true
     epochParam:
-      description: Epoch of source coordinate reference system (CRS). Leave empty for null transformation recommended for most applications.
+      description: Epoch of source and target coordinate reference systems (CRSs). Leave empty for null transformation recommended for most applications.
       name: epoch
       in: query
       required: false
