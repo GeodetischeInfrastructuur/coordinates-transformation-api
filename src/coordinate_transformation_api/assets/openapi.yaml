@@ -405,20 +405,24 @@ paths:
             examples:
               GeoJSON:
                 value:
-                  type: Feature
+                  type: FeatureCollection
+                  name: lijnen
                   crs:
                     type: name
                     properties:
                       name: urn:ogc:def:crs:EPSG::7415
-                  properties:
-                    id: 1
-                  geometry:
-                    type: LineString
-                    coordinates:
-                      - - 156264.9063
-                        - 601302.5889
-                      - - 165681.9644
-                        - 605544.3131
+                  features:
+                    - type: Feature
+                      properties: {}
+                      geometry:
+                        type: LineString
+                        coordinates:
+                          - - 156264.9063
+                            - 601302.5889
+                            - 0.0
+                          - - 165681.9644
+                            - 605544.3131
+                            - 0.0
               CityJSON:
                 value:
                   type: CityJSON
