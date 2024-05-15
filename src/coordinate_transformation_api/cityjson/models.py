@@ -1302,7 +1302,7 @@ class CityjsonV113(BaseModel):
                                 bbox[i + 3] = (
                                     bbox[i + 3] * self.transform.scale[i]
                                 ) + self.transform.translate[i]
-                        self.CityObjects[co].geographicalExtent = bbox
+                        self.CityObjects[co].geographicalExtent = bbox  # type: ignore
 
     def get_x_unit_crs(self: CityjsonV113, crs_str: str) -> str:
         target_crs_crs = CRS.from_authority(*crs_str.split(":"))
