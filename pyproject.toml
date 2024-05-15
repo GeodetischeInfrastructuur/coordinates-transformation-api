@@ -29,7 +29,7 @@ dev = [
     "mypy == 1.10.0",
     "pytest == 8.2.0",
     "ruff == 0.4.4",
-    "types-ujson == 5.9.0.0",
+    "types-ujson == 5.10.0.20240515",
     "types-PyYAML == 6.0.12.20240311",
     "pytest-asyncio == 0.23.6",
 ]
