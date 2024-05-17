@@ -70,9 +70,11 @@ def get_shapely_object_fun() -> Callable:
 
 
 def get_crs_transform_fun(
-    source_crs: str, target_crs: str, epoch: float | None = None
+    source_crs: CRS, target_crs: CRS, epoch: float | None = None
 ) -> Callable:
-    target_crs_crs: MyCrs = MyCrs.from_crs_str(target_crs)
+    target_crs_crs: MyCrs = MyCrs.from_crs_str(
+        "{}:{}".format(*target_crs.to_authority())
+    )
     precision = get_precision(target_crs_crs)
 
     def my_fun(
@@ -289,28 +291,32 @@ def check_axis(s_crs: CRS, t_crs: CRS) -> None:
 
 
 def get_transformer(
-    source_crs: str, target_crs: str, epoch: float | None
+    source_crs: CRS, target_crs: CRS, epoch: float | None
 ) -> Transformer:  # quit
-    s_crs = CRS.from_authority(*source_crs.split(":"))
-    t_crs = CRS.from_authority(*target_crs.split(":"))
 
-    check_axis(s_crs, t_crs)
+    check_axis(source_crs, target_crs)
 
-    if exclude_transformation(source_crs, target_crs):
-        raise TransformationNotPossibleError(source_crs, target_crs)
+    if exclude_transformation(
+        "{}:{}".format(*source_crs.to_authority()),
+        "{}:{}".format(*target_crs.to_authority()),
+    ):
+        raise TransformationNotPossibleError(
+            "{}:{}".format(*source_crs.to_authority()),
+            "{}:{}".format(*target_crs.to_authority()),
+        )
 
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
     tfg = transformer.TransformerGroup(
-        s_crs, t_crs, allow_ballpark=False, always_xy=True
+        source_crs, target_crs, allow_ballpark=False, always_xy=True
     )
 
     # If everything is 'right' we should always have a transformer
     # based on our configured proj.db. Therefor this error.
     if len(tfg.transformers) == 0:
         raise TransformationNotPossibleError(
-            src_crs=str(s_crs),
-            target_crs=str(t_crs),
+            src_crs=str(source_crs),
+            target_crs=str(target_crs),
         )
 
     # When no input epoch is given we need to check that we don't perform an time-dependent transformation. Otherwise
@@ -327,8 +333,8 @@ def get_transformer(
     # results in wrong results. We prefer giving an exception, rather than a wrong result.
     if needs_epoch(tfg.transformers[0]) is True and epoch is None:
         raise TransformationNotPossibleError(
-            src_crs=str(s_crs),
-            target_crs=str(t_crs),
+            src_crs=str(source_crs),
+            target_crs=str(target_crs),
             reason="Transformation is not possible without an input epoch",
         )
 
@@ -336,16 +342,16 @@ def get_transformer(
     return tfg.transformers[0]
 
 
-def get_individual_epsg_code(compound_crs: CRS) -> tuple[str, str]:
-    horizontal = compound_crs.to_authority()
-    vertical = compound_crs.to_authority()
+def get_individual_crs_from_compound(compound_crs: CRS) -> tuple[CRS, CRS]:
+    horizontal = compound_crs
+    vertical = compound_crs
     for crs in compound_crs.sub_crs_list:
         if len(crs.axis_info) == HORIZONTAL_AXIS_LENGTH:
-            horizontal = crs.to_authority()
+            horizontal = crs
         elif len(crs.axis_info) == VERTICAL_AXIS_LENGTH:
-            vertical = crs.to_authority()
+            vertical = crs
 
-    return (f"{horizontal[0]}:{horizontal[1]}", f"{vertical[0]}:{vertical[1]}")
+    return (horizontal, vertical)
 
 
 def build_input_coord(coord: CoordinatesType, epoch: float | None) -> CoordinatesType:
@@ -375,8 +381,8 @@ def build_input_coord(coord: CoordinatesType, epoch: float | None) -> Coordinate
 
 
 def get_transform_crs_fun(  # noqa: C901
-    source_crs_code: str,
-    target_crs_code: str,
+    source_crs: CRS,
+    target_crs: CRS,
     precision: int | None = None,
     epoch: float | None = None,
 ) -> Callable[
@@ -390,9 +396,6 @@ def get_transform_crs_fun(  # noqa: C901
             return val
         else:
             return round(val, precision)
-
-    source_crs = CRS.from_authority(*source_crs_code.split(":"))
-    target_crs = CRS.from_authority(*target_crs_code.split(":"))
 
     # We need to do something special for transformation targetting a Compound CRS of 2D coordinates with another height system, like NAP or a LAT height
     # - RD + NAP (EPSG:7415)
@@ -408,17 +411,17 @@ def get_transform_crs_fun(  # noqa: C901
 
         check_axis(source_crs, target_crs)
 
-        target_crs_horizontal, target_crs_vertical = get_individual_epsg_code(
+        target_crs_horizontal, target_crs_vertical = get_individual_crs_from_compound(
             target_crs
         )
 
         if source_crs is not None and source_crs.is_compound:
-            source_crs_horizontal, source_crs_vertical = get_individual_epsg_code(
-                source_crs
+            source_crs_horizontal, source_crs_vertical = (
+                get_individual_crs_from_compound(source_crs)
             )
         else:
-            source_crs_horizontal = source_crs_code
-            source_crs_vertical = source_crs_code
+            source_crs_horizontal = source_crs
+            source_crs_vertical = source_crs
 
         h_transformer = get_transformer(
             source_crs_horizontal, target_crs_horizontal, epoch
@@ -439,7 +442,7 @@ def get_transform_crs_fun(  # noqa: C901
             ):
                 raise UnknownCrsError()  # empty error, we catch it the line below
         except (TransformationNotPossibleError, UnknownCrsError):
-            v_transformer = get_transformer(source_crs_code, target_crs_code, epoch)
+            v_transformer = get_transformer(source_crs, target_crs, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
 
@@ -461,7 +464,7 @@ def get_transform_crs_fun(  # noqa: C901
     else:
 
         def transform_crs(val: CoordinatesType) -> tuple[float, ...]:
-            transformer = get_transformer(source_crs_code, target_crs_code, epoch)
+            transformer = get_transformer(source_crs, target_crs, epoch)
             if transformer.target_crs is None:
                 raise ValueError("transformer.target_crs is None")
             dim = len(transformer.target_crs.axis_info)
