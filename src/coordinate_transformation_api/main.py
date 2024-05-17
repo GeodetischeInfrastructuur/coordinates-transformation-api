@@ -63,6 +63,7 @@ from coordinate_transformation_api.util import (
     raise_response_validation_error,
     remove_height_when_inf_geojson,
     set_response_headers,
+    str_to_crs,
     transform_coordinates,
     validate_coords_source_crs,
     validate_crs_transformed_geojson,
@@ -323,7 +324,11 @@ async def density_check(  # noqa: ANN201
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
     try:  # raises GeodenseError when all geometries in body are (multi)point
         failed_line_segments = density_check_request_body(
-            body, s_crs, max_segment_deviation, max_segment_length, epoch=None
+            body,
+            str_to_crs(s_crs),
+            max_segment_deviation,
+            max_segment_length,
+            epoch=None,
         )
     except GeodenseError as e:
         raise DensityCheckError(str(e)) from e
@@ -381,7 +386,9 @@ async def transform(  # noqa: PLR0913, ANN201
             "Out of range float values are not JSON compliant", ["responseBody"]
         )
 
-    headers = set_response_headers(("content-crs", Crs.from_crs_str(t_crs).crs))
+    headers = set_response_headers(
+        ("content-crs", "{}:{}".format(*t_crs.to_authority()))
+    )
     if epoch is not None:
         headers = set_response_headers(("epoch", epoch), headers=headers)
 
@@ -490,7 +497,8 @@ async def post_transform(  # noqa: ANN201, PLR0913
         crs_transform(body, s_crs, t_crs, epoch)
         validate_crs_transformed_geojson(body)
         response_headers = set_response_headers(
-            ("content-crs", Crs.from_crs_str(t_crs).crs), headers=response_headers
+            ("content-crs", ("content-crs", "{}:{}".format(*t_crs.to_authority()))),
+            headers=response_headers,
         )
         if epoch is not None:
             response_headers = set_response_headers(
