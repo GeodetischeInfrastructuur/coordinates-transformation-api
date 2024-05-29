@@ -51,6 +51,7 @@ from coordinate_transformation_api.models import (
 from coordinate_transformation_api.settings import app_settings
 from coordinate_transformation_api.util import (
     accept_html,
+    check_crs_is_known,
     convert_point_coords_to_wkt,
     crs_transform,
     densify_request_body,
@@ -365,15 +366,18 @@ async def transform(  # noqa: PLR0913, ANN201
         for x in [source_crs, target_crs, content_crs, accept_crs]
     )
 
+    check_crs_is_known(
+        target_crs_str,
+        CRS_LIST,
+    )
+
     s_crs, t_crs = get_transform_get_crss(
         source_crs_str, target_crs_str, content_crs_str, accept_crs_str
     )
 
     validate_coords_source_crs(coordinates, s_crs, CRS_LIST)
 
-    transformed_coordinates = transform_coordinates(
-        coordinates, s_crs, t_crs, epoch, CRS_LIST
-    )
+    transformed_coordinates = transform_coordinates(coordinates, s_crs, t_crs, epoch)
 
     # if height/elevation is inf, strip it from response
     if len(transformed_coordinates) == THREE_DIMENSIONAL and transformed_coordinates[
