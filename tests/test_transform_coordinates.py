@@ -1,9 +1,6 @@
 import pytest
-from coordinate_transformation_api.models import Crs
 from coordinate_transformation_api.util import transform_coordinates
 from pyproj import CRS
-
-CRS_LIST = [Crs.from_crs_str(x) for x in ["NSGI:Saba_DPnet_Height", "OGC:CRS84h"]]
 
 
 @pytest.mark.parametrize(
@@ -29,7 +26,7 @@ def test_transformed_coordinates(coordinates, s_crs, t_crs, expectation):
     target_crs = CRS.from_authority(*t_crs)
 
     transformed_coordinates = transform_coordinates(
-        coordinates, source_crs, target_crs, None, CRS_LIST
+        coordinates, source_crs, target_crs, None
     )
 
     assert transformed_coordinates == expectation

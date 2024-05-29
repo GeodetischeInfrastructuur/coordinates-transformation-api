@@ -376,19 +376,16 @@ def convert_point_coords_to_wkt(coords):
     return f"{geom_type}({' '.join([str(x) for x in coords])})"
 
 
-def get_crs(crs_str: str, crs_list: list[MyCrs]) -> None:
+def check_crs_is_known(crs_str: str, crs_list: list[MyCrs]) -> None:
     crs = next((x for x in crs_list if x.crs_auth_identifier == crs_str), None)
     if crs is None:
         raise ValueError(f"could not instantiate CRS object for CRS with id {crs_str}")
 
 
 def transform_coordinates(
-    coordinates: Any, source_crs: CRS, target_crs: CRS, epoch, crs_list: list[MyCrs]
+    coordinates: Any, source_crs: CRS, target_crs: CRS, epoch
 ) -> Any:
-    get_crs(
-        "{}:{}".format(*target_crs.to_authority()),
-        crs_list,
-    )
+
     precision = get_precision(target_crs)
     coordinate_list: CoordinatesType = list(
         float(x) for x in coordinates.split(",")
