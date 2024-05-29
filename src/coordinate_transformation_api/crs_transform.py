@@ -24,7 +24,6 @@ from coordinate_transformation_api.constants import (
     THREE_DIMENSIONAL,
     TWO_DIMENSIONAL,
 )
-from coordinate_transformation_api.models import Crs as MyCrs
 from coordinate_transformation_api.models import (
     TransformationNotPossibleError,
     UnknownCrsError,
@@ -41,8 +40,8 @@ with open(str(api_conf)) as f:
     CRS_CONFIG = yaml.safe_load(f)
 
 
-def get_precision(target_crs_crs: MyCrs) -> int:
-    unit = target_crs_crs.get_x_unit_crs()
+def get_precision(crs: CRS) -> int:
+    unit = crs.axis_info[0].unit_name
     if unit == "degree":
         return DEFAULT_DIGITS_FOR_ROUNDING + 5
     return DEFAULT_DIGITS_FOR_ROUNDING
@@ -72,10 +71,7 @@ def get_shapely_object_fun() -> Callable:
 def get_crs_transform_fun(
     source_crs: CRS, target_crs: CRS, epoch: float | None = None
 ) -> Callable:
-    target_crs_crs: MyCrs = MyCrs.from_crs_str(
-        "{}:{}".format(*target_crs.to_authority())
-    )
-    precision = get_precision(target_crs_crs)
+    precision = get_precision(target_crs)
 
     def my_fun(
         geom: GeojsonGeomNoGeomCollection,

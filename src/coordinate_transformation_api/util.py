@@ -376,22 +376,20 @@ def convert_point_coords_to_wkt(coords):
     return f"{geom_type}({' '.join([str(x) for x in coords])})"
 
 
-def get_crs(crs_str: str, crs_list: list[MyCrs]) -> MyCrs:
+def get_crs(crs_str: str, crs_list: list[MyCrs]) -> None:
     crs = next((x for x in crs_list if x.crs_auth_identifier == crs_str), None)
     if crs is None:
         raise ValueError(f"could not instantiate CRS object for CRS with id {crs_str}")
-
-    return crs
 
 
 def transform_coordinates(
     coordinates: Any, source_crs: CRS, target_crs: CRS, epoch, crs_list: list[MyCrs]
 ) -> Any:
-    target_crs_crs = get_crs(
-        target_crs.srs,
+    get_crs(
+        "{}:{}".format(*target_crs.to_authority()),
         crs_list,
     )
-    precision = get_precision(target_crs_crs)
+    precision = get_precision(target_crs)
     coordinate_list: CoordinatesType = list(
         float(x) for x in coordinates.split(",")
     )  # convert to list since we do not know dimensionality of coordinates
@@ -569,11 +567,6 @@ def set_response_headers(
         key, val = arg
         headers[key] = str(val)
     return headers
-    # headers = {"content-crs": format_as_uri(t_crs)}
-    # if epoch:
-    #     headers["epoch"] = str(epoch)
-
-    # return headers
 
 
 def str_to_crs(crs_str: str) -> CRS:
