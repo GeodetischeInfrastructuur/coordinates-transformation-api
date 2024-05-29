@@ -161,9 +161,9 @@ class Crs(BaseModel):
     identifier: str
 
     @classmethod
-    def from_crs_str(cls, crs_st: str) -> "Crs":  # noqa: ANN102
+    def from_crs_str(cls, crs_str: str) -> "Crs":  # noqa: ANN102
         # Do some math here and later set the values
-        auth, identifier = crs_st.split(":")
+        auth, identifier = crs_str.split(":")
         pyproj_crs = ProjCrs.from_authority(auth, identifier)
         axes = [
             Axis(
