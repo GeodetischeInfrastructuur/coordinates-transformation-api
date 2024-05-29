@@ -209,6 +209,3 @@ class Crs(BaseModel):
                 f"Unexpected unit of first axis (x, E, lon) of CRS {self.crs_auth_identifier} - expected values: degree, metre, actual value: {unit_name}"
             )
         return unit_name
-
-    def get_projcrs(self: "Crs") -> ProjCrs:
-        return ProjCrs.from_authority(self.authority, self.identifier)
