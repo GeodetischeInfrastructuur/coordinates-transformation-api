@@ -1,6 +1,5 @@
 import pytest
 from coordinate_transformation_api.crs_transform import get_transform_crs_fun
-from coordinate_transformation_api.models import Crs as MyCrs
 from coordinate_transformation_api.models import TransformationNotPossibleError
 from coordinate_transformation_api.util import str_to_crs
 
@@ -14,18 +13,17 @@ xy_dim = 2
 )
 def test_transformation(source_crs, target_crs, source_coord):
 
-    source_crs_info = MyCrs.from_crs_str(source_crs)
-    target_crs_info = MyCrs.from_crs_str(target_crs)
-    unit = target_crs_info.get_x_unit_crs()
+    s_crs = str_to_crs(source_crs)
+    t_crs = str_to_crs(target_crs)
 
-    if source_crs_info.nr_of_dimensions < target_crs_info.nr_of_dimensions:
+    unit = t_crs.axis_info[0].unit_name
+
+    if len(s_crs.axis_info) < len(t_crs.axis_info):
         with pytest.raises(
             TransformationNotPossibleError,
             match="number of dimensions source-crs: 2, number of dimensions target-crs: 3",
         ) as e:
-            get_transform_crs_fun(str_to_crs(source_crs), str_to_crs(target_crs))(
-                source_coord
-            )
+            get_transform_crs_fun(s_crs, t_crs)(source_coord)
         assert type(e.value) is TransformationNotPossibleError
     elif source_crs == "EPSG:9289" or target_crs == "EPSG:9289":
         # skip ETRS89 + LAT NL depth
@@ -35,8 +33,8 @@ def test_transformation(source_crs, target_crs, source_coord):
             source_crs, target_crs, source_coord
         )
         api_transformed_coord = get_transform_crs_fun(
-            str_to_crs(source_crs),
-            str_to_crs(target_crs),
+            s_crs,
+            t_crs,
             precision=(4 if unit == "metre" else 9),
             epoch=source_coord[3],
         )(source_coord[0:3])
