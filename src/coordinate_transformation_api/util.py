@@ -48,7 +48,7 @@ from coordinate_transformation_api.crs_transform import (
     update_bbox_geojson_object,
 )
 from coordinate_transformation_api.models import (
-    Crs as MyCrs,
+    Crs as AvailableCrs,
 )
 from coordinate_transformation_api.models import (
     DensifyError,
@@ -63,7 +63,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_coords_source_crs(
-    coordinates, source_crs, projections_axis_info: list[MyCrs]
+    coordinates, source_crs, projections_axis_info: list[AvailableCrs]
 ):
     source_crs_dims = next(
         crs.nr_of_dimensions
@@ -376,7 +376,7 @@ def convert_point_coords_to_wkt(coords):
     return f"{geom_type}({' '.join([str(x) for x in coords])})"
 
 
-def check_crs_is_known(crs_str: str, crs_list: list[MyCrs]) -> None:
+def check_crs_is_known(crs_str: str, crs_list: list[AvailableCrs]) -> None:
     crs = next((x for x in crs_list if x.crs_auth_identifier == crs_str), None)
     if crs is None:
         raise ValueError(f"could not instantiate CRS object for CRS with id {crs_str}")
