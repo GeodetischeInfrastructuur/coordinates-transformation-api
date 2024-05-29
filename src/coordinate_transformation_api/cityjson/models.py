@@ -1327,20 +1327,13 @@ class CityjsonV113(BaseModel):
     def crs_transform(
         self: CityjsonV113, source_crs: CRS, target_crs: CRS, epoch: float | None = None
     ) -> None:
-        from coordinate_transformation_api.models import Crs as MyCrs
-
-        s_authority = "{}:{}".format(*source_crs.to_authority())
-        t_authority = "{}:{}".format(*target_crs.to_authority())
-
-        s_crs = MyCrs.from_crs_str(s_authority)
-        t_crs = MyCrs.from_crs_str(t_authority)
         message = ""
         extra = {}
-        if len(s_crs.axes) != THREE_DIMENSIONAL:
-            message += f"CityJSON requires 3D source-crs as input. Source CRS {source_crs} is {len(s_crs.axes)}D. "
+        if len(source_crs.axis_info) != THREE_DIMENSIONAL:
+            message += f"CityJSON requires 3D source-crs as input. Source CRS {source_crs} is {len(source_crs.axis_info)}D. "
             extra["crs"] = ["source-crs"]
-        if len(t_crs.axes) != THREE_DIMENSIONAL:
-            message += f"CityJSON requires 3D target-crs as input. Target CRS {target_crs} is {len(t_crs.axes)}D. "
+        if len(target_crs.axis_info) != THREE_DIMENSIONAL:
+            message += f"CityJSON requires 3D target-crs as input. Target CRS {target_crs} is {len(target_crs.axis_info)}D. "
             if "crs" in extra:
                 extra["crs"].append("target-crs")
             else:
@@ -1357,7 +1350,7 @@ class CityjsonV113(BaseModel):
         self.vertices = [
             list(vertex) for vertex in self.vertices
         ]  # convert result to list since, callback function to transform coordinates returns tuples
-        self.set_epsg(t_authority)
+        self.set_epsg("{}:{}".format(*target_crs.to_authority()))
         self.update_bbox()
         src_unit = self.get_x_unit_crs(source_crs)
         target_unit = self.get_x_unit_crs(target_crs)
