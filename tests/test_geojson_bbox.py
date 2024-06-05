@@ -6,6 +6,7 @@ from coordinate_transformation_api.util import (
 )
 from geojson_pydantic import Feature
 from pydantic import ValidationError
+from pyproj import CRS
 
 from tests.util import not_raises
 
@@ -16,7 +17,11 @@ def test_feature_bbox():
         feature = Feature(**data)
         feature_original = Feature(**data)
 
-        crs_transform(feature, "EPSG:28992", "EPSG:4326")
+        crs_transform(
+            feature,
+            CRS.from_authority(*"EPSG:28992".split(":")),
+            CRS.from_authority(*"EPSG:4326".split(":")),
+        )
 
         feature_dict = json.loads(feature.model_dump_json())
         # check if input is actually transformed

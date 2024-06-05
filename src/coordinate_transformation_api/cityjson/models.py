@@ -1304,8 +1304,7 @@ class CityjsonV113(BaseModel):
                                 ) + self.transform.translate[i]
                         self.CityObjects[co].geographicalExtent = bbox  # type: ignore
 
-    def get_x_unit_crs(self: CityjsonV113, crs_str: str) -> str:
-        target_crs_crs = CRS.from_authority(*crs_str.split(":"))
+    def get_x_unit_crs(self: CityjsonV113, target_crs_crs: CRS) -> str:
         axe = next(
             (
                 x
@@ -1316,29 +1315,25 @@ class CityjsonV113(BaseModel):
         )
         if axe is None:
             raise ValueError(
-                f"unable to retrieve unit x axis (x, e, lon) CRS {crs_str}"
+                f"unable to retrieve unit x axis (x, e, lon) CRS {target_crs_crs}"
             )
         unit_name = axe.unit_name
         if unit_name not in ["degree", "metre"]:
             raise ValueError(
-                f"Unexpected unit in x axis (x, e, lon) CRS {crs_str} - expected values: degree, meter, actual value: {unit_name}"
+                f"Unexpected unit in x axis (x, e, lon) CRS {target_crs_crs} - expected values: degree, meter, actual value: {unit_name}"
             )
         return unit_name
 
     def crs_transform(
-        self: CityjsonV113, source_crs: str, target_crs: str, epoch: float | None = None
+        self: CityjsonV113, source_crs: CRS, target_crs: CRS, epoch: float | None = None
     ) -> None:
-        from coordinate_transformation_api.models import Crs as MyCrs
-
-        s_crs = MyCrs.from_crs_str(source_crs)
-        t_crs = MyCrs.from_crs_str(target_crs)
         message = ""
         extra = {}
-        if len(s_crs.axes) != THREE_DIMENSIONAL:
-            message += f"CityJSON requires 3D source-crs as input. Source CRS {source_crs} is {len(s_crs.axes)}D. "
+        if len(source_crs.axis_info) != THREE_DIMENSIONAL:
+            message += f"CityJSON requires 3D source-crs as input. Source CRS {source_crs} is {len(source_crs.axis_info)}D. "
             extra["crs"] = ["source-crs"]
-        if len(t_crs.axes) != THREE_DIMENSIONAL:
-            message += f"CityJSON requires 3D target-crs as input. Target CRS {target_crs} is {len(t_crs.axes)}D. "
+        if len(target_crs.axis_info) != THREE_DIMENSIONAL:
+            message += f"CityJSON requires 3D target-crs as input. Target CRS {target_crs} is {len(target_crs.axis_info)}D. "
             if "crs" in extra:
                 extra["crs"].append("target-crs")
             else:
@@ -1355,7 +1350,7 @@ class CityjsonV113(BaseModel):
         self.vertices = [
             list(vertex) for vertex in self.vertices
         ]  # convert result to list since, callback function to transform coordinates returns tuples
-        self.set_epsg(target_crs)
+        self.set_epsg("{}:{}".format(*target_crs.to_authority()))
         self.update_bbox()
         src_unit = self.get_x_unit_crs(source_crs)
         target_unit = self.get_x_unit_crs(target_crs)

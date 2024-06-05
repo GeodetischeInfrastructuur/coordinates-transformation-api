@@ -48,7 +48,7 @@ from coordinate_transformation_api.crs_transform import (
     update_bbox_geojson_object,
 )
 from coordinate_transformation_api.models import (
-    Crs as MyCrs,
+    Crs as AvailableCrs,
 )
 from coordinate_transformation_api.models import (
     DensifyError,
@@ -63,7 +63,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_coords_source_crs(
-    coordinates, source_crs, projections_axis_info: list[MyCrs]
+    coordinates, source_crs, projections_axis_info: list[AvailableCrs]
 ):
     source_crs_dims = next(
         crs.nr_of_dimensions
@@ -82,12 +82,19 @@ def camel_to_snake(s):
     return "".join(["_" + c.lower() if c.isupper() else c for c in s]).lstrip("_")
 
 
-def extract_authority_code(crs: str) -> str:
+def extract_authority_code(crs: str) -> tuple[str, str]:
     r = re.search(r"^(https?://www\.opengis\.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
     if r is not None:
-        return str(r[2] + ":" + r[4])
+        split = str(r[2] + ":" + r[4]).split(":")
+        auth = split[0]
+        code = split[1]
+        return auth, code
 
-    return crs
+    split = crs.split(":")
+    auth = split[0]
+    code = split[1]
+
+    return auth, code
 
 
 def format_as_uri(crs: str) -> str:
@@ -133,7 +140,9 @@ def accept_html(request: Request) -> bool:
 
 def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool:
     if source_crs not in [DENSIFY_CRS_2D, DENSIFY_CRS_3D]:
-        transform_f = get_transform_crs_fun(source_crs, DENSIFY_CRS_2D)
+        transform_f = get_transform_crs_fun(
+            str_to_crs(source_crs), str_to_crs(DENSIFY_CRS_2D)
+        )
 
         if body.bbox is None:
             body.bbox = (0, 0, 0, 0)
@@ -164,20 +173,20 @@ def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool
 
 def crs_transform(
     body: GeojsonObject,
-    s_crs: str,
-    t_crs: str,
+    s_crs: CRS,
+    t_crs: CRS,
     epoch: float | None = None,
 ) -> None:
     crs_transform_fun = get_crs_transform_fun(s_crs, t_crs, epoch)
     _ = apply_function_on_geojson_geometries(body, crs_transform_fun)
     if isinstance(body, CrsFeatureCollection):
-        body.set_crs_auth_code(t_crs)
+        body.set_crs_auth_code("{}:{}".format(*t_crs.to_authority()))
     update_bbox_geojson_object(body)
 
 
 def density_check_request_body(
     body: GeojsonObject,
-    source_crs: str,
+    source_crs: CRS,
     max_segment_deviation: float | None,
     max_segment_length: float | None,
     epoch: float | None,
@@ -188,13 +197,15 @@ def density_check_request_body(
         bbox_check_deviation_set(body, source_crs, max_segment_deviation)
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
-    source_crs_crs = CRS.from_authority(*source_crs.split(":"))
     transform_crs = (
-        DENSIFY_CRS_3D
-        if len(source_crs_crs.axis_info) == THREE_DIMENSIONAL
-        else DENSIFY_CRS_2D
+        str_to_crs(DENSIFY_CRS_3D)
+        if len(source_crs.axis_info) == THREE_DIMENSIONAL
+        else str_to_crs(DENSIFY_CRS_2D)
     )
-    transform = source_crs not in [DENSIFY_CRS_3D, DENSIFY_CRS_2D]
+    transform = "{}:{}".format(*source_crs.to_authority()) not in [
+        DENSIFY_CRS_3D,
+        DENSIFY_CRS_2D,
+    ]
 
     if transform:
         crs_transform(
@@ -244,15 +255,18 @@ def densify_request_body(
     )
     transform = source_crs not in [DENSIFY_CRS_3D, DENSIFY_CRS_2D]
 
+    s_crs = str_to_crs(source_crs)
+    t_crs = str_to_crs(transform_crs)
+
     if transform:
-        crs_transform(body, source_crs, transform_crs)
+        crs_transform(body, s_crs, t_crs)
     c = DenseConfig(CRS.from_authority(*transform_crs.split(":")), max_segment_length)
     try:
         densify_geojson_object(body, c)
     except GeodenseError as e:
         raise DensifyError(str(e)) from e
     if transform:
-        crs_transform(body, transform_crs, source_crs)  # transform back to source_crs
+        crs_transform(body, t_crs, s_crs)  # transform back to source_crs
 
 
 def init_oas(crs_config) -> tuple[dict, str, str]:
@@ -362,22 +376,17 @@ def convert_point_coords_to_wkt(coords):
     return f"{geom_type}({' '.join([str(x) for x in coords])})"
 
 
-def get_crs(crs_str: str, crs_list: list[MyCrs]) -> MyCrs:
+def check_crs_is_known(crs_str: str, crs_list: list[AvailableCrs]) -> None:
     crs = next((x for x in crs_list if x.crs_auth_identifier == crs_str), None)
     if crs is None:
         raise ValueError(f"could not instantiate CRS object for CRS with id {crs_str}")
 
-    return crs
-
 
 def transform_coordinates(
-    coordinates: Any, source_crs: str, target_crs: str, epoch, crs_list: list[MyCrs]
+    coordinates: Any, source_crs: CRS, target_crs: CRS, epoch
 ) -> Any:
-    target_crs_crs = get_crs(
-        target_crs,
-        crs_list,
-    )
-    precision = get_precision(target_crs_crs)
+
+    precision = get_precision(target_crs)
     coordinate_list: CoordinatesType = list(
         float(x) for x in coordinates.split(",")
     )  # convert to list since we do not know dimensionality of coordinates
@@ -450,7 +459,7 @@ def post_transform_get_crss(
     target_crs: str,
     content_crs: str,
     accept_crs: str,
-) -> tuple[str, str]:
+) -> tuple[CRS, CRS]:
     s_crs = get_source_crs(body, source_crs, content_crs)
 
     if s_crs is None and isinstance(body, CrsFeatureCollection):
@@ -490,10 +499,10 @@ def post_transform_get_crss(
         )
 
     s_crs_str = cast(str, s_crs)
-    s_crs = extract_authority_code(s_crs_str)
-    t_crs = extract_authority_code(t_crs)
+    s_authority_code = extract_authority_code(s_crs_str)
+    t_authority_code = extract_authority_code(t_crs)
 
-    return s_crs, t_crs
+    return CRS.from_authority(*s_authority_code), CRS.from_authority(*t_authority_code)
 
 
 def get_transform_get_crss(
@@ -501,7 +510,7 @@ def get_transform_get_crss(
     target_crs: str,
     content_crs: str,
     accept_crs: str,
-) -> tuple[str, str]:
+) -> tuple[CRS, CRS]:
     if source_crs is not None:
         s_crs = source_crs
     elif source_crs is None and content_crs is not None:
@@ -522,10 +531,10 @@ def get_transform_get_crss(
             loc=("query", "target-crs", "header", "accept-crs"),
         )
 
-    s_crs = extract_authority_code(s_crs)
-    t_crs = extract_authority_code(t_crs)
+    s_authority_code = extract_authority_code(s_crs)
+    t_authority_code = extract_authority_code(t_crs)
 
-    return s_crs, t_crs
+    return CRS.from_authority(*s_authority_code), CRS.from_authority(*t_authority_code)
 
 
 def get_src_crs_densify(
@@ -555,8 +564,7 @@ def set_response_headers(
         key, val = arg
         headers[key] = str(val)
     return headers
-    # headers = {"content-crs": format_as_uri(t_crs)}
-    # if epoch:
-    #     headers["epoch"] = str(epoch)
 
-    # return headers
+
+def str_to_crs(crs_str: str) -> CRS:
+    return CRS.from_authority(*crs_str.split(":"))
