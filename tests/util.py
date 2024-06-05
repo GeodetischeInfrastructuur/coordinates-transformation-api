@@ -106,7 +106,8 @@ def nl_bonaire_validation_data():
         "NSGI:Bonaire2004_GEOGRAPHIC_2D",
         "NSGI:Bonaire2004_GEOGRAPHIC_3D",
         "EPSG:32619",
-        "EPSG:7789EPSG:7912",
+        "EPSG:7789",
+        "EPSG:7912",
         "EPSG:4979",
         "OGC:CRS84h",
     ]
@@ -146,7 +147,8 @@ def nl_st_eustatius_validation_data():
         "NSGI:St_Eustatius2020_GEOGRAPHIC_2D",
         "NSGI:St_Eustatius2020_GEOGRAPHIC_3D",
         "EPSG:32619",
-        "EPSG:7789EPSG:7912",
+        "EPSG:7789",
+        "EPSG:7912",
         "EPSG:4979",
         "OGC:CRS84h",
     ]
@@ -187,7 +189,8 @@ def nl_saba_validation_data():
         "NSGI:Saba2020_GEOGRAPHIC_2D",
         "NSGI:Saba2020_GEOGRAPHIC_3D",
         "EPSG:32619",
-        "EPSG:7789EPSG:7912",
+        "EPSG:7789",
+        "EPSG:7912",
         "EPSG:4979",
         "OGC:CRS84h",
     ]
