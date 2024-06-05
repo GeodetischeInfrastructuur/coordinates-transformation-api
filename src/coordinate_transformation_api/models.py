@@ -161,10 +161,10 @@ class Crs(BaseModel):
     identifier: str
 
     @classmethod
-    def from_crs_str(cls, crs_st: str) -> "Crs":  # noqa: ANN102
+    def from_crs_str(cls, crs_str: str) -> "Crs":  # noqa: ANN102
         # Do some math here and later set the values
-        auth, identifier = crs_st.split(":")
-        crs = ProjCrs.from_authority(auth, identifier)
+        auth, identifier = crs_str.split(":")
+        pyproj_crs = ProjCrs.from_authority(auth, identifier)
         axes = [
             Axis(
                 name=a.name,
@@ -175,13 +175,13 @@ class Crs(BaseModel):
                 unit_auth_code=a.unit_auth_code,
                 unit_code=a.unit_code,
             )
-            for a in crs.axis_info
+            for a in pyproj_crs.axis_info
         ]
         return cls(
             crs=f"https://www.opengis.net/def/crs/{auth}/0/{identifier}",
-            name=crs.name,
-            type_name=crs.type_name,
-            crs_auth_identifier=crs.srs,
+            name=pyproj_crs.name,
+            type_name=pyproj_crs.type_name,
+            crs_auth_identifier=pyproj_crs.srs,
             axes=axes,
             authority=auth,
             identifier=identifier,
@@ -193,10 +193,6 @@ class Crs(BaseModel):
         return len(self.axes)
 
     axes: list[Axis]
-
-    def get_axis_label(self: "Crs") -> str:
-        axes: list[Axis] = self.axes
-        return ", ".join(list(map(lambda x: f"{x.abbrev} ({x.unit_name})", axes)))
 
     def get_x_unit_crs(self: "Crs") -> str:
         axe = next(

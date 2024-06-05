@@ -3,13 +3,13 @@ from coordinate_transformation_api.crs_transform import get_transform_crs_fun
 from coordinate_transformation_api.models import Crs as MyCrs
 from coordinate_transformation_api.models import TransformationNotPossibleError
 
-from tests.util import do_pyproj_transformation, validation_data
+from tests.util import do_pyproj_transformation, nl_bonaire_validation_data
 
 xy_dim = 2
 
 
 @pytest.mark.parametrize(
-    ("source_crs", "target_crs", "source_coord"), validation_data()
+    ("source_crs", "target_crs", "source_coord"), nl_bonaire_validation_data()
 )
 def test_transformation(source_crs, target_crs, source_coord):
 
@@ -24,9 +24,9 @@ def test_transformation(source_crs, target_crs, source_coord):
         ) as e:
             get_transform_crs_fun(source_crs, target_crs)(source_coord)
         assert type(e.value) is TransformationNotPossibleError
-    elif source_crs == "EPSG:9289" or target_crs == "EPSG:9289":
-        # skip ETRS89 + LAT NL depth
-        assert True
+    # elif source_crs == "EPSG:9289" or target_crs == "EPSG:9289":
+    #     # skip ETRS89 + LAT NL depth
+    #     assert True
     else:
         pyproj_transformed_coord = do_pyproj_transformation(
             source_crs, target_crs, source_coord

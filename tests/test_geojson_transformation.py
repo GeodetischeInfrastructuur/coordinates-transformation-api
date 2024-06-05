@@ -5,6 +5,7 @@ from contextlib import nullcontext as does_not_raise
 import pytest
 from coordinate_transformation_api.util import (
     crs_transform,
+    str_to_crs,
     validate_crs_transformed_geojson,
 )
 from fastapi.exceptions import ResponseValidationError
@@ -22,7 +23,7 @@ def test_bbox_transformed():
         geometry = parse_geometry_obj(data)
         geometry_original = parse_geometry_obj(data)
 
-        crs_transform(geometry, "EPSG:28992", "EPSG:4326")
+        crs_transform(geometry, str_to_crs("EPSG:28992"), str_to_crs("EPSG:4326"))
 
         assert geometry_original.bbox is not None
         assert geometry.bbox is not None
@@ -40,8 +41,8 @@ def test_transform_geometry():
         geometry_original: Geometry = parse_geometry_obj(data)
         geometry_crs84: Geometry = parse_geometry_obj(data)
 
-        crs_transform(geometry, "EPSG:28992", "EPSG:4326")
-        crs_transform(geometry_crs84, "EPSG:28992", "OGC:CRS84")
+        crs_transform(geometry, str_to_crs("EPSG:28992"), str_to_crs("EPSG:4326"))
+        crs_transform(geometry_crs84, str_to_crs("EPSG:28992"), str_to_crs("OGC:CRS84"))
 
         geometry_dict = json.loads(geometry.model_dump_json())
         # since axis order is always x,y OGC:CRS84==EPSG:4326 in GeoJSON
@@ -64,7 +65,7 @@ def test_transform_feature_geometrycollection():
         feature = Feature.model_validate(data)
         feature_original = Feature.model_validate(data)
 
-        crs_transform(feature, "EPSG:28992", "OGC:CRS84")
+        crs_transform(feature, str_to_crs("EPSG:28992"), str_to_crs("OGC:CRS84"))
 
         feature_dict = json.loads(feature.model_dump_json())
         # check if input is actually transformed
@@ -82,7 +83,7 @@ def test_transform_feature():
         feature = Feature(**data)
         feature_original = Feature(**data)
 
-        crs_transform(feature, "EPSG:28992", "EPSG:4326")
+        crs_transform(feature, str_to_crs("EPSG:28992"), str_to_crs("EPSG:4326"))
 
         feature_dict = json.loads(feature.model_dump_json())
         # check if input is actually transformed
@@ -100,7 +101,7 @@ def test_transform_featurecollection():
         fc = CrsFeatureCollection(**data)
         fc_original = CrsFeatureCollection(**data)
 
-        crs_transform(fc, "EPSG:28992", "EPSG:4326")
+        crs_transform(fc, str_to_crs("EPSG:28992"), str_to_crs("EPSG:4326"))
 
         fc_dict = json.loads(fc.model_dump_json())
         # check if input is actually transformed
@@ -120,7 +121,7 @@ def test_transform_featurecollection_geometrycollection():
         fc = CrsFeatureCollection(**data)
         fc_original = CrsFeatureCollection(**data)
 
-        crs_transform(fc, "EPSG:28992", "EPSG:4326")
+        crs_transform(fc, str_to_crs("EPSG:28992"), str_to_crs("EPSG:4326"))
 
         fc_dict = json.loads(fc.model_dump_json())
         # check if input is actually transformed
@@ -137,7 +138,7 @@ def test_transform_geometrycollection():
         data = json.load(f)
         gc = GeometryCollection(**data)
         gc_original = GeometryCollection(**data)
-        crs_transform(gc, "EPSG:28992", "EPSG:4326")
+        crs_transform(gc, str_to_crs("EPSG:28992"), str_to_crs("EPSG:4326"))
 
         gc_dict = json.loads(gc.model_dump_json())
         # check if input is actually transformed
@@ -153,11 +154,11 @@ def test_validate_crs_transformed_geojson(feature):
     feature_exc = feature.model_copy(deep=True)
     feature_no_exc = feature.model_copy(deep=True)
 
-    crs_transform(feature_exc, "EPSG:4326", "EPSG:28992")
+    crs_transform(feature_exc, str_to_crs("EPSG:4326"), str_to_crs("EPSG:28992"))
     with pytest.raises(ResponseValidationError):
         validate_crs_transformed_geojson(feature_exc)
 
-    crs_transform(feature_no_exc, "EPSG:28992", "EPSG:4326")
+    crs_transform(feature_no_exc, str_to_crs("EPSG:28992"), str_to_crs("EPSG:4326"))
     with does_not_raise():
         validate_crs_transformed_geojson(feature_no_exc)
 
@@ -169,9 +170,13 @@ def test_2d_with_epoch():
         feature_2d_2020 = Feature(**data)
         feature_2d_org = Feature(**data)
 
-        crs_transform(feature_2d_org, "EPSG:3857", "EPSG:28992")
-        crs_transform(feature_2d_2000, "EPSG:3857", "EPSG:28992", 2000)
-        crs_transform(feature_2d_2020, "EPSG:3857", "EPSG:28992", 2020)
+        crs_transform(feature_2d_org, str_to_crs("EPSG:3857"), str_to_crs("EPSG:28992"))
+        crs_transform(
+            feature_2d_2000, str_to_crs("EPSG:3857"), str_to_crs("EPSG:28992"), 2000
+        )
+        crs_transform(
+            feature_2d_2020, str_to_crs("EPSG:3857"), str_to_crs("EPSG:28992"), 2020
+        )
 
         assert feature_2d_2000 != feature_2d_org
         assert feature_2d_2020 != feature_2d_org
@@ -224,9 +229,15 @@ def test_wm_epoch():
         feature_2010 = Feature(**data)
         feature_epoch_none = Feature(**data)
 
-        crs_transform(feature_2024, "EPSG:28992", "EPSG:3857", 2024)
-        crs_transform(feature_2010, "EPSG:28992", "EPSG:3857", 2010)
-        crs_transform(feature_epoch_none, "EPSG:28992", "EPSG:3857")
+        crs_transform(
+            feature_2024, str_to_crs("EPSG:28992"), str_to_crs("EPSG:3857"), 2024
+        )
+        crs_transform(
+            feature_2010, str_to_crs("EPSG:28992"), str_to_crs("EPSG:3857"), 2010
+        )
+        crs_transform(
+            feature_epoch_none, str_to_crs("EPSG:28992"), str_to_crs("EPSG:3857")
+        )
 
         assert feature_2024 != feature_2010
         assert feature_2010 != feature_epoch_none

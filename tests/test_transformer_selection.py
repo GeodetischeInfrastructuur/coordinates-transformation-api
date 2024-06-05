@@ -4,6 +4,7 @@ from coordinate_transformation_api.crs_transform import (
     get_transformer,
     needs_epoch,
 )
+from coordinate_transformation_api.util import str_to_crs
 
 
 # This test needs the modified proj.time.dependent.transformations.db from
@@ -20,7 +21,10 @@ from coordinate_transformation_api.crs_transform import (
     ],
 )
 def test_time_dependant_operation_method(source, target, epoch, expectation):
-    assert needs_epoch(get_transformer(source, target, epoch)) == expectation
+    assert (
+        needs_epoch(get_transformer(str_to_crs(source), str_to_crs(target), epoch))
+        == expectation
+    )
 
 
 @pytest.mark.parametrize(

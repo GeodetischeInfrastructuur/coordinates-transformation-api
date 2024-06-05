@@ -1,6 +1,7 @@
 import json
 
 from coordinate_transformation_api.cityjson.models import CityjsonV113
+from coordinate_transformation_api.util import str_to_crs
 
 
 def test_cityjson_transformed():
@@ -9,7 +10,7 @@ def test_cityjson_transformed():
         cj = CityjsonV113.model_validate(data)
         cj_original = CityjsonV113.model_validate(data)
 
-        cj.crs_transform("EPSG:7415", "EPSG:9753", 2010.0)
+        cj.crs_transform(str_to_crs("EPSG:7415"), str_to_crs("EPSG:9753"), 2010.0)
         assert cj.metadata.geographicalExtent != cj_original.metadata.geographicalExtent
         assert cj.vertices != cj_original.vertices
         assert (
