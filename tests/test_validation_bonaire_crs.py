@@ -3,13 +3,13 @@ from coordinate_transformation_api.crs_transform import get_transform_crs_fun
 from coordinate_transformation_api.models import Crs as MyCrs
 from coordinate_transformation_api.models import TransformationNotPossibleError
 
-from tests.util import bonaire_validation_data, do_pyproj_transformation
+from tests.util import do_pyproj_transformation, nl_bonaire_validation_data
 
 xy_dim = 2
 
 
 @pytest.mark.parametrize(
-    ("source_crs", "target_crs", "source_coord"), bonaire_validation_data()
+    ("source_crs", "target_crs", "source_coord"), nl_bonaire_validation_data()
 )
 def test_transformation(source_crs, target_crs, source_coord):
 

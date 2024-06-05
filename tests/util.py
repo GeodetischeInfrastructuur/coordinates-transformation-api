@@ -40,7 +40,7 @@ def make_entry(line):
     return tuple([source, target, coords])
 
 
-def nl_validation_data():
+def nl_eu_validation_data():
 
     seed_crs_list = [
         "EPSG:7415",
@@ -94,10 +94,10 @@ def nl_validation_data():
                         )
                     )
 
-        nl_validation_data()
+        nl_eu_validation_data()
 
 
-def bonaire_validation_data():
+def nl_bonaire_validation_data():
 
     seed_crs_list = [
         "NSGI:Bonaire_DPnet_KADpeil",
@@ -134,10 +134,10 @@ def bonaire_validation_data():
                         )
                     )
 
-        bonaire_validation_data()
+        nl_bonaire_validation_data()
 
 
-def st_eustatius_validation_data():
+def nl_st_eustatius_validation_data():
 
     seed_crs_list = [
         "NSGI:St_Eustatius_DPnet_Height",
@@ -174,10 +174,10 @@ def st_eustatius_validation_data():
                         )
                     )
 
-        st_eustatius_validation_data()
+        nl_st_eustatius_validation_data()
 
 
-def saba_validation_data():
+def nl_saba_validation_data():
 
     seed_crs_list = [
         "NSGI:Saba_DPnet_Height",
@@ -215,4 +215,4 @@ def saba_validation_data():
                         )
                     )
 
-        saba_validation_data()
+        nl_saba_validation_data()
