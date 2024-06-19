@@ -48,7 +48,7 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          python${{ matrix.python-version }} -m ruff -v .
+          python${{ matrix.python-version }} -m ruff check -v .
 
       - name: Run Mypy
         run: |

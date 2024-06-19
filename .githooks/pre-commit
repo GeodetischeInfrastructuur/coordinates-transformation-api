@@ -56,7 +56,7 @@ black .
 
 command_available "ruff"
 print_message "running ruff linting" 2 "" true
-ruff --fix .
+ruff check --fix .
 
 command_available "prettier"
 print_message "running prettier formatting" 2 "" true
