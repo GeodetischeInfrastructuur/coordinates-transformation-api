@@ -289,7 +289,6 @@ def check_axis(s_crs: CRS, t_crs: CRS) -> None:
 def get_transformer(
     source_crs: CRS, target_crs: CRS, epoch: float | None
 ) -> Transformer:  # quit
-
     check_axis(source_crs, target_crs)
 
     if exclude_transformation(
@@ -299,6 +298,7 @@ def get_transformer(
         raise TransformationNotPossibleError(
             "{}:{}".format(*source_crs.to_authority()),
             "{}:{}".format(*target_crs.to_authority()),
+            "Transformation Excluded",
         )
 
     # Get available transformer through TransformerGroup
@@ -351,7 +351,6 @@ def get_individual_crs_from_compound(compound_crs: CRS) -> tuple[CRS, CRS]:
 
 
 def build_input_coord(coord: CoordinatesType, epoch: float | None) -> CoordinatesType:
-
     # When 2D input is given with an epoch we need to add a height. So pyproj knows to
     # that the epoch is an epoch and not the height, without this intervention the epoch
     # would be place in the firth position of the tuple.
@@ -404,7 +403,6 @@ def get_transform_crs_fun(  # noqa: C901
         and target_crs.is_compound
         and not source_crs.is_geocentric
     ):
-
         check_axis(source_crs, target_crs)
 
         target_crs_horizontal, target_crs_vertical = get_individual_crs_from_compound(
@@ -412,9 +410,10 @@ def get_transform_crs_fun(  # noqa: C901
         )
 
         if source_crs is not None and source_crs.is_compound:
-            source_crs_horizontal, source_crs_vertical = (
-                get_individual_crs_from_compound(source_crs)
-            )
+            (
+                source_crs_horizontal,
+                source_crs_vertical,
+            ) = get_individual_crs_from_compound(source_crs)
         else:
             source_crs_horizontal = source_crs
             source_crs_vertical = source_crs
@@ -441,7 +440,6 @@ def get_transform_crs_fun(  # noqa: C901
             v_transformer = get_transformer(source_crs, target_crs, epoch)
 
         def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
-
             input = tuple([*val, float(epoch)]) if epoch is not None else tuple([*val])
 
             h = tuple(

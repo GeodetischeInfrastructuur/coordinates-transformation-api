@@ -385,7 +385,6 @@ def check_crs_is_known(crs_str: str, crs_list: list[AvailableCrs]) -> None:
 def transform_coordinates(
     coordinates: Any, source_crs: CRS, target_crs: CRS, epoch
 ) -> Any:
-
     precision = get_precision(target_crs)
     coordinate_list: CoordinatesType = list(
         float(x) for x in coordinates.split(",")

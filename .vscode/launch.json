@@ -32,7 +32,6 @@
       "name": "Python: Debug Tests",
       "type": "debugpy",
       "request": "launch",
-      "module": "pytest",
       "args": ["${file}"],
       "purpose": ["debug-test"],
       "console": "integratedTerminal",
