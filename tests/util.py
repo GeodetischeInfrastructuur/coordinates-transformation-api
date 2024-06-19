@@ -41,7 +41,6 @@ def make_entry(line):
 
 
 def nl_eu_validation_data():
-
     seed_crs_list = [
         "EPSG:7415",
         "EPSG:28992",
@@ -98,7 +97,6 @@ def nl_eu_validation_data():
 
 
 def nl_bonaire_validation_data():
-
     seed_crs_list = [
         "NSGI:Bonaire_DPnet_KADpeil",
         "NSGI:Bonaire_DPnet",
@@ -139,7 +137,6 @@ def nl_bonaire_validation_data():
 
 
 def nl_st_eustatius_validation_data():
-
     seed_crs_list = [
         "NSGI:St_Eustatius_DPnet_Height",
         "NSGI:St_Eustatius_DPnet",
@@ -180,7 +177,6 @@ def nl_st_eustatius_validation_data():
 
 
 def nl_saba_validation_data():
-
     seed_crs_list = [
         "NSGI:Saba_DPnet_Height",
         "NSGI:Saba_DPnet",

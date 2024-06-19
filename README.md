@@ -87,17 +87,27 @@ echo 'extends: "spectral:oas"\n'> ruleset.yaml &&  spectral lint http://127.0.0.
 
 ### Install NSGI proj.db
 
-Execute the following shell one-liner to install the NSGI
+Execute the following shell commands to install the NSGI
 `proj.time.dependent.transformations.db` as `proj.db` from the
 [GeodetischeInfrastructuur/transformations](https://github.com/GeodetischeInfrastructuur/transformations/releases)
 repo:
 
 ```sh
+NSGI_PROJ_DB_VERSION=$(sed -rn 's/ARG NSGI_PROJ_DB_VERSION="(.*)"/\1/p' < Dockerfile)
 proj_data_dir=$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());')
-curl -sL -o "${proj_data_dir}/nl_nsgi_nlgeo2018.tif" https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
-    curl -sL -o "${proj_data_dir}/nl_nsgi_rdcorr2018.tif" https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
-    curl -sL -o "${proj_data_dir}/nl_nsgi_rdtrans2018.tif" https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
-curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.time.dependent.transformations.db").url') -o "${proj_data_dir}/proj.db"
+
+# ( cmd ) -> subshell to execute commands in $proj_data_dir without changing workdir of current shell
+(
+   cd "$proj_data_dir"
+   echo $NSGI_PROJ_DB_VERSION
+   curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
+   curl -sL -o nl_nsgi_rdcorr2018.tif https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
+   curl -sL -o nl_nsgi_rdtrans2018.tif https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
+   curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="bq_nsgi_bongeo2004.tif").url') -o bq_nsgi_bongeo2004.tif && \
+   curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="nllat2018.gtx").url') -o nllat2018.gtx && \
+   curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.time.dependent.transformations.db").url') -o proj.db
+)
+
 ```
 
 > :warning: For 'default' usage, like QGIS, use the proj.db. The coordinate

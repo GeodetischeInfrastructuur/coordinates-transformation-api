@@ -50,7 +50,6 @@ from geojson_pydantic import Feature
     ],
 )
 def test_request_body_within_valid_bbox(geojson, source_crs, expectation):
-
     result = request_body_within_valid_bbox(geojson, source_crs)
 
     assert result == expectation

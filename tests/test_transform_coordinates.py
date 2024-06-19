@@ -21,7 +21,6 @@ from pyproj import CRS
     ],
 )
 def test_transformed_coordinates(coordinates, s_crs, t_crs, expectation):
-
     source_crs = CRS.from_authority(*s_crs)
     target_crs = CRS.from_authority(*t_crs)
 

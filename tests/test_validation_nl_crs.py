@@ -12,7 +12,6 @@ xy_dim = 2
     ("source_crs", "target_crs", "source_coord"), nl_eu_validation_data()
 )
 def test_transformation(source_crs, target_crs, source_coord):
-
     s_crs = str_to_crs(source_crs)
     t_crs = str_to_crs(target_crs)
 
