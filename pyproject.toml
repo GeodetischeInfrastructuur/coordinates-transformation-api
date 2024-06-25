@@ -15,8 +15,8 @@ dependencies = [
     "pyyaml == 6.0.1",
     "geojson_pydantic == 1.1.0",
     "pyproj == 3.6.1",
-    "pydantic-settings == 2.3.0",
-    "email-validator == 2.1.1",
+    "pydantic-settings == 2.3.4",
+    "email-validator == 2.2.0",
     "geodense == 1.0.0",
 ]
 requires-python = ">=3.11.4"
@@ -25,10 +25,10 @@ dynamic = ["version"]
 [project.optional-dependencies]
 dev = [
     "black == 24.4.2",
-    "coverage == 7.5.3",
-    "mypy == 1.10.0",
+    "coverage == 7.5.4",
+    "mypy == 1.10.1",
     "pytest == 8.2.2",
-    "ruff == 0.4.7",
+    "ruff == 0.4.10",
     "types-ujson == 5.10.0.20240515",
     "types-PyYAML == 6.0.12.20240311",
     "pytest-asyncio == 0.23.7",
