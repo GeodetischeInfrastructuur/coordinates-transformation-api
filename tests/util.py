@@ -104,9 +104,6 @@ def nl_bonaire_validation_data():
         "NSGI:Bonaire2004_GEOGRAPHIC_2D",
         "NSGI:Bonaire2004_GEOGRAPHIC_3D",
         "EPSG:32619",
-        "EPSG:7789",
-        "EPSG:7912",
-        "EPSG:4979",
         "OGC:CRS84h",
     ]
     seed_init_crs = "NSGI:Bonaire_DPnet_KADpeil"
@@ -143,7 +140,6 @@ def nl_st_eustatius_validation_data():
         "NSGI:St_Eustatius2020_GEOCENTRIC",
         "NSGI:St_Eustatius2020_GEOGRAPHIC_2D",
         "NSGI:St_Eustatius2020_GEOGRAPHIC_3D",
-        "EPSG:32619",
         "EPSG:7789",
         "EPSG:7912",
         "EPSG:4979",
@@ -184,7 +180,6 @@ def nl_saba_validation_data():
         "NSGI:Saba2020_GEOCENTRIC",
         "NSGI:Saba2020_GEOGRAPHIC_2D",
         "NSGI:Saba2020_GEOGRAPHIC_3D",
-        "EPSG:32619",
         "EPSG:7789",
         "EPSG:7912",
         "EPSG:4979",
