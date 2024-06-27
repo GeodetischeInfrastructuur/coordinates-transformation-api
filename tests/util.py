@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from typing import Optional
 
 import pytest
-from pyproj import transformer
+from pyproj import CRS, transformer
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -23,8 +23,13 @@ def not_raises(exception, message: Optional[str] = ""):
 def do_pyproj_transformation(
     source_crs: str, target_crs: str, coords: tuple[float, ...]
 ) -> tuple[float, ...]:
+
+    axis_order = False
+    if CRS(source_crs).axis_info[0].abbrev == "Lon":
+        axis_order = True
+
     tfg = transformer.TransformerGroup(
-        source_crs, target_crs, allow_ballpark=False, always_xy=True
+        source_crs, target_crs, allow_ballpark=False, always_xy=axis_order
     )
 
     if len(tfg.transformers) == 0:
@@ -70,7 +75,7 @@ def nl_eu_validation_data():
         "EPSG:3395",
     ]
     seed_init_crs = "EPSG:7415"
-    seed_coord = (0, 400000, 43, 2000)
+    seed_coord = (100000, 300000, 43, 2000)
 
     file = os.path.join(TEST_DIR, "data", "nl_validation_data.csv")
 

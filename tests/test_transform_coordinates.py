@@ -18,6 +18,18 @@ from pyproj import CRS
             ("NSGI", "Saba_DPnet_Height"),
             (4000.0, 1000.0, 0.0),
         ),
+        (
+            "100000, 300000, 43",
+            ("EPSG", "7415"),
+            ("EPSG", "7931"),
+            (50.687412313, 4.608962491, 88.6033),
+        ),
+        (
+            "50.687412313, 4.608962491, 88.6033",
+            ("EPSG", "7931"),
+            ("EPSG", "7415"),
+            (100000, 300000, 43),
+        ),
     ],
 )
 def test_transformed_coordinates(coordinates, s_crs, t_crs, expectation):
@@ -28,4 +40,4 @@ def test_transformed_coordinates(coordinates, s_crs, t_crs, expectation):
         coordinates, source_crs, target_crs, None
     )
 
-    assert transformed_coordinates == expectation
+    assert transformed_coordinates == pytest.approx(expectation)

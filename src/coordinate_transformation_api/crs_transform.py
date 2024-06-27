@@ -303,8 +303,13 @@ def get_transformer(
 
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
+
+    axis_order = False
+    if source_crs.axis_info[0].abbrev == "Lon":
+        axis_order = True
+
     tfg = transformer.TransformerGroup(
-        source_crs, target_crs, allow_ballpark=False, always_xy=True
+        source_crs, target_crs, allow_ballpark=False, always_xy=axis_order
     )
 
     # If everything is 'right' we should always have a transformer
