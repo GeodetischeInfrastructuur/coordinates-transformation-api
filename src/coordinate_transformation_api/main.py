@@ -73,6 +73,7 @@ from coordinate_transformation_api.util import (
 assets_resources = impresources.files(assets)
 logging_conf = assets_resources.joinpath("logging.conf")
 
+
 OPEN_API_SPEC: dict
 API_VERSION: str
 CRS_LIST: list[Crs]

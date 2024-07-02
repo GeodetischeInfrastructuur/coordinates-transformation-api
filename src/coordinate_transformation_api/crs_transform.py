@@ -1,6 +1,8 @@
 from collections.abc import Generator
 from importlib import resources as impresources
 from itertools import chain
+from os import listdir
+from os.path import isfile, join
 from typing import Any, Callable, cast
 
 import yaml
@@ -15,7 +17,7 @@ from geojson_pydantic.geometries import _GeometryBase
 from geojson_pydantic.types import BBox
 from pyproj import CRS, Transformer, transformer
 from shapely import GeometryCollection as ShpGeometryCollection
-from shapely.geometry import shape
+from shapely.geometry import box, shape
 
 from coordinate_transformation_api import assets
 from coordinate_transformation_api.constants import (
@@ -35,9 +37,21 @@ HORIZONTAL_AXIS_LENGTH: int = 2
 VERTICAL_AXIS_LENGTH: int = 1
 
 assets_resources = impresources.files(assets)
-api_conf = assets_resources.joinpath("config.yaml")
-with open(str(api_conf)) as f:
-    CRS_CONFIG = yaml.safe_load(f)
+# api_conf = assets_resources.joinpath("config.yaml")
+
+api_conf = assets_resources.joinpath("crs")
+
+FILES = [f for f in listdir(str(api_conf)) if isfile(join(str(api_conf), f))]
+
+CRS_CONFIG = []
+
+for file in FILES:
+    with open(str(api_conf) + "/" + file) as f:
+        config = yaml.safe_load(f)
+        uris = config["uri"]
+        for uri in uris:
+            if uri not in CRS_CONFIG:
+                CRS_CONFIG.append(uri)
 
 
 def get_precision(crs: CRS) -> int:
@@ -234,11 +248,23 @@ def get_bbox_from_coordinates(coordinates: Any) -> BBox:  # noqa: ANN401
         )
 
 
-def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
-    if source_crs_str in CRS_CONFIG and (
-        target_crs_str in CRS_CONFIG[source_crs_str]["exclude-transformations"]
-    ):
+def exclude_transformation(source_crs: CRS, target_crs: CRS) -> bool:
+    if len(source_crs.axis_info) < len(target_crs.axis_info):
+        return False
+
+    if source_crs.area_of_use is not None:
+        source_box = box(*source_crs.area_of_use.bounds)
+    else:
+        return False
+
+    if target_crs.area_of_use is not None:
+        target_box = box(*target_crs.area_of_use.bounds)
+    else:
+        return False
+
+    if source_box.intersects(target_box):
         return True
+
     return False
 
 
@@ -291,10 +317,7 @@ def get_transformer(
 ) -> Transformer:  # quit
     check_axis(source_crs, target_crs)
 
-    if exclude_transformation(
-        "{}:{}".format(*source_crs.to_authority()),
-        "{}:{}".format(*target_crs.to_authority()),
-    ):
+    if exclude_transformation(source_crs, target_crs):
         raise TransformationNotPossibleError(
             "{}:{}".format(*source_crs.to_authority()),
             "{}:{}".format(*target_crs.to_authority()),

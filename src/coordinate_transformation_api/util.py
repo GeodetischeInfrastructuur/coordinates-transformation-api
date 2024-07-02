@@ -269,7 +269,7 @@ def densify_request_body(
         crs_transform(body, t_crs, s_crs)  # transform back to source_crs
 
 
-def init_oas(crs_config) -> tuple[dict, str, str]:
+def init_oas(uris) -> tuple[dict, str, str]:
     """initialize open api spec:
     - return projection info from oas
     - return app version
@@ -281,8 +281,11 @@ def init_oas(crs_config) -> tuple[dict, str, str]:
     """
     oas_filepath = impresources.files(assets) / "openapi.yaml"
 
-    available_crss = list(crs_config.keys())
-    available_crss_uri = list(map(lambda x: x["uri"], list(crs_config.values())))
+    # available_crss = list(crs_config.keys())
+    # available_crss_uri = list(map(lambda x: x["uri"], list(crs_config.values())))
+
+    available_crss_uri = uris
+    available_crss = [uri_to_crs_str(uri) for uri in uris]
 
     with oas_filepath.open("rb") as oas_file:
         oas = yaml.load(oas_file, yaml.SafeLoader)
@@ -567,3 +570,13 @@ def set_response_headers(
 
 def str_to_crs(crs_str: str) -> CRS:
     return CRS.from_authority(*crs_str.split(":"))
+
+
+def uri_to_crs_str(uri: str) -> str:
+    pattern_string = r"^.*(NSGI|EPSG|OGC)(\/.*\/)(.*)$"
+    m = re.findall(pattern_string, uri)
+    return str(m[0][0] + ":" + m[0][2])
+
+
+def get_crs_from_uri(uri: str) -> CRS:
+    return str_to_crs(uri_to_crs_str(uri))
