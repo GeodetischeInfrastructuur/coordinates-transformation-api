@@ -1,6 +1,6 @@
 uri:
-  - "http://www.nsgi.nl/def/crs/NSGI/0/Saba_DPnet"
   - "http://www.nsgi.nl/def/crs/NSGI/0/Saba_DPnet_Height"
+  - "http://www.nsgi.nl/def/crs/NSGI/0/Saba_DPnet"
   - "http://www.nsgi.nl/def/crs/NSGI/0/Saba2020_GEOGRAPHIC_2D"
   - "http://www.nsgi.nl/def/crs/NSGI/0/Saba2020_GEOGRAPHIC_3D"
   - "http://www.nsgi.nl/def/crs/NSGI/0/Saba2020_GEOCENTRIC"

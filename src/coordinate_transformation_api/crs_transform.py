@@ -317,7 +317,7 @@ def get_transformer(
 ) -> Transformer:  # quit
     check_axis(source_crs, target_crs)
 
-    if exclude_transformation(source_crs, target_crs):
+    if not exclude_transformation(source_crs, target_crs):
         raise TransformationNotPossibleError(
             "{}:{}".format(*source_crs.to_authority()),
             "{}:{}".format(*target_crs.to_authority()),

@@ -1,6 +1,6 @@
 uri:
-  - "http://www.nsgi.nl/def/crs/NSGI/0/Bonaire_DPnet"
   - "http://www.nsgi.nl/def/crs/NSGI/0/Bonaire_DPnet_KADpeil"
+  - "http://www.nsgi.nl/def/crs/NSGI/0/Bonaire_DPnet"
   - "http://www.nsgi.nl/def/crs/NSGI/0/Bonaire2004_GEOGRAPHIC_2D"
   - "http://www.nsgi.nl/def/crs/NSGI/0/Bonaire2004_GEOGRAPHIC_3D"
   - "http://www.nsgi.nl/def/crs/NSGI/0/Bonaire2004_GEOCENTRIC"

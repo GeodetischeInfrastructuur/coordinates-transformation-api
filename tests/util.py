@@ -1,9 +1,13 @@
 import csv
 import os
 from contextlib import contextmanager
+from importlib import resources
 from typing import Optional
 
 import pytest
+import yaml
+from coordinate_transformation_api import assets
+from coordinate_transformation_api.util import uri_to_crs_str
 from pyproj import CRS, transformer
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -45,35 +49,23 @@ def make_entry(line):
     return tuple([source, target, coords])
 
 
+def read_file(file) -> []:
+    assets_resources = resources.files(assets)
+    seed_crs_list = []
+
+    config_yaml = assets_resources.joinpath("crs/" + file)
+
+    with open(str(config_yaml)) as f:
+        config = yaml.safe_load(f)
+        uris = config["uri"]
+        for uri in uris:
+            seed_crs_list.append(uri_to_crs_str(uri))
+
+    return seed_crs_list
+
+
 def nl_eu_validation_data():
-    seed_crs_list = [
-        "EPSG:7415",
-        "EPSG:28992",
-        "EPSG:4258",
-        "EPSG:3035",
-        "EPSG:3034",
-        "EPSG:3043",
-        "EPSG:3044",
-        "EPSG:9067",
-        "OGC:CRS84",
-        "EPSG:4326",
-        "EPSG:3857",
-        "EPSG:9000",
-        "EPSG:9755",
-        "EPSG:4937",
-        "EPSG:4936",
-        "EPSG:9286",
-        "EPSG:7931",
-        "EPSG:7930",
-        "OGC:CRS84h",
-        "EPSG:4979",
-        "EPSG:7912",
-        "EPSG:7789",
-        "EPSG:9754",
-        "EPSG:9753",
-        "EPSG:9289",
-        "EPSG:3395",
-    ]
+    seed_crs_list = read_file("nl_config.yaml")
     seed_init_crs = "EPSG:7415"
     seed_coord = (100000, 300000, 43, 2000)
 
@@ -102,18 +94,8 @@ def nl_eu_validation_data():
 
 
 def nl_bonaire_validation_data():
-    seed_crs_list = [
-        "NSGI:Bonaire_DPnet_KADpeil",
-        "NSGI:Bonaire_DPnet",
-        "NSGI:Bonaire2004_GEOCENTRIC",
-        "NSGI:Bonaire2004_GEOGRAPHIC_2D",
-        "NSGI:Bonaire2004_GEOGRAPHIC_3D",
-        "EPSG:32619",
-        "EPSG:7789",
-        "EPSG:7912",
-        "EPSG:4979",
-        "OGC:CRS84h",
-    ]
+
+    seed_crs_list = read_file("bonaire_config.yaml")
     seed_init_crs = "NSGI:Bonaire_DPnet_KADpeil"
     seed_coord = (23000.0000, 18000.0000, 10.0000, 2000)
 
@@ -142,18 +124,8 @@ def nl_bonaire_validation_data():
 
 
 def nl_st_eustatius_validation_data():
-    seed_crs_list = [
-        "NSGI:St_Eustatius_DPnet_Height",
-        "NSGI:St_Eustatius_DPnet",
-        "NSGI:St_Eustatius2020_GEOCENTRIC",
-        "NSGI:St_Eustatius2020_GEOGRAPHIC_2D",
-        "NSGI:St_Eustatius2020_GEOGRAPHIC_3D",
-        "EPSG:32619",
-        "EPSG:7789",
-        "EPSG:7912",
-        "EPSG:4979",
-        "OGC:CRS84h",
-    ]
+
+    seed_crs_list = read_file("st_eustatius_config.yaml")
     seed_init_crs = "NSGI:St_Eustatius_DPnet_Height"
     seed_coord = (502000.0000, 1934000.0000, 100.0000, 2000)
 
@@ -182,19 +154,8 @@ def nl_st_eustatius_validation_data():
 
 
 def nl_saba_validation_data():
-    seed_crs_list = [
-        "NSGI:Saba_DPnet_Height",
-        "NSGI:Saba_DPnet",
-        "NSGI:Saba_DPnet_Height",
-        "NSGI:Saba2020_GEOCENTRIC",
-        "NSGI:Saba2020_GEOGRAPHIC_2D",
-        "NSGI:Saba2020_GEOGRAPHIC_3D",
-        "EPSG:32619",
-        "EPSG:7789",
-        "EPSG:7912",
-        "EPSG:4979",
-        "OGC:CRS84h",
-    ]
+
+    seed_crs_list = read_file("saba_config.yaml")
     seed_init_crs = "NSGI:Saba_DPnet_Height"
     seed_coord = (5000.0000, 1000.0000, 300.0000, 2000)
 
