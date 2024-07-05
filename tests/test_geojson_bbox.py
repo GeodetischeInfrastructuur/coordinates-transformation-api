@@ -2,8 +2,9 @@ import json
 
 from coordinate_transformation_api.util import (
     crs_transform,
-    update_bbox_geojson_object,
+    update_bbox,
 )
+from geodense.lib import traverse_geojson_geometries
 from geojson_pydantic import Feature
 from pydantic import ValidationError
 from pyproj import CRS
@@ -15,9 +16,8 @@ def test_feature_bbox():
     with open("tests/data/feature-bbox.json") as f:
         data = json.load(f)
         feature = Feature(**data)
-        feature_original = Feature(**data)
 
-        crs_transform(
+        feature_t = crs_transform(
             feature,
             CRS.from_authority(*"EPSG:28992".split(":")),
             CRS.from_authority(*"EPSG:4326".split(":")),
@@ -25,7 +25,7 @@ def test_feature_bbox():
 
         feature_dict = json.loads(feature.model_dump_json())
         # check if input is actually transformed
-        assert feature != feature_original
+        assert feature_t != feature
         with not_raises(
             ValidationError,
             "could not convert output of transform_request_body to type Feature: {exc}",
@@ -51,30 +51,36 @@ def test_update_bbox(geometry_collection_bbox):
     test_bbox_fc_ft1 = (146835.981928, 599898.553943, 146835.981928, 599898.553943)
     test_bbox_fc_ft1_geom = test_bbox_fc_ft1
 
-    update_bbox_geojson_object(geometry_collection_bbox)
+    geometry_collection_bbox_t = traverse_geojson_geometries(
+        geometry_collection_bbox, None, update_bbox
+    )
 
-    bbox_fc = tuple(round(x, 6) for x in geometry_collection_bbox.bbox)
+    bbox_fc = tuple(round(x, 6) for x in geometry_collection_bbox_t.bbox)
     assert bbox_fc == test_bbox_fc
 
-    bbox_fc_ft0 = tuple(round(x, 6) for x in geometry_collection_bbox.features[0].bbox)
+    bbox_fc_ft0 = tuple(
+        round(x, 6) for x in geometry_collection_bbox_t.features[0].bbox
+    )
     assert bbox_fc_ft0 == test_bbox_fc_ft0
 
     bbox_fc_ft0_geom0 = tuple(
         round(x, 6)
-        for x in geometry_collection_bbox.features[0].geometry.geometries[0].bbox
+        for x in geometry_collection_bbox_t.features[0].geometry.geometries[0].bbox
     )
     assert bbox_fc_ft0_geom0 == test_bbox_fc_ft0_geom0
 
     bbox_fc_ft0_geom1 = tuple(
         round(x, 6)
-        for x in geometry_collection_bbox.features[0].geometry.geometries[1].bbox
+        for x in geometry_collection_bbox_t.features[0].geometry.geometries[1].bbox
     )
     assert bbox_fc_ft0_geom1 == test_bbox_fc_ft0_geom1
 
-    bbox_fc_ft1 = tuple(round(x, 6) for x in geometry_collection_bbox.features[1].bbox)
+    bbox_fc_ft1 = tuple(
+        round(x, 6) for x in geometry_collection_bbox_t.features[1].bbox
+    )
     assert bbox_fc_ft1 == test_bbox_fc_ft1
 
     bbox_fc_ft1_geom = tuple(
-        round(x, 6) for x in geometry_collection_bbox.features[1].geometry.bbox
+        round(x, 6) for x in geometry_collection_bbox_t.features[1].geometry.bbox
     )
     assert bbox_fc_ft1_geom == test_bbox_fc_ft1_geom

@@ -1,18 +1,27 @@
+import math
 from collections.abc import Generator
+from functools import partial, wraps
 from importlib import resources as impresources
 from itertools import chain
 from typing import Any, Callable, cast
 
 import yaml
-from geodense.geojson import CrsFeatureCollection
-from geodense.lib import (  # type: ignore  # type: ignore
+from geodense.lib import (  # type: ignore
     GeojsonObject,
-    apply_function_on_geojson_geometries,
+    InfValCoordinateError,
+    transform_geojson_geometries,
 )
-from geodense.types import GeojsonCoordinates, GeojsonGeomNoGeomCollection
-from geojson_pydantic import Feature, GeometryCollection
+from geodense.types import GeojsonGeomNoGeomCollection
 from geojson_pydantic.geometries import _GeometryBase
-from geojson_pydantic.types import BBox
+from geojson_pydantic.types import (
+    BBox,
+    MultiLineStringCoords,
+    MultiPointCoords,
+    MultiPolygonCoords,
+    Position,
+    Position2D,
+    Position3D,
+)
 from pyproj import CRS, Transformer, transformer
 from shapely import GeometryCollection as ShpGeometryCollection
 from shapely.geometry import shape
@@ -50,130 +59,49 @@ def get_precision(crs: CRS) -> int:
 def get_shapely_objects(
     body: GeojsonObject,
 ) -> list[ShapelyGeometry]:
-    transform_fun = get_shapely_object_fun()
-    result = apply_function_on_geojson_geometries(body, transform_fun)
+    def _shapely_object(geometry: GeojsonGeomNoGeomCollection) -> ShapelyGeometry:
+        return shape(geometry)
+
+    result = transform_geojson_geometries(body, _shapely_object)
     flat_result: list[ShapelyGeometry] = []
-    for item in result:
-        if isinstance(item, list):
-            flat_result.append(ShpGeometryCollection(item))
-        else:
-            flat_result.append(item)
+    # check if result iterable
+    if hasattr(result, "__iter__"):
+        for item in result:
+            if isinstance(item, list):
+                flat_result.append(ShpGeometryCollection(item))
+            else:
+                flat_result.append(item)
+    else:
+        flat_result = [result]
     return flat_result
 
 
-def get_shapely_object_fun() -> Callable:
-    def shapely_object(geometry: GeojsonGeomNoGeomCollection) -> ShapelyGeometry:
-        return shape(geometry)
-
-    return shapely_object
-
-
-def get_crs_transform_fun(
-    source_crs: CRS, target_crs: CRS, epoch: float | None = None
-) -> Callable:
-    precision = get_precision(target_crs)
-
-    def my_fun(
-        geom: GeojsonGeomNoGeomCollection,
-    ) -> GeojsonCoordinates:
-        callback = get_transform_crs_fun(source_crs, target_crs, precision, epoch=epoch)
-        geom.coordinates = traverse_geojson_coordinates(
-            cast(list[list[Any]] | list[float] | list[int], geom.coordinates),
-            callback=callback,
-        )
-        return geom.coordinates
-
-    return my_fun
-
-
-# Strip height from coordinate
-# [1,2,3] -> [1,2]
-def get_remove_json_height_fun() -> Callable[[CoordinatesType], tuple[float, ...]]:
-    def remove_json_height_fun(
-        val: CoordinatesType,
-    ) -> tuple[float, ...]:
-        return cast(tuple[float, ...], val[0:2])
-
-    return remove_json_height_fun
-
-
-def get_json_height_contains_inf_fun() -> Callable[[GeojsonGeomNoGeomCollection], bool]:
-    def json_height_contains_inf(
-        geometry: GeojsonGeomNoGeomCollection,
-    ) -> bool:
-        coordinates = get_coordinate_from_geometry(geometry)
-        gen = (
-            x
-            for x in explode(coordinates)
-            if len(x) == THREE_DIMENSIONAL and abs(x[2]) == float("inf")
-        )
-        return next(gen, None) is not None
-
-    return json_height_contains_inf
-
-
-def get_json_coords_contains_inf_fun() -> Callable[[GeojsonGeomNoGeomCollection], bool]:
-    def json_coords_contains_inf(
-        geometry: GeojsonGeomNoGeomCollection,
-    ) -> bool:
-        coordinates = get_coordinate_from_geometry(geometry)
-        gen = (
-            x
-            for x in explode(coordinates)
-            if abs(x[0]) == float("inf") or abs(x[1]) == float("inf")
-        )
-        return next(gen, None) is not None
-
-    return json_coords_contains_inf
-
-
-def update_bbox_geojson_object(  # noqa: C901
-    geojson_obj: GeojsonObject,
+def mutate_geom_coordinates(
+    coordinates_callback: Callable[
+        [Position],
+        Position,
+    ],
+    geom: GeojsonGeomNoGeomCollection,
 ) -> None:
-    def rec_fun(  # noqa: C901
-        geojson_obj: GeojsonObject,
-    ) -> list:
-        if isinstance(geojson_obj, CrsFeatureCollection):
-            fc_coords: list = []
-            for ft in geojson_obj.features:
-                fc_coords.append(rec_fun(ft))
-            if geojson_obj.bbox is not None:
-                geojson_obj.bbox = get_bbox_from_coordinates(fc_coords)
-            return fc_coords
-        elif isinstance(geojson_obj, Feature):
-            ft_coords: list = []
-            if geojson_obj.geometry is None:
-                return ft_coords
-            ft_coords = rec_fun(geojson_obj.geometry)
-            if geojson_obj.bbox is not None:
-                geojson_obj.bbox = get_bbox_from_coordinates(ft_coords)
-            return ft_coords
-        elif isinstance(geojson_obj, GeometryCollection):
-            gc_coords: list = []
-            for geom in geojson_obj.geometries:
-                gc_coords.append(rec_fun(geom))
-            if geojson_obj.bbox is not None:
-                geojson_obj.bbox = get_bbox_from_coordinates(gc_coords)
-            return gc_coords
-        elif isinstance(geojson_obj, _GeometryBase):
-            geom_coords: list = get_coordinate_from_geometry(geojson_obj)
-            if geojson_obj.bbox is not None:
-                geojson_obj.bbox = get_bbox_from_coordinates(geom_coords)
-            return geom_coords
-        else:
-            raise ValueError(
-                f"received unexpected type in geojson_obj var: {type(geojson_obj)}"
-            )
+    """CRS transform geojson geometry objects
 
-    _ = rec_fun(geojson_obj)
+    Arguments:
+        geom -- geojson geometry object, coordinates of geometry are edited in place
+    """
+    geom.coordinates = traverse_geojson_coordinates(
+        coordinates_callback,
+        geom.coordinates,
+    )
 
 
 def traverse_geojson_coordinates(
-    geojson_coordinates: list[list] | list[float] | list[int],
     callback: Callable[
-        [CoordinatesType],
-        tuple[float, ...],
+        [Position],
+        Position,
     ],
+    geojson_coordinates: (
+        Position | MultiPointCoords | MultiLineStringCoords | MultiPolygonCoords
+    ),
 ) -> Any:  # noqa: ANN401
     """traverse GeoJSON coordinates object and apply callback function to coordinates-nodes
 
@@ -184,21 +112,23 @@ def traverse_geojson_coordinates(
     Returns:
         GeoJSON coordinates object
     """
-    if all(isinstance(x, (float, int)) for x in geojson_coordinates):
-        position = callback(cast(list[float], geojson_coordinates))
-        return position
-    else:
+    if not (
+        hasattr(geojson_coordinates, "latitude")
+        and hasattr(geojson_coordinates, "longitude")
+    ):
         coords = cast(list[list], geojson_coordinates)
-        return [
-            traverse_geojson_coordinates(elem, callback=callback) for elem in coords
-        ]
+        _self = partial(traverse_geojson_coordinates, callback)
+        return list(map(_self, coords))
+    else:
+        geojson_coordinates_pos = cast(Position, geojson_coordinates)
+        position = callback(geojson_coordinates_pos)
+        return position
 
 
 def get_coordinate_from_geometry(
     item: _GeometryBase,
 ) -> list:
-    geom = cast(_GeometryBase, item)
-    return list(chain(explode(geom.coordinates)))
+    return list(chain(explode(item.coordinates)))
 
 
 def explode(coords: Any) -> Generator[Any, Any, None]:  # noqa: ANN401
@@ -375,22 +305,40 @@ def build_input_coord(coord: CoordinatesType, epoch: float | None) -> Coordinate
     return input_coord
 
 
-def get_transform_crs_fun(  # noqa: C901
+def get_transform_crs_fun_city_json(
     source_crs: CRS,
     target_crs: CRS,
     precision: int | None = None,
     epoch: float | None = None,
 ) -> Callable[
-    [CoordinatesType],
-    tuple[float, ...],
+    [list[float]],
+    list[float],
+]:
+    fun = get_transform_crs_fun(source_crs, target_crs, precision, epoch)
+
+    @wraps(fun)
+    def inner(val: list[float]) -> list[float]:
+        """wrapper function for transform_crs function to accept and return tuple[float,float,float] for cityjson to satisfy mypy"""
+        val_pos = Position3D(*val)
+        val_pos_t = fun(val_pos)
+        return list(val_pos_t)
+
+    return inner
+
+
+def get_transform_crs_fun(
+    source_crs: CRS,
+    target_crs: CRS,
+    precision: int | None = None,
+    epoch: float | None = None,
+) -> Callable[
+    [Position],
+    Position,
 ]:
     """TODO: improve type annotation/handling geojson/cityjson transformation, with the current implementation mypy is not complaining"""
 
-    def my_round(val: float, precision: int | None) -> float | int:
-        if precision is None:
-            return val
-        else:
-            return round(val, precision)
+    if precision is None:
+        precision = get_precision(target_crs)
 
     # We need to do something special for transformation targetting a Compound CRS of 2D coordinates with another height system, like NAP or a LAT height
     # - RD + NAP (EPSG:7415)
@@ -401,7 +349,6 @@ def get_transform_crs_fun(  # noqa: C901
         target_crs is not None
         and source_crs is not target_crs
         and target_crs.is_compound
-        and not source_crs.is_geocentric
     ):
         check_axis(source_crs, target_crs)
 
@@ -439,62 +386,99 @@ def get_transform_crs_fun(  # noqa: C901
         except (TransformationNotPossibleError, UnknownCrsError):
             v_transformer = get_transformer(source_crs, target_crs, epoch)
 
-        def transform_compound_crs(val: CoordinatesType) -> tuple[float, ...]:
-            input = tuple([*val, float(epoch)]) if epoch is not None else tuple([*val])
-
-            h = tuple(
-                [float(my_round(x, precision)) for x in h_transformer.transform(*input)]
-            )
-            v = tuple(
-                [
-                    float(my_round(x, HEIGHT_DIGITS_FOR_ROUNDING))
-                    for x in v_transformer.transform(*input)
-                ]
-            )
-
-            return h[0:2] + v[2:3]
-
-        return transform_compound_crs
+        # note transformers are injected in transform_compound_crs so they are instantiated only once
+        _transform_compound_crs = partial(
+            transform_compound_crs, h_transformer, v_transformer, precision, epoch
+        )
+        return _transform_compound_crs
     else:
+        transformer = get_transformer(source_crs, target_crs, epoch)
+        # note transformer is injected in transform_compound_crs is instantiated once
+        # creating transformers is expensive
+        _transform_crs = partial(transform_crs, transformer, precision, epoch)
+        return _transform_crs
 
-        def transform_crs(val: CoordinatesType) -> tuple[float, ...]:
-            transformer = get_transformer(source_crs, target_crs, epoch)
-            if transformer.target_crs is None:
-                raise ValueError("transformer.target_crs is None")
-            dim = len(transformer.target_crs.axis_info)
-            if (
-                dim is not None
-                and dim != len(val)
-                and TWO_DIMENSIONAL > dim > THREE_DIMENSIONAL
-            ):
-                # check so we can safely cast to tuple[float, float], tuple[float, float, float]
-                raise ValueError(f"dimension of target-crs should be 2 or 3, is {dim}")
-            val = cast(tuple[float, float] | tuple[float, float, float], val)
 
-            # TODO: fix epoch handling, should only be added in certain cases
-            # when one of the src or tgt crs has a dynamic time component
-            # or the transformation used has a datetime component
-            # for now simple check on coords length (which is not correct)
-            input = build_input_coord(val, epoch)
+def _round(precision: int | None, val: float) -> float | int:
+    if precision is None:
+        return val
+    else:
+        return round(val, precision)
 
-            # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
-            # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
-            # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
-            # 'needed' in the result, because there is no conversion of time, e.i. an epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
-            # of the transformer is 'stripped' with [0:dim]
-            output = tuple(
-                [
-                    float(my_round(x, precision))
-                    for x in transformer.transform(*input)[0:dim]
-                ]
-            )
 
-            if len(output) >= THREE_DIMENSIONAL:
-                height = my_round(output[2:3][0], HEIGHT_DIGITS_FOR_ROUNDING)
-                return output[0:2] + tuple(
-                    [height],
-                )
+def transform_compound_crs(
+    h_transformer: Transformer,
+    v_transformer: Transformer,
+    precision: int | None,
+    epoch: float | None,
+    val: Position,
+) -> Position:
+    input = tuple([*val, float(epoch)]) if epoch is not None else tuple([*val])
 
-            return output
+    _round_h = partial(_round, precision)
+    _round_v = partial(_round, HEIGHT_DIGITS_FOR_ROUNDING)
 
-        return transform_crs
+    h = tuple(map(_round_h, h_transformer.transform(*input)))
+    v = tuple(map(_round_v, v_transformer.transform(*input)))
+
+    output_2d = Position2D(*h[:2])
+    output: Position = output_2d
+    if len(v) == THREE_DIMENSIONAL and not math.isinf(v[2]):
+        output = Position3D(*output_2d, v[2])
+    else:
+        # height coordinate dropped, since v[2] not added
+        pass
+
+    if any(
+        [math.isinf(x) for x in output]
+    ):  # checks only positional coordinates, not height. since check if h isinf is already done, and dropped if isinf
+        raise InfValCoordinateError("Coordinates contain inf val")
+    return output
+
+
+def transform_crs(
+    transformer: Transformer,
+    precision: int | None,
+    epoch: float | None,
+    val: Position,
+) -> Position:
+    if transformer.target_crs is None:
+        raise ValueError("transformer.target_crs is None")
+    dim = len(transformer.target_crs.axis_info)
+    if (
+        dim is not None
+        and dim != len(val)
+        and TWO_DIMENSIONAL > dim > THREE_DIMENSIONAL
+    ):
+        # check so we can safely cast to tuple[float, float], tuple[float, float, float]
+        raise ValueError(f"dimension of target-crs should be 2 or 3, is {dim}")
+
+    # TODO: fix epoch handling, should only be added in certain cases
+    # when one of the src or tgt crs has a dynamic time component
+    # or the transformation used has a datetime component
+    # for now simple check on coords length (which is not correct)
+    input = build_input_coord(val, epoch)
+
+    # GeoJSON and CityJSON by definition has coordinates always in lon-lat-height (or x-y-z) order. Transformer has been created with `always_xy=True`,
+    # to ensure input and output coordinates are in in lon-lat-height (or x-y-z) order.
+    # Regarding the epoch: this is stripped from the result of the transformer. It's used as a input parameter for the transformation but is not
+    # 'needed' in the result, because there is no conversion of time, e.i. an epoch value of 2010.0 will stay 2010.0 in the result. Therefor the result
+    # of the transformer is 'stripped' with [0:dim]
+    _round_h = partial(_round, precision)
+    _round_v = partial(_round, HEIGHT_DIGITS_FOR_ROUNDING)
+
+    _output = tuple(map(_round_h, transformer.transform(*input)[0:dim]))
+
+    output_2d = Position2D(*_output[:2])
+    output: Position = output_2d
+    if len(_output) >= THREE_DIMENSIONAL:
+        height = _round_v(_output[2])
+        if not math.isinf(height):
+            output = Position3D(*output_2d, height)
+        else:
+            # height coordinate dropped
+            pass
+
+    if any([math.isinf(x) for x in output]):
+        raise InfValCoordinateError("Coordinates contain inf val")
+    return output

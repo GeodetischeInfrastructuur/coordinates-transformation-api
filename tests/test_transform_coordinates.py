@@ -1,5 +1,6 @@
 import pytest
 from coordinate_transformation_api.util import transform_coordinates
+from geojson_pydantic.types import Position3D
 from pyproj import CRS
 
 
@@ -7,13 +8,13 @@ from pyproj import CRS
     ("coordinates", "s_crs", "t_crs", "expectation"),
     [
         (
-            "4000.0, 1000.0, 0.0",
+            Position3D(4000.0, 1000.0, 0.0),
             ("NSGI", "Saba_DPnet_Height"),
             ("OGC", "CRS84h"),
             (-63.244194654, 17.627459157, -42.3336),
         ),
         (
-            "-63.244194654, 17.627459157, -42.3336",
+            Position3D(-63.244194654, 17.627459157, -42.3336),
             ("OGC", "CRS84h"),
             ("NSGI", "Saba_DPnet_Height"),
             (4000.0, 1000.0, 0.0),

@@ -19,9 +19,10 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from geodense.geojson import CrsFeatureCollection
-from geodense.lib import GeodenseError  # type: ignore  # type: ignore
+from geodense.lib import GeodenseError  # type: ignore
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import Geometry, GeometryCollection
+from geojson_pydantic.types import Position, Position2D, Position3D
 
 import coordinate_transformation_api
 from coordinate_transformation_api import assets
@@ -29,8 +30,11 @@ from coordinate_transformation_api.cityjson.models import CityjsonV113
 from coordinate_transformation_api.constants import (
     DENSITY_CHECK_RESULT_HEADER,
     THREE_DIMENSIONAL,
+    TWO_DIMENSIONAL,
 )
-from coordinate_transformation_api.crs_transform import CRS_CONFIG
+from coordinate_transformation_api.crs_transform import (
+    CRS_CONFIG,
+)
 from coordinate_transformation_api.fastapi_rfc7807 import middleware
 from coordinate_transformation_api.limit_middleware.middleware import (
     ContentSizeLimitMiddleware,
@@ -62,12 +66,10 @@ from coordinate_transformation_api.util import (
     post_transform_get_crss,
     raise_request_validation_error,
     raise_response_validation_error,
-    remove_height_when_inf_geojson,
     set_response_headers,
     str_to_crs,
     transform_coordinates,
     validate_coords_source_crs,
-    validate_crs_transformed_geojson,
 )
 
 assets_resources = impresources.files(assets)
@@ -292,9 +294,11 @@ async def densify(  # noqa: ANN201
     )
 
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
-    densify_request_body(body, s_crs, max_segment_deviation, max_segment_length)
+    body_d = densify_request_body(
+        body, s_crs, max_segment_deviation, max_segment_length
+    )
     return JSONResponse(
-        content=body.model_dump(exclude_none=True),
+        content=body_d.model_dump(exclude_none=True),
         headers=set_response_headers(("content-crs", Crs.from_crs_str(s_crs).crs)),
     )
 
@@ -349,10 +353,10 @@ async def transform(  # noqa: PLR0913, ANN201
             alias="coordinates", pattern=r"^(-?\d+\.?\d*),(-?\d+\.?\d*)(,-?\d+\.?\d*)?$"
         ),
     ],
-    source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
-    target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,
-    content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
-    accept_crs: Annotated[CrsHeaderEnum | None, Header(alias="accept-crs")] = None,
+    source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,  # type: ignore
+    target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,  # type: ignore
+    content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,  # type: ignore
+    accept_crs: Annotated[CrsHeaderEnum | None, Header(alias="accept-crs")] = None,  # type: ignore
     epoch: Annotated[float | None, Query(alias="epoch")] = None,
     accept: Annotated[str, Header()] = TransformGetAcceptHeaders.json.value,
 ):
@@ -375,17 +379,23 @@ async def transform(  # noqa: PLR0913, ANN201
         source_crs_str, target_crs_str, content_crs_str, accept_crs_str
     )
 
-    validate_coords_source_crs(coordinates, s_crs, CRS_LIST)
+    _coords_list = list(map(lambda x: float(x), coordinates.split(",")))
 
-    transformed_coordinates = transform_coordinates(coordinates, s_crs, t_crs, epoch)
+    if len(_coords_list) == TWO_DIMENSIONAL:
+        position: Position = Position2D(*_coords_list)
+    else:  # 3D
+        position = Position3D(*_coords_list)
+
+    # TODO: following only called from GET transform endpoint, why?
+    validate_coords_source_crs(position, s_crs, CRS_LIST)
+
+    position_t = transform_coordinates(position, s_crs, t_crs, epoch)
 
     # if height/elevation is inf, strip it from response
-    if len(transformed_coordinates) == THREE_DIMENSIONAL and transformed_coordinates[
-        2
-    ] == float("inf"):
-        transformed_coordinates = transformed_coordinates[0:2]
+    if len(position_t) == THREE_DIMENSIONAL and position_t[2] == float("inf"):
+        position_t = position_t[0:2]
 
-    if float("inf") in [abs(x) for x in transformed_coordinates]:
+    if float("inf") in [abs(x) for x in position_t]:
         raise_response_validation_error(
             "Out of range float values are not JSON compliant", ["responseBody"]
         )
@@ -397,11 +407,11 @@ async def transform(  # noqa: PLR0913, ANN201
         headers = set_response_headers(("epoch", epoch), headers=headers)
 
     if accept == str(TransformGetAcceptHeaders.wkt.value):
-        wkt_string = convert_point_coords_to_wkt(transformed_coordinates)
+        wkt_string = convert_point_coords_to_wkt(position_t)
         return PlainTextResponse(wkt_string, headers=headers)
     else:  # default case serve json
         return JSONResponse(
-            content={"type": "Point", "coordinates": transformed_coordinates},
+            content={"type": "Point", "coordinates": position_t},
             headers=headers,
         )
 
@@ -498,10 +508,12 @@ async def post_transform(  # noqa: ANN201, PLR0913
                 headers=response_headers,
             )
 
-        crs_transform(body, s_crs, t_crs, epoch)
-        validate_crs_transformed_geojson(body)
+        body_t = crs_transform(body, s_crs, t_crs, epoch)
+
+        # TODO: implement response header to indicate dropped geometries due to inf values in transformed coordinates
+
         response_headers = set_response_headers(
-            ("content-crs", ("content-crs", "{}:{}".format(*t_crs.to_authority()))),
+            ("content-crs", "{}:{}".format(*t_crs.to_authority())),
             headers=response_headers,
         )
         if epoch is not None:
@@ -509,9 +521,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
                 ("epoch", epoch), headers=response_headers
             )
 
-        response_body = remove_height_when_inf_geojson(body).model_dump(
-            exclude_none=True
-        )
+        response_body = body_t.model_dump(exclude_none=True)
         return JSONResponse(
             content=response_body,
             headers=response_headers,

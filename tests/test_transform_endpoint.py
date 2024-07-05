@@ -133,9 +133,7 @@ def test_transform_get(input, expectation, source_crs, target_crs, epoch):
             "EPSG:4326",
             "EPSG:28992",
         ),
-        # NOTE: For now we remove the height from the entire GeometryCollection or FeatureCollection.
-        # Preferably only the Geometry or Feature with a height resulting in a 'inf' whould be changed.
-        # This is a known issue.
+        # NOTE: feature[1] has dropped height after transformation
         (
             {
                 "type": "FeatureCollection",
@@ -158,16 +156,12 @@ def test_transform_get(input, expectation, source_crs, target_crs, epoch):
             },
             {
                 "type": "FeatureCollection",
-                "crs": {
-                    "properties": {"name": "urn:ogc:def:crs:EPSG::7415"},
-                    "type": "name",
-                },
                 "features": [
                     {
                         "type": "Feature",
                         "geometry": {
                             "type": "Point",
-                            "coordinates": [128410.0958, 445806.4960],
+                            "coordinates": [128410.0958, 445806.4960, -0.4754],
                         },
                         "properties": {"prop0": "value0"},
                     },
@@ -180,6 +174,10 @@ def test_transform_get(input, expectation, source_crs, target_crs, epoch):
                         "properties": {"prop0": "value0"},
                     },
                 ],
+                "crs": {
+                    "properties": {"name": "urn:ogc:def:crs:EPSG::7415"},
+                    "type": "name",
+                },
             },
             "EPSG:7931",
             "EPSG:7415",
