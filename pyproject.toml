@@ -17,7 +17,7 @@ dependencies = [
     "pyproj == 3.6.1",
     "pydantic-settings == 2.3.4",
     "email-validator == 2.2.0",
-    "geodense ==  1.0.1.dev1+g7f4739d.d20240618 ",
+    "geodense == 2.0.0",
 ]
 requires-python = ">=3.11.4"
 dynamic = ["version"]
