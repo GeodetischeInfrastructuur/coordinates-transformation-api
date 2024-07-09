@@ -15,7 +15,9 @@ from pydantic import AnyUrl, BaseModel, ConfigDict, EmailStr, Field, StringConst
 from pyproj import CRS
 
 from coordinate_transformation_api.constants import THREE_DIMENSIONAL
-from coordinate_transformation_api.crs_transform import get_transform_crs_fun
+from coordinate_transformation_api.crs_transform import (
+    get_transform_crs_fun_city_json,
+)
 from coordinate_transformation_api.models import DataValidationError
 
 CityJSONBoundary = Union[
@@ -1127,15 +1129,16 @@ class CityjsonV113(BaseModel):
             if c_object is not None and c_object.geometry is not None:
                 for g in c_object.geometry:
                     update_geom_indices(g.boundaries, newids)
-        newv2: list[list[float] | list[int]] = []
+        newv2: list[list[float | int]] = []
         for v2 in newvertices:
             a: list[int] | list[float]
             if hasattr(self, "transform") and self.transform is not None:
                 a = list(map(lambda x: int(x), v2.split()))
             else:
                 a = list(map(lambda x: float(x), v2.split()))
-            newv2.append(a)
-        self.vertices = newv2  # type: ignore
+            _a = cast(list[float | int], a)
+            newv2.append(_a)
+        self.vertices = newv2
         return totalinput - len(self.vertices)
 
     def _get_cityobject_without_extension(
@@ -1228,6 +1231,7 @@ class CityjsonV113(BaseModel):
         # -- find the minx/miny/minz or set from translate
         vertices: list[list[float | int]] = self.vertices
 
+        bbox: list[int | float] = []
         if translate:
             bbox = translate
         else:
@@ -1238,12 +1242,11 @@ class CityjsonV113(BaseModel):
                     if v[i] < bbox[i]:
                         bbox[i] = v[i]
         # -- convert vertices in self.j to int
-        n = [0, 0, 0]
+        n: list[int | float] = [0, 0, 0]
         p = "%." + str(important_digits) + "f"
         for v in vertices:
             for i in range(3):
-                # TODO: investigate following ignore
-                n[i] = v[i] - bbox[i]  # type: ignore
+                n[i] = v[i] - bbox[i]
             for i in range(3):
                 v[i] = int((p % n[i]).replace(".", ""))
         # -- put transform
@@ -1340,16 +1343,13 @@ class CityjsonV113(BaseModel):
                 extra["crs"] = ["target-crs"]
         if message != "":
             raise DataValidationError(message, extra=extra)
-        callback = get_transform_crs_fun(source_crs, target_crs, epoch=epoch)
+        callback = get_transform_crs_fun_city_json(source_crs, target_crs, epoch=epoch)
         imp_digits = math.ceil(abs(math.log(self.transform.scale[0], 10)))
         self.decompress()
-        self.vertices = [
-            list(callback(vertex))
-            for vertex in cast(list[tuple[float, float, float]], self.vertices)
-        ]
-        self.vertices = [
-            list(vertex) for vertex in self.vertices
-        ]  # convert result to list since, callback function to transform coordinates returns tuples
+        self.vertices = [callback(vertex) for vertex in self.vertices]
+        # self.vertices = [
+        #     list(vertex) for vertex in self.vertices
+        # ]  # convert result to list since, callback function to transform coordinates returns tuples
         self.set_epsg("{}:{}".format(*target_crs.to_authority()))
         self.update_bbox()
         src_unit = self.get_x_unit_crs(source_crs)

@@ -269,7 +269,12 @@ def from_data_validation_error(exc: DataValidationError) -> ProblemError:
         extra = {"report": exc.report}
 
     return ProblemError(
-        type=exc.type_str, title=exc.title, status=400, detail=str(exc), **extra, **exc.extra  # type: ignore
+        type=exc.type_str,
+        title=exc.title,
+        status=400,
+        detail=str(exc),
+        **extra,
+        **exc.extra,  # type: ignore
     )
 
 
@@ -279,7 +284,11 @@ def from_not_found_error(exc: NotFoundError) -> ProblemError:
         extra = {"crs-id": exc.crs_id}
 
     return ProblemError(
-        type=exc.type_str, title=exc.title, status=404, detail=str(exc), **extra  # type: ignore
+        type=exc.type_str,
+        title=exc.title,
+        status=404,
+        detail=str(exc),
+        **extra,  # type: ignore
     )
 
 
@@ -384,7 +393,8 @@ def get_exception_handler(
 
 
 async def exec_hooks(
-    hooks: Optional[Sequence[Union[PreHook, PostHook]]], *args  # noqa: ANN002
+    hooks: Optional[Sequence[Union[PreHook, PostHook]]],
+    *args,  # noqa: ANN002
 ) -> None:
     """Helper function to execute hooks, if any are defined.
 

@@ -26,20 +26,18 @@ from geodense.types import GeojsonObject
         (
             "points",
             pytest.raises(
-                DensityCheckError,
-                match=r"GeoJSON contains only \(Multi\)Point geometries",
+                DensifyError,
+                match=r"cannot run densify on GeoJSON that only contains \(Multi\)Point geometries",
             ),
         ),  # contains only points
     ],
 )
-@pytest.mark.asyncio()
-async def test_density_check_points_raises_request_validation_error(
-    geojson, expected, request
-):
+def test_densify_points_raises_request_validation_error(geojson, expected, request):
     gj: GeojsonObject = request.getfixturevalue(geojson)
-
     with expected:
-        await density_check(gj, CrsEnum.EPSG_28992, max_segment_length=10)
+        _ = densify_request_body(
+            gj, "EPSG:28992", max_segment_length=10, max_segment_deviation=None
+        )
 
 
 @pytest.mark.parametrize(
@@ -56,15 +54,17 @@ async def test_density_check_points_raises_request_validation_error(
         (
             "points",
             pytest.raises(
-                DensifyError,
-                match=r"cannot run densify on GeoJSON that only contains \(Multi\)Point geometries",
+                DensityCheckError,
+                match=r"GeoJSON contains only \(Multi\)Point geometries",
             ),
         ),  # contains only points
     ],
 )
-def test_densify_points_raises_request_validation_error(geojson, expected, request):
+@pytest.mark.asyncio()
+async def test_density_check_points_raises_request_validation_error(
+    geojson, expected, request
+):
     gj: GeojsonObject = request.getfixturevalue(geojson)
+
     with expected:
-        densify_request_body(
-            gj, "EPSG:28992", max_segment_length=10, max_segment_deviation=None
-        )
+        _ = await density_check(gj, CrsEnum.EPSG_28992, max_segment_length=10)

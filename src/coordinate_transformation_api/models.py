@@ -69,7 +69,7 @@ class DensityCheckFailedError(DataValidationError):
     def __init__(
         self: "DensityCheckFailedError",
         message: str,
-        report: list[tuple[list[int], float]],
+        report: CrsFeatureCollection,
     ) -> None:
         # Call the base class constructor with the parameters it needs
         super().__init__(message)
@@ -120,7 +120,8 @@ class DensityCheckReport(BaseModel):
 
     @classmethod
     def from_fc_report(
-        cls, fc_report: CrsFeatureCollection  # noqa: ANN102
+        cls,  # noqa: ANN102
+        fc_report: CrsFeatureCollection,
     ) -> "DensityCheckReport":
         check_result = len(fc_report.features) == 0
         return DensityCheckReport(

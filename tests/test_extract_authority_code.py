@@ -12,5 +12,4 @@ from coordinate_transformation_api.util import extract_authority_code
 )
 def test_extract_authority_code(auth_code, expectation):
     result = extract_authority_code(auth_code)
-
     assert expectation == result

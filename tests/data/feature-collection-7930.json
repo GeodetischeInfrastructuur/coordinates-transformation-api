@@ -1,0 +1,59 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "id": "0",
+      "type": "Feature",
+      "properties": {
+        "NUM": 7,
+        "STATION NAME": "AKEN 2591",
+        "X (M)": 4019428.08565,
+        "Y (M)": 428730.83011,
+        "Z (M)": 4917460.12931,
+        "FLAG": "A"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [4019428.08565, 428730.83011, 4917460.12931]
+      }
+    },
+    {
+      "id": "1",
+      "type": "Feature",
+      "properties": {
+        "NUM": 11,
+        "STATION NAME": "ALME 0933",
+        "X (M)": 3886167.81902,
+        "Y (M)": 355199.12895,
+        "Z (M)": 5028209.80733,
+        "FLAG": "A"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3886167.81902, 355199.12895, 5028209.80733]
+      }
+    },
+    {
+      "id": "2",
+      "type": "Feature",
+      "properties": {
+        "NUM": 12,
+        "STATION NAME": "ALPH 0939",
+        "X (M)": 3910708.79906,
+        "Y (M)": 316409.37115,
+        "Z (M)": 5011821.22312,
+        "FLAG": "A"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [3910708.79906, 316409.37115, 5011821.22312]
+      }
+    }
+  ],
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:EPSG::7930"
+    }
+  }
+}

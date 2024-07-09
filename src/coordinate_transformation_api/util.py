@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 import re
-from collections.abc import Iterable
+from functools import partial
 from importlib import resources as impresources
 from importlib.metadata import version
 from typing import Any, cast
@@ -12,18 +12,18 @@ import yaml
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from geodense.geojson import CrsFeatureCollection
-from geodense.lib import (  # type: ignore  # type: ignore
+from geodense.lib import (  # type: ignore
     GeojsonObject,
-    _geom_type_check,
-    apply_function_on_geojson_geometries,
+    check_density_geojson_object,
     densify_geojson_object,
-    density_check_geojson_object,
-    flatten,
+    transform_geojson_geometries,
+    traverse_geojson_geometries,
+    validate_geom_type,
 )
 from geodense.models import DenseConfig, GeodenseError
-from geodense.types import GeojsonCoordinates, GeojsonGeomNoGeomCollection, Nested
 from geojson_pydantic import Feature, GeometryCollection
 from geojson_pydantic.geometries import Geometry
+from geojson_pydantic.types import Position
 from pydantic import ValidationError
 from pydantic_core import InitErrorDetails, PydanticCustomError
 from pyproj import CRS
@@ -38,14 +38,11 @@ from coordinate_transformation_api.constants import (
     THREE_DIMENSIONAL,
 )
 from coordinate_transformation_api.crs_transform import (
-    get_crs_transform_fun,
-    get_json_coords_contains_inf_fun,
-    get_json_height_contains_inf_fun,
+    get_bbox_from_coordinates,
+    get_coordinate_from_geometry,
     get_precision,
-    get_remove_json_height_fun,
     get_transform_crs_fun,
-    traverse_geojson_coordinates,
-    update_bbox_geojson_object,
+    mutate_geom_coordinates,
 )
 from coordinate_transformation_api.models import (
     Crs as AvailableCrs,
@@ -55,7 +52,6 @@ from coordinate_transformation_api.models import (
     DeviationOutOfBboxError,
 )
 from coordinate_transformation_api.settings import app_settings
-from coordinate_transformation_api.types import CoordinatesType
 
 BBOX_3D_DIMENSION = 6
 
@@ -63,14 +59,14 @@ logger = logging.getLogger(__name__)
 
 
 def validate_coords_source_crs(
-    coordinates, source_crs, projections_axis_info: list[AvailableCrs]
+    position: Position, source_crs, projections_axis_info: list[AvailableCrs]
 ):
     source_crs_dims = next(
         crs.nr_of_dimensions
         for crs in projections_axis_info
         if source_crs == crs.crs_auth_identifier
     )
-    if source_crs_dims != len(coordinates.split(",")):
+    if source_crs_dims != len(position):
         raise_request_validation_error(
             "number of coordinates must match number of dimensions of source-crs",
             loc=("query", "coordinates"),
@@ -85,16 +81,15 @@ def camel_to_snake(s):
 def extract_authority_code(crs: str) -> tuple[str, str]:
     r = re.search(r"^(https?://www\.opengis\.net/def/crs/)?(.[^/|:]*)(/.*/|:)(.*)", crs)
     if r is not None:
-        split = str(r[2] + ":" + r[4]).split(":")
-        auth = split[0]
-        code = split[1]
+        auth = r[2]
+        code = r[4]
         return auth, code
-
-    split = crs.split(":")
-    auth = split[0]
-    code = split[1]
-
-    return auth, code
+    else:
+        split = crs.split(":")
+        if len(split) != 2:  # noqa: PLR2004
+            raise ValueError("expected crs string format is: {auth}:{code}")
+        auth, code = split
+        return auth, code
 
 
 def format_as_uri(crs: str) -> str:
@@ -106,12 +101,9 @@ def format_as_uri(crs: str) -> str:
 def get_source_crs_body(
     body: GeojsonObject | CityjsonV113,
 ) -> str | None:
+    source_crs: str | None = None
     if isinstance(body, CrsFeatureCollection) and body.crs is not None:
-        source_crs: str | None = body.get_crs_auth_code()
-        if source_crs is None:
-            return None
-    elif isinstance(body, CrsFeatureCollection) and body.crs is None:
-        return None
+        source_crs = body.get_crs_auth_code()
     elif (
         isinstance(body, CityjsonV113)
         and body.metadata is not None
@@ -121,12 +113,6 @@ def get_source_crs_body(
         crs_auth = ref_system.split("/")[-3]
         crs_id = ref_system.split("/")[-1]
         source_crs = f"{crs_auth}:{crs_id}"
-    elif isinstance(body, CityjsonV113) and (
-        body.metadata is None or body.metadata.referenceSystem is None
-    ):
-        return None
-    else:
-        return None
     return source_crs
 
 
@@ -145,23 +131,22 @@ def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool
         )
 
         if body.bbox is None:
+            # set bbox to initial value, otherwise wont be updated
             body.bbox = (0, 0, 0, 0)
-            update_bbox_geojson_object(body)
+            body_t = traverse_geojson_geometries(body, None, update_bbox)
 
-        if len(body.bbox) == BBOX_3D_DIMENSION:
-            lower = body.bbox[:2]
-            upper = body.bbox[3:5]
-            body_bbox = [
-                *transform_f(lower),
-                *transform_f(upper),
-            ]
-        else:
-            body_bbox = [
-                *transform_f(body.bbox[:2]),
-                *transform_f(body.bbox[2:]),
-            ]
+        body_bbox = body_t.bbox
 
-    shapely_bbox = [box(*body_bbox)]
+        if len(body_t.bbox) == BBOX_3D_DIMENSION:
+            # reduce bbox to 2D
+            body_bbox = body_t.bbox[0:2] + body_t.bbox[3:5]
+
+        body_bbox_t = [
+            *transform_f(body_bbox[:2]),
+            *transform_f(body_bbox[2:]),
+        ]
+
+    shapely_bbox = [box(*body_bbox_t)]
     tree = STRtree(shapely_bbox)
     contains_index = tree.query(
         box(*DEVIATION_VALID_BBOX), predicate="contains"
@@ -169,17 +154,30 @@ def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool
     return len(shapely_bbox) == len(contains_index)
 
 
+def update_bbox(item: GeojsonObject):
+    if item.bbox is not None:  # only update bbox if already set
+        coords = transform_geojson_geometries(item, get_coordinate_from_geometry)
+        bbox = None
+        # TODO: collect bboxes if not geometry object instead of coordinates
+        if coords:
+            coords = list(filter(lambda x: x is not None, coords))
+            bbox = get_bbox_from_coordinates(coords)
+        item.bbox = bbox
+
+
 def crs_transform(
     body: GeojsonObject,
     s_crs: CRS,
     t_crs: CRS,
     epoch: float | None = None,
-) -> None:
-    crs_transform_fun = get_crs_transform_fun(s_crs, t_crs, epoch)
-    _ = apply_function_on_geojson_geometries(body, crs_transform_fun)
-    if isinstance(body, CrsFeatureCollection):
-        body.set_crs_auth_code("{}:{}".format(*t_crs.to_authority()))
-    update_bbox_geojson_object(body)
+) -> GeojsonObject:
+    t_callback = get_transform_crs_fun(s_crs, t_crs, epoch=epoch)
+    crs_transform_fun = partial(mutate_geom_coordinates, t_callback)
+    body_t = traverse_geojson_geometries(body, crs_transform_fun, update_bbox)
+
+    if isinstance(body_t, CrsFeatureCollection):
+        body_t.set_crs_auth_code("{}:{}".format(*t_crs.to_authority()))
+    return body_t
 
 
 def density_check_request_body(
@@ -190,7 +188,7 @@ def density_check_request_body(
     epoch: float | None,
 ) -> CrsFeatureCollection:
     """Run density check with geodense implementation, by running density check in DENSIFY_CRS."""
-    _geom_type_check(body)
+    validate_geom_type(body)
     if max_segment_deviation is not None:
         bbox_check_deviation_set(body, source_crs, max_segment_deviation)
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
@@ -206,15 +204,17 @@ def density_check_request_body(
     ]
 
     if transform:
-        crs_transform(
+        body_t = crs_transform(
             body, source_crs, transform_crs, epoch=epoch
         )  # !NOTE: crs_transform is required for density_check and densify
     c = DenseConfig(CRS.from_authority(*DENSIFY_CRS_2D.split(":")), max_segment_length)
-    failed_line_segments = density_check_geojson_object(body, c)
+    failed_line_segments = check_density_geojson_object(c, body_t)
 
     if transform:
-        crs_transform(failed_line_segments, transform_crs, source_crs, epoch=epoch)
-    return failed_line_segments
+        failed_line_segments_t = crs_transform(
+            failed_line_segments, transform_crs, source_crs, epoch=epoch
+        )
+    return failed_line_segments_t
 
 
 def bbox_check_deviation_set(
@@ -233,7 +233,7 @@ def densify_request_body(
     source_crs: str,
     max_segment_deviation: float | None,
     max_segment_length: float | None,
-) -> None:
+) -> GeojsonObject:
     """densify request body according to geodense by densifying in DENSIFY_CRS
 
     Args:
@@ -256,15 +256,19 @@ def densify_request_body(
     s_crs = str_to_crs(source_crs)
     t_crs = str_to_crs(transform_crs)
 
+    body_t = body
     if transform:
-        crs_transform(body, s_crs, t_crs)
+        body_t = crs_transform(body, s_crs, t_crs)
     c = DenseConfig(CRS.from_authority(*transform_crs.split(":")), max_segment_length)
     try:
-        densify_geojson_object(body, c)
+        body_t_d = densify_geojson_object(c, body_t)
     except GeodenseError as e:
         raise DensifyError(str(e)) from e
+
+    body_d = body_t_d
     if transform:
-        crs_transform(body, t_crs, s_crs)  # transform back to source_crs
+        body_d = crs_transform(body_t_d, t_crs, s_crs)  # transform back to source_crs
+    return body_d
 
 
 def init_oas(crs_config) -> tuple[dict, str, str]:
@@ -381,57 +385,15 @@ def check_crs_is_known(crs_str: str, crs_list: list[AvailableCrs]) -> None:
 
 
 def transform_coordinates(
-    coordinates: Any, source_crs: CRS, target_crs: CRS, epoch
+    coordinates: Position, source_crs: CRS, target_crs: CRS, epoch
 ) -> Any:
     precision = get_precision(target_crs)
-    coordinate_list: CoordinatesType = list(
-        float(x) for x in coordinates.split(",")
-    )  # convert to list since we do not know dimensionality of coordinates
+
     transform_crs_fun = get_transform_crs_fun(
         source_crs, target_crs, precision=precision, epoch=epoch
     )
-    transformed_coordinates = transform_crs_fun(coordinate_list)
+    transformed_coordinates = transform_crs_fun(coordinates)
     return transformed_coordinates
-
-
-def validate_crs_transformed_geojson(body: GeojsonObject) -> None:
-    validate_json_coords_fun = get_json_coords_contains_inf_fun()
-    contains_inf_coords: Nested[bool] = apply_function_on_geojson_geometries(
-        body, validate_json_coords_fun
-    )
-    flat_contains_inf_coords: Iterable[bool] = flatten(contains_inf_coords)
-
-    if any(flat_contains_inf_coords):
-        raise_response_validation_error(
-            "Out of range float values are not JSON compliant", ["responseBody"]
-        )
-
-
-def remove_height_when_inf_geojson(body: GeojsonObject) -> GeojsonObject:
-    # Seperated check on inf height
-    validate_json_height_fun = get_json_height_contains_inf_fun()
-    contains_inf_height: Nested[bool] = apply_function_on_geojson_geometries(
-        body, validate_json_height_fun
-    )
-    flat_contains_inf_height: Iterable[bool] = flatten(contains_inf_height)
-
-    if any(flat_contains_inf_height):
-
-        def my_fun(
-            geom: GeojsonGeomNoGeomCollection,
-        ) -> GeojsonCoordinates:
-            callback = get_remove_json_height_fun()
-            geom.coordinates = traverse_geojson_coordinates(
-                cast(list[list[Any]] | list[float] | list[int], geom.coordinates),
-                callback=callback,
-            )
-            return geom.coordinates
-
-        _ = apply_function_on_geojson_geometries(body, my_fun)
-
-        return body
-
-    return body
 
 
 def get_source_crs(
@@ -440,14 +402,15 @@ def get_source_crs(
     content_crs: str,
 ) -> str | None:
     crs_from_body = get_source_crs_body(body)
-    s_crs = None
+
     if crs_from_body is not None:
-        s_crs = crs_from_body
+        return crs_from_body
     elif crs_from_body is None and source_crs is not None:
-        s_crs = source_crs
+        return source_crs
     elif crs_from_body is None and source_crs is None and content_crs is not None:
-        s_crs = content_crs
-    return s_crs
+        return content_crs
+
+    return None
 
 
 def post_transform_get_crss(
