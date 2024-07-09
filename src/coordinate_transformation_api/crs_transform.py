@@ -235,11 +235,9 @@ def get_bbox_from_coordinates(coordinates: Any) -> BBox:  # noqa: ANN401
 
 
 def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
-    if source_crs_str in CRS_CONFIG and (
+    return source_crs_str in CRS_CONFIG and (
         target_crs_str in CRS_CONFIG[source_crs_str]["exclude-transformations"]
-    ):
-        return True
-    return False
+    )
 
 
 def needs_epoch(tf: Transformer) -> bool:
