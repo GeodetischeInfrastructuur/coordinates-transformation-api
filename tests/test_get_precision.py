@@ -1,6 +1,7 @@
 import pytest
-from coordinate_transformation_api.util import get_precision
 from pyproj import CRS
+
+from coordinate_transformation_api.util import get_precision
 
 
 @pytest.mark.parametrize(

@@ -111,7 +111,7 @@ class ProblemError(Exception):
     more granular control over how/when values are set.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self: "ProblemError",
         type: Optional[str] = None,
         title: Optional[str] = None,

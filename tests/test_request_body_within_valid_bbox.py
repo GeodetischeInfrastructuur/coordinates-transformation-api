@@ -1,7 +1,8 @@
 import pytest
-from coordinate_transformation_api.util import request_body_within_valid_bbox
 from geodense.geojson import CrsFeatureCollection
 from geojson_pydantic import Feature
+
+from coordinate_transformation_api.util import request_body_within_valid_bbox
 
 
 @pytest.mark.parametrize(

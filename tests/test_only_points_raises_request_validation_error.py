@@ -1,12 +1,13 @@
 from contextlib import nullcontext as does_not_raise
 
 import pytest
+from geodense.types import GeojsonObject
+
 from coordinate_transformation_api.main import CrsEnum, density_check
 from coordinate_transformation_api.models import DensifyError, DensityCheckError
 from coordinate_transformation_api.util import (
     densify_request_body,
 )
-from geodense.types import GeojsonObject
 
 """Test to check if input with only points raises a RequestValidationError - for both densify and density_check
 """
@@ -60,7 +61,7 @@ def test_densify_points_raises_request_validation_error(geojson, expected, reque
         ),  # contains only points
     ],
 )
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_density_check_points_raises_request_validation_error(
     geojson, expected, request
 ):

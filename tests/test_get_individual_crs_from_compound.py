@@ -1,6 +1,7 @@
 import pytest
-from coordinate_transformation_api.crs_transform import get_individual_crs_from_compound
 from pyproj import CRS
+
+from coordinate_transformation_api.crs_transform import get_individual_crs_from_compound
 
 
 @pytest.mark.parametrize(

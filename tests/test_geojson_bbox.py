@@ -1,14 +1,14 @@
 import json
 
-from coordinate_transformation_api.util import (
-    crs_transform,
-    update_bbox,
-)
 from geodense.lib import traverse_geojson_geometries
 from geojson_pydantic import Feature
 from pydantic import ValidationError
 from pyproj import CRS
 
+from coordinate_transformation_api.util import (
+    crs_transform,
+    update_bbox,
+)
 from tests.util import not_raises
 
 
