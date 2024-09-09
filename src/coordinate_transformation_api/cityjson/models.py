@@ -1239,8 +1239,7 @@ class CityjsonV113(BaseModel):
             v: list[float]
             for v in vertices:
                 for i in range(3):
-                    if v[i] < bbox[i]:
-                        bbox[i] = v[i]
+                    bbox[i] = min(v[i], bbox[i])
         # -- convert vertices in self.j to int
         n: list[int | float] = [0, 0, 0]
         p = "%." + str(important_digits) + "f"
@@ -1291,11 +1290,9 @@ class CityjsonV113(BaseModel):
                         for each in vs:
                             v = self.vertices[each]
                             for i in range(3):
-                                if v[i] < bbox[i]:
-                                    bbox[i] = v[i]
+                                bbox[i] = min(v[i], bbox[i])
                             for i in range(3):
-                                if v[i] > bbox[i + 3]:
-                                    bbox[i + 3] = v[i]
+                                bbox[i + 3] = max(v[i], bbox[i + 3])
                         if hasattr(self, "transform") and self.transform is not None:
                             for i in range(3):
                                 bbox[i] = (

@@ -1,7 +1,8 @@
 import pytest
-from coordinate_transformation_api.util import transform_coordinates
 from geojson_pydantic.types import Position3D
 from pyproj import CRS
+
+from coordinate_transformation_api.util import transform_coordinates
 
 
 @pytest.mark.parametrize(

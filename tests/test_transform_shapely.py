@@ -1,12 +1,13 @@
 import pytest
-from coordinate_transformation_api.crs_transform import (
-    get_shapely_objects,
-)
 from geodense.types import GeojsonObject
 from shapely import GeometryCollection as ShpGeometryCollection
 from shapely.geometry import MultiPolygon as ShpMultiPolygon
 from shapely.geometry import Point as ShpPoint
 from shapely.geometry import Polygon as ShpPolygon
+
+from coordinate_transformation_api.crs_transform import (
+    get_shapely_objects,
+)
 
 
 @pytest.mark.parametrize(

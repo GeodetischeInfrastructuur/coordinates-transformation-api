@@ -3,11 +3,6 @@ import math
 from unittest.mock import patch
 
 import pytest
-from coordinate_transformation_api.crs_transform import get_transformer
-from coordinate_transformation_api.util import (
-    crs_transform,
-    str_to_crs,
-)
 from geodense.geojson import CrsFeatureCollection
 from geojson_pydantic import Feature
 from geojson_pydantic.geometries import (
@@ -17,6 +12,11 @@ from geojson_pydantic.geometries import (
 )
 from pydantic import ValidationError
 
+from coordinate_transformation_api.crs_transform import get_transformer
+from coordinate_transformation_api.util import (
+    crs_transform,
+    str_to_crs,
+)
 from tests.util import not_raises
 
 # TODO: add test to signal user geometries or height have been omitted in case transformation not possible
