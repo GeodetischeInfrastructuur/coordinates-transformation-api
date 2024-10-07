@@ -1,26 +1,46 @@
-FROM python:3.11.8-bullseye as builder
+ARG PYTHON_VERSION=3.12
 
+FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm-slim AS builder
+
+ARG PYTHON_VERSION
 ARG NSGI_PROJ_DB_VERSION="1.2.0"
 
 LABEL maintainer="NSGI <info@nsgi.nl>"
 
-COPY . /src
 
-# ignore pip warning about running pip as root - since we are in a containerized sandboxed environment anyways...
-ENV ENV PIP_ROOT_USER_ACTION=ignore
+RUN apt-get update && \
+    apt-get install -y jq \
+    curl \
+    git && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-WORKDIR /src
 
-RUN apt-get update && apt-get install jq curl -y
+WORKDIR /src_app
 
-RUN rm -f dist/*
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PYTHON=python${PYTHON_VERSION} \
+    UV_PROJECT_ENVIRONMENT=/app
 
-RUN pip install --upgrade setuptools && \
-    pip install --upgrade pip && \
-    pip install --upgrade build && \
-    python -m build
 
-WORKDIR /assets
+
+
+
+
+# split install of dependencies and application in two
+# for improved caching
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-editable
+
+COPY . /src_app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-editable
+
+
+
+WORKDIR /app/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj/
 
 RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
     curl -sL -o nl_nsgi_rdcorr2018.tif https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
@@ -29,19 +49,29 @@ RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif
     curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="nllat2018.gtx").url') -o nllat2018.gtx && \
     curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/tags/${NSGI_PROJ_DB_VERSION}" | jq -r '.assets[] | select(.name=="proj.time.dependent.transformations.db").url') -o proj.db
 
-RUN ls -lah /src/dist/ >&2
 
-FROM python:3.11.8-slim-bullseye as runner
 
-ENV ENV PIP_ROOT_USER_ACTION=ignore
+FROM python:${PYTHON_VERSION}-slim-bookworm AS runner
+ARG PYTHON_VERSION
 
-COPY --from=builder /src/dist/coordinate_transformation_api-2*.whl .
+RUN groupadd -r app && \
+    useradd -r -d /app -g app -N app
 
-RUN pip install coordinate_transformation_api-2*.whl
+# copy build venv folder (/app) from build stage
 
-COPY --from=builder /assets/*.tif /usr/local/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/
-COPY --from=builder /assets/*.gtx /usr/local/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/
-COPY --from=builder /assets/proj.db /usr/local/lib/python3.11/site-packages/pyproj/proj_dir/share/proj/proj.db
+
+# COPY --from=builder /assets/*.tif /app/.venv/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj/
+# COPY --from=builder /assets/*.gtx /app/.venv/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj/
+# COPY --from=builder /assets/proj.db /app/.venv/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj/proj.db
+
+
+COPY --from=builder --chown=app:app --chmod=555 /app /app
+
+# Place executables in the environment at the front of the path
+ENV PATH="/app/bin:$PATH"
+ENV PROJ_DIR="/app/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj"
+USER app
+WORKDIR /app
 
 # PORT for serving out API
 EXPOSE 8000
@@ -49,5 +79,4 @@ EXPOSE 8000
 EXPOSE 8001
 
 ENTRYPOINT [ "ct-api" ]
-
 

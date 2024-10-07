@@ -1,8 +1,8 @@
 ---
-openapi: "3.1.0"
+openapi: 3.1.0
 info:
   title: NSGI Coordinate Transformation API
-  version: "" # replaced in code
+  version: '' # replaced in code
   description: >
     The Coordinate Transformation API performs coordinate transformations on
     GeoJSON and CityJSON files using the official RDNAPTRANS™ transformation
@@ -21,7 +21,7 @@ info:
     - CityJSON
     - RDNAPTRANS
 servers:
-  - url: "" # replaced in code
+  - url: '' # replaced in code
 tags:
   - name: About
   - name: CRS
@@ -31,22 +31,21 @@ tags:
 paths:
   /:
     get:
-      operationId: "get-landing-page"
+      operationId: get-landing-page
       tags:
         - About
       summary: Landing Page
       description: OGC Common API landing page
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LandingPage"
+                $ref: '#/components/schemas/LandingPage'
               example:
                 title: My API
-                description:
-                  Landing page describing the capabilities of this API
+                description: Landing page describing the capabilities of this API
                 links:
                   - title: OGC Common Landing Page
                     type: application/json
@@ -54,22 +53,22 @@ paths:
                     href: http://example.com/?f=json
           headers:
             api-version:
-              $ref: "#/components/headers/api-version"
+              $ref: '#/components/headers/api-version'
   /openapi:
     get:
-      operationId: "get-oas"
+      operationId: get-oas
       tags:
         - About
       summary: OAS
       description: The Open API Specification (OAS) document of this API.
       responses:
-        "200":
-          $ref: "#/components/responses/200-oas"
-        "500":
-          $ref: "#/components/responses/500"
+        '200':
+          $ref: '#/components/responses/200-oas'
+        '500':
+          $ref: '#/components/responses/500'
   /conformance:
     get:
-      operationId: "get-conformance"
+      operationId: get-conformance
       tags:
         - About
       summary: Conformance page
@@ -80,43 +79,42 @@ paths:
         details the
         [docs](https://github.com/GeodetischeInfrastructuur/coordinate-transformation-api/blob/main/docs/OGC-API-Common.md).
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ConformanceDeclaration"
+                $ref: '#/components/schemas/ConformanceDeclaration'
             text/html:
               schema:
-                type: "string"
+                type: string
           headers:
             api-version:
-              $ref: "#/components/headers/api-version"
-        "500":
-          $ref: "#/components/responses/500"
+              $ref: '#/components/headers/api-version'
+        '500':
+          $ref: '#/components/responses/500'
   /crss:
     get:
-      operationId: "get-crss"
+      operationId: get-crss
       tags:
         - CRS
       summary: Get all CRSs supported by the transformation API
-      description:
-        Returns definitions of all supported coordinate reference systems (CRSs)
+      description: Returns definitions of all supported coordinate reference systems (CRSs)
       responses:
-        "200":
+        '200':
           description: Successful Response
           content:
             application/json:
               schema:
                 items:
-                  $ref: "#/components/schemas/Crs"
+                  $ref: '#/components/schemas/Crs'
                 type: array
                 title: CRS List
-        "500":
-          $ref: "#/components/responses/500"
+        '500':
+          $ref: '#/components/responses/500'
   /crss/{crs-id}:
     get:
-      operationId: "get-crs"
+      operationId: get-crs
       tags:
         - CRS
       summary: Get a single CRS
@@ -124,27 +122,27 @@ paths:
         Returns the definition of a single coordinate reference system (CRS) by
         `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
       parameters:
-        - name: "crs-id"
+        - name: crs-id
           in: path
           required: true
           schema:
-            $ref: "#/components/schemas/CrsEnum"
+            $ref: '#/components/schemas/CrsEnum'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Crs"
-        "400":
-          $ref: "#/components/responses/400"
-        "404":
-          $ref: "#/components/responses/404Crs"
-        "500":
-          $ref: "#/components/responses/500"
+                $ref: '#/components/schemas/Crs'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404Crs'
+        '500':
+          $ref: '#/components/responses/500'
   /check-density:
     post:
-      operationId: "post-density-check"
+      operationId: post-density-check
       tags:
         - Check-density
       summary: >
@@ -154,10 +152,10 @@ paths:
       description: |
         Check segment length of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the maximum segment length 'maxSegmentLength' or maximum segment deviation `maxSegmentDeviation`.
       parameters:
-        - $ref: "#/components/parameters/sourceCrs"
-        - $ref: "#/components/parameters/contentCrs"
-        - $ref: "#/components/parameters/maxSegmentLength"
-        - $ref: "#/components/parameters/maxSegmentDeviation"
+        - $ref: '#/components/parameters/sourceCrs'
+        - $ref: '#/components/parameters/contentCrs'
+        - $ref: '#/components/parameters/maxSegmentLength'
+        - $ref: '#/components/parameters/maxSegmentDeviation'
 
       requestBody:
         required: true
@@ -194,33 +192,32 @@ paths:
                     geometry:
                       type: LineString
                       coordinates:
-                        - - 156264.9063
-                          - 601302.5889
-                        - - 165681.9644
-                          - 605544.3131
+                        -   - 156264.9063
+                            - 601302.5889
+                        -   - 165681.9644
+                            - 605544.3131
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DensityCheckReport"
+                $ref: '#/components/schemas/DensityCheckReport'
 
           headers:
             api-version:
-              $ref: "#/components/headers/api-version"
+              $ref: '#/components/headers/api-version'
             content-crs:
-              description:
-                Coordinate reference system (CRS) of the input coordinates
-              $ref: "#/components/headers/content-crs"
-        "400":
-          $ref: "#/components/responses/400"
-        "500":
-          $ref: "#/components/responses/500"
+              description: Coordinate reference system (CRS) of the input coordinates
+              $ref: '#/components/headers/content-crs'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
   /densify:
     post:
-      operationId: "post-densify"
+      operationId: post-densify
       tags:
         - Experimental
       summary: >
@@ -233,10 +230,10 @@ paths:
         geometries using the maximum segment length 'maxSegmentLength' or
         maximum segment deviation `maxSegmentDeviation` threshold.
       parameters:
-        - $ref: "#/components/parameters/sourceCrs"
-        - $ref: "#/components/parameters/contentCrs"
-        - $ref: "#/components/parameters/maxSegmentLength"
-        - $ref: "#/components/parameters/maxSegmentDeviation"
+        - $ref: '#/components/parameters/sourceCrs'
+        - $ref: '#/components/parameters/contentCrs'
+        - $ref: '#/components/parameters/maxSegmentLength'
+        - $ref: '#/components/parameters/maxSegmentDeviation'
 
       requestBody:
         required: true
@@ -267,12 +264,12 @@ paths:
               geometry:
                 type: LineString
                 coordinates:
-                  - - 156264.9063
-                    - 601302.5889
-                  - - 165681.9644
-                    - 605544.3131
+                  -   - 156264.9063
+                      - 601302.5889
+                  -   - 165681.9644
+                      - 605544.3131
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -291,23 +288,23 @@ paths:
                     geometry:
                       type: LineString
                       coordinates:
-                        - - 156264.9063
-                          - 601302.5889
-                        - - 165681.9644
-                          - 605544.3131
+                        -   - 156264.9063
+                            - 601302.5889
+                        -   - 165681.9644
+                            - 605544.3131
           headers:
             api-version:
-              $ref: "#/components/headers/api-version"
+              $ref: '#/components/headers/api-version'
             content-crs:
-              $ref: "#/components/headers/content-crs"
-        "400":
-          $ref: "#/components/responses/400"
-        "500":
-          $ref: "#/components/responses/500"
+              $ref: '#/components/headers/content-crs'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
   /transform:
     get:
-      operationId: "get-transform"
+      operationId: get-transform
       tags:
         - Transform
       summary: >
@@ -324,14 +321,14 @@ paths:
         parameters or the request headers. Order of precedence is: query
         parameters > request headers.
       parameters:
-        - $ref: "#/components/parameters/sourceCrs"
-        - $ref: "#/components/parameters/targetCrs"
-        - $ref: "#/components/parameters/epochParam"
-        - $ref: "#/components/parameters/contentCrs"
-        - $ref: "#/components/parameters/acceptCrs"
-        - $ref: "#/components/parameters/coordinates"
+        - $ref: '#/components/parameters/sourceCrs'
+        - $ref: '#/components/parameters/targetCrs'
+        - $ref: '#/components/parameters/epochParam'
+        - $ref: '#/components/parameters/contentCrs'
+        - $ref: '#/components/parameters/acceptCrs'
+        - $ref: '#/components/parameters/coordinates'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -346,23 +343,22 @@ paths:
             text/plain:
               schema:
                 type: string
-                example: "POINT Z (5.387203649 52.155172887 43.2772)"
-                description:
-                  WKT representation of a point as POINT (...) or POINT Z (...)
+                example: POINT Z (5.387203649 52.155172887 43.2772)
+                description: WKT representation of a point as POINT (...) or POINT Z (...)
           headers:
             api-version:
-              $ref: "#/components/headers/api-version"
+              $ref: '#/components/headers/api-version'
             content-crs:
-              $ref: "#/components/headers/content-crs"
+              $ref: '#/components/headers/content-crs'
             epoch:
-              $ref: "#/components/headers/epoch"
-        "400":
-          $ref: "#/components/responses/400"
-        "500":
-          $ref: "#/components/responses/500"
+              $ref: '#/components/headers/epoch'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
     post:
-      operationId: "post-transform"
+      operationId: post-transform
       tags:
         - Transform
       summary: >
@@ -372,14 +368,14 @@ paths:
         A POST endpoint that accepts a file in a given source CRS and performs
         the transformation to the provided target CRS.
       parameters:
-        - $ref: "#/components/parameters/sourceCrs"
-        - $ref: "#/components/parameters/targetCrs"
-        - $ref: "#/components/parameters/epochParam"
-        - $ref: "#/components/parameters/contentCrs"
-        - $ref: "#/components/parameters/acceptCrs"
-        - $ref: "#/components/parameters/densityCheck"
-        - $ref: "#/components/parameters/maxSegmentLength"
-        - $ref: "#/components/parameters/maxSegmentDeviation"
+        - $ref: '#/components/parameters/sourceCrs'
+        - $ref: '#/components/parameters/targetCrs'
+        - $ref: '#/components/parameters/epochParam'
+        - $ref: '#/components/parameters/contentCrs'
+        - $ref: '#/components/parameters/acceptCrs'
+        - $ref: '#/components/parameters/densityCheck'
+        - $ref: '#/components/parameters/maxSegmentLength'
+        - $ref: '#/components/parameters/maxSegmentDeviation'
       requestBody:
         required: true
         description: |
@@ -420,16 +416,16 @@ paths:
                       geometry:
                         type: LineString
                         coordinates:
-                          - - 156264.9063
-                            - 601302.5889
-                            - 0.0
-                          - - 165681.9644
-                            - 605544.3131
-                            - 0.0
+                          -   - 156264.9063
+                              - 601302.5889
+                              - 0.0
+                          -   - 165681.9644
+                              - 605544.3131
+                              - 0.0
               CityJSON:
                 value:
                   type: CityJSON
-                  version: "1.1"
+                  version: '1.1'
                   metadata:
                     geographicalExtent:
                       - 78832.132
@@ -448,7 +444,7 @@ paths:
                     GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_1:
                       type: BuildingPart
                       attributes:
-                        roofType: "1000"
+                        roofType: '1000'
                         RelativeEavesHeight: 3.308
                         RelativeRidgeHeight: 3.308
                         AbsoluteEavesHeight: 9.724
@@ -456,38 +452,38 @@ paths:
                       geometry:
                         - type: Solid
                           boundaries:
-                            - - - - 0
-                                  - 1
-                                  - 2
-                                  - 3
-                              - - - 1
-                                  - 4
-                                  - 5
-                                  - 2
-                              - - - 4
-                                  - 6
-                                  - 7
-                                  - 5
-                              - - - 6
-                                  - 0
-                                  - 3
-                                  - 7
-                              - - - 6
-                                  - 4
-                                  - 1
-                                  - 0
-                              - - - 3
-                                  - 2
-                                  - 5
-                                  - 7
+                            -   -   -   - 0
+                                        - 1
+                                        - 2
+                                        - 3
+                                -   -   - 1
+                                        - 4
+                                        - 5
+                                        - 2
+                                -   -   - 4
+                                        - 6
+                                        - 7
+                                        - 5
+                                -   -   - 6
+                                        - 0
+                                        - 3
+                                        - 7
+                                -   -   - 6
+                                        - 4
+                                        - 1
+                                        - 0
+                                -   -   - 3
+                                        - 2
+                                        - 5
+                                        - 7
                           semantics:
                             values:
-                              - - 0
-                                - 1
-                                - 2
-                                - 3
-                                - 4
-                                - 5
+                              -   - 0
+                                  - 1
+                                  - 2
+                                  - 3
+                                  - 4
+                                  - 5
                             surfaces:
                               - type: WallSurface
                               - type: WallSurface
@@ -498,21 +494,21 @@ paths:
                                 Slope: 90
                               - type: GroundSurface
                           material:
-                            "":
+                            '':
                               values:
-                                - - 0
-                                  - 0
-                                  - 0
-                                  - 0
-                                  - 1
-                                  - 2
-                          lod: "2"
+                                -   - 0
+                                    - 0
+                                    - 0
+                                    - 0
+                                    - 1
+                                    - 2
+                          lod: '2'
                       parents:
                         - GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F
                     GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F_2:
                       type: BuildingPart
                       attributes:
-                        roofType: "1030"
+                        roofType: '1030'
                         RelativeEavesHeight: 3.317
                         RelativeRidgeHeight: 6.436
                         AbsoluteEavesHeight: 9.724
@@ -520,51 +516,51 @@ paths:
                       geometry:
                         - type: Solid
                           boundaries:
-                            - - - - 8
-                                  - 9
-                                  - 10
-                                  - 11
-                              - - - 9
-                                  - 12
-                                  - 13
-                                  - 10
-                              - - - 12
-                                  - 14
-                                  - 15
-                                  - 13
-                              - - - 14
-                                  - 8
-                                  - 11
-                                  - 15
-                              - - - 12
-                                  - 9
-                                  - 16
-                              - - - 8
-                                  - 14
-                                  - 17
-                              - - - 9
-                                  - 8
-                                  - 17
-                                  - 16
-                              - - - 14
-                                  - 12
-                                  - 16
-                                  - 17
-                              - - - 11
-                                  - 10
-                                  - 13
-                                  - 15
+                            -   -   -   - 8
+                                        - 9
+                                        - 10
+                                        - 11
+                                -   -   - 9
+                                        - 12
+                                        - 13
+                                        - 10
+                                -   -   - 12
+                                        - 14
+                                        - 15
+                                        - 13
+                                -   -   - 14
+                                        - 8
+                                        - 11
+                                        - 15
+                                -   -   - 12
+                                        - 9
+                                        - 16
+                                -   -   - 8
+                                        - 14
+                                        - 17
+                                -   -   - 9
+                                        - 8
+                                        - 17
+                                        - 16
+                                -   -   - 14
+                                        - 12
+                                        - 16
+                                        - 17
+                                -   -   - 11
+                                        - 10
+                                        - 13
+                                        - 15
                           semantics:
                             values:
-                              - - 0
-                                - 1
-                                - 2
-                                - 3
-                                - 4
-                                - 5
-                                - 6
-                                - 7
-                                - 8
+                              -   - 0
+                                  - 1
+                                  - 2
+                                  - 3
+                                  - 4
+                                  - 5
+                                  - 6
+                                  - 7
+                                  - 8
                             surfaces:
                               - type: WallSurface
                               - type: WallSurface
@@ -580,75 +576,75 @@ paths:
                                 Slope: 49.051
                               - type: GroundSurface
                           material:
-                            "":
+                            '':
                               values:
-                                - - 3
-                                  - 3
-                                  - 3
-                                  - 3
-                                  - 3
-                                  - 3
-                                  - 4
-                                  - 4
-                                  - 5
-                          lod: "2"
+                                -   - 3
+                                    - 3
+                                    - 3
+                                    - 3
+                                    - 3
+                                    - 3
+                                    - 4
+                                    - 4
+                                    - 5
+                          lod: '2'
                       parents:
                         - GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F
                   vertices:
-                    - - 587180
-                      - 227141
-                      - 7261
-                    - - 587142
-                      - 227186
-                      - 7261
-                    - - 587142
-                      - 227186
-                      - 3953
-                    - - 587180
-                      - 227141
-                      - 3953
-                    - - 587139
-                      - 227595
-                      - 7261
-                    - - 587139
-                      - 227595
-                      - 3953
-                    - - 587368
-                      - 227312
-                      - 7261
-                    - - 587368
-                      - 227312
-                      - 3953
-                    - - 592523
-                      - 222407
-                      - 7261
-                    - - 588403
-                      - 218371
-                      - 7261
-                    - - 588403
-                      - 218371
-                      - 3945
-                    - - 592523
-                      - 222407
-                      - 3945
-                    - - 583472
-                      - 223723
-                      - 7261
-                    - - 583472
-                      - 223723
-                      - 3945
-                    - - 587773
-                      - 227687
-                      - 7261
-                    - - 587773
-                      - 227687
-                      - 3945
-                    - - 585938
-                      - 221048
-                      - 10379
-                    - - 590148
-                      - 225048
-                      - 10379
+                    -   - 587180
+                        - 227141
+                        - 7261
+                    -   - 587142
+                        - 227186
+                        - 7261
+                    -   - 587142
+                        - 227186
+                        - 3953
+                    -   - 587180
+                        - 227141
+                        - 3953
+                    -   - 587139
+                        - 227595
+                        - 7261
+                    -   - 587139
+                        - 227595
+                        - 3953
+                    -   - 587368
+                        - 227312
+                        - 7261
+                    -   - 587368
+                        - 227312
+                        - 3953
+                    -   - 592523
+                        - 222407
+                        - 7261
+                    -   - 588403
+                        - 218371
+                        - 7261
+                    -   - 588403
+                        - 218371
+                        - 3945
+                    -   - 592523
+                        - 222407
+                        - 3945
+                    -   - 583472
+                        - 223723
+                        - 7261
+                    -   - 583472
+                        - 223723
+                        - 3945
+                    -   - 587773
+                        - 227687
+                        - 7261
+                    -   - 587773
+                        - 227687
+                        - 3945
+                    -   - 585938
+                        - 221048
+                        - 10379
+                    -   - 590148
+                        - 225048
+                        - 10379
                   transform:
                     scale:
                       - 0.001
@@ -698,7 +694,7 @@ paths:
                           - 0.502
 
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -721,17 +717,17 @@ paths:
 
           headers:
             api-version:
-              $ref: "#/components/headers/api-version"
+              $ref: '#/components/headers/api-version'
             content-crs:
-              $ref: "#/components/headers/content-crs"
+              $ref: '#/components/headers/content-crs'
             epoch:
-              $ref: "#/components/headers/epoch"
+              $ref: '#/components/headers/epoch'
             density-check-result:
-              $ref: "#/components/headers/density-check-result"
-        "400":
-          $ref: "#/components/responses/400Transform"
-        "500":
-          $ref: "#/components/responses/500"
+              $ref: '#/components/headers/density-check-result'
+        '400':
+          $ref: '#/components/responses/400Transform'
+        '500':
+          $ref: '#/components/responses/500'
 
 components:
   examples:
@@ -747,28 +743,26 @@ components:
         type: nsgi.nl/density-check-failed
         title: Density Check Failed
         status: 400
-        detail:
-          "density-check failed, with following query parameters: density-check:
-          True, max-segment-length: 200.0"
+        detail: 'density-check failed, with following query parameters: density-check: True, max-segment-length: 200.0'
         report:
           checkResult: false
           failedLineSegments:
-            bbox: null
+            bbox:
             type: FeatureCollection
             features:
-              - bbox: null
+              - bbox:
                 type: Feature
                 geometry:
-                  bbox: null
+                  bbox:
                   type: LineString
                   coordinates:
-                    - - 156264.9064
-                      - 601302.5889
-                    - - 165681.9645
-                      - 605544.3131
+                    -   - 156264.9064
+                        - 601302.5889
+                    -   - 165681.9645
+                        - 605544.3131
                 properties:
                   segment_length: 10327.9665
-                id: null
+                id:
             crs:
               properties:
                 name: urn:ogc:def:crs:EPSG::28992
@@ -776,14 +770,14 @@ components:
             name: density-check-report
     400Example:
       value:
-        type: "about:blank"
+        type: about:blank
         detail: HTTP 400 Bad Request
         status: 400
         instance: self
         title: Bad Request
     500Example:
       value:
-        type: "about:blank"
+        type: about:blank
         detail: HTTP 500 Internal Server Error
         status: 500
         instance: self
@@ -794,72 +788,63 @@ components:
       description: Open API Specification version number
       schema:
         type: string
-      example: "3.0.0"
+      example: 3.0.0
     content-crs:
       description: Coordinate reference system (CRS) of the response
       schema:
-        $ref: "#/components/schemas/CrsHeaderEnum"
+        $ref: '#/components/schemas/CrsHeaderEnum'
     density-check-result:
       description: Density check result
       schema:
-        $ref: "#/components/schemas/DensityCheckResultEnum"
+        $ref: '#/components/schemas/DensityCheckResultEnum'
     epoch:
-      description:
-        Epoch of the coordinates in the response (if defined in the input)
+      description: Epoch of the coordinates in the response (if defined in the input)
       schema:
-        $ref: "#/components/schemas/Epoch"
+        $ref: '#/components/schemas/Epoch'
   parameters:
     acceptCrs:
-      description:
-        "Target coordinate reference system (CRS); Usage discouraged: use
-        `target-crs` instead"
+      description: 'Target coordinate reference system (CRS); Usage discouraged: use `target-crs` instead'
       in: header
       name: accept-crs
       required: false
       example: http://www.opengis.net/def/crs/EPSG/0/7931
       schema:
-        $ref: "#/components/schemas/CrsHeaderEnum"
+        $ref: '#/components/schemas/CrsHeaderEnum'
     contentCrs:
-      description:
-        "Source coordinate reference system (CRS); Usage discouraged: use
-        `source-crs` instead"
+      description: 'Source coordinate reference system (CRS); Usage discouraged: use `source-crs` instead'
       in: header
       name: content-crs
       required: false
       example: http://www.opengis.net/def/crs/EPSG/0/7415
       schema:
-        $ref: "#/components/schemas/CrsHeaderEnum"
+        $ref: '#/components/schemas/CrsHeaderEnum'
     coordinates:
-      description:
-        Coordinates of the query point as comma seperated list, see `source-crs`
-        parameter for order and required dimension of the coordinates
+      description: Coordinates of the query point as comma seperated list, see `source-crs` parameter for order and required dimension of the coordinates
       in: query
       name: coordinates
       required: true
       style: form
       explode: false
       schema:
-        $ref: "#/components/schemas/Coords"
+        $ref: '#/components/schemas/Coords'
     densityCheck:
       description: |
         Run density-check on input before transformation. Will result in HTTP 400 response if the density-check fails. When set on `true` one of the following parameters needs to be set `max-segment-length` or `max-segment-deviation`
       in: query
       name: density-check
-      example: True
+      example: true
       required: false
       schema:
         type: boolean
         default: true
     epochParam:
-      description:
-        Epoch of coordinates in source and target coordinate reference systems
-        (CRSs). Leave empty for null transformation recommended for most
+      description: Epoch of coordinates in source and target coordinate reference systems (CRSs). Leave empty for null transformation recommended for most
         applications.
       name: epoch
       in: query
       required: false
       schema:
-        $ref: "#/components/schemas/Epoch"
+        $ref: '#/components/schemas/Epoch'
     maxSegmentDeviation:
       description: Maximum segment deviation in metres
       in: query
@@ -885,80 +870,76 @@ components:
       example: EPSG:7415
       required: false
       schema:
-        $ref: "#/components/schemas/CrsEnum"
+        $ref: '#/components/schemas/CrsEnum'
     targetCrs:
       description: Target coordinate reference system (CRS)
       in: query
       name: target-crs
       required: false
       schema:
-        $ref: "#/components/schemas/CrsEnum"
+        $ref: '#/components/schemas/CrsEnum'
       example: EPSG:7931
   responses:
-    "200-oas":
+    200-oas:
       description: OK
       content:
         application/openapi+json: {}
         text/html:
           schema:
-            type: "string"
+            type: string
       headers:
         api-version:
-          $ref: "#/components/headers/api-version"
-    "400Transform":
-      description:
-        Bad request. The request body does not contain a valid payload or the
-        query is not supported by the API.
+          $ref: '#/components/headers/api-version'
+    400Transform:
+      description: Bad request. The request body does not contain a valid payload or the query is not supported by the API.
       content:
         application/problem+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
-            "400":
-              $ref: "#/components/examples/400Example"
+            '400':
+              $ref: '#/components/examples/400Example'
             400-density-check-failed:
-              $ref: "#/components/examples/400DensityCheckFailedExample"
+              $ref: '#/components/examples/400DensityCheckFailedExample'
       headers:
         api-version:
-          $ref: "#/components/headers/api-version"
-    "404Crs":
+          $ref: '#/components/headers/api-version'
+    404Crs:
       description: Coordinate reference system (CRS) Not Found.
       content:
         application/problem+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
-            "404Crs":
-              $ref: "#/components/examples/404CrsExample"
+            404Crs:
+              $ref: '#/components/examples/404CrsExample'
       headers:
         api-version:
-          $ref: "#/components/headers/api-version"
-    "400":
-      description:
-        Bad request. The request body does not contain a valid payload or the
-        query is not supported by the API.
+          $ref: '#/components/headers/api-version'
+    '400':
+      description: Bad request. The request body does not contain a valid payload or the query is not supported by the API.
       content:
         application/problem+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
-            "400":
-              $ref: "#/components/examples/400Example"
+            '400':
+              $ref: '#/components/examples/400Example'
       headers:
         api-version:
-          $ref: "#/components/headers/api-version"
-    "500":
+          $ref: '#/components/headers/api-version'
+    '500':
       description: An internal server error occurred.
       content:
         application/problem+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
-            "500":
-              $ref: "#/components/examples/500Example"
+            '500':
+              $ref: '#/components/examples/500Example'
       headers:
         api-version:
-          $ref: "#/components/headers/api-version"
+          $ref: '#/components/headers/api-version'
   schemas:
     Axis:
       properties:
@@ -1027,11 +1008,11 @@ components:
           type: string
         axes:
           items:
-            $ref: "#/components/schemas/Axis"
+            $ref: '#/components/schemas/Axis'
           title: Axes
           type: array
         crs_auth_identifier:
-          $ref: "#/components/schemas/CrsEnum"
+          $ref: '#/components/schemas/CrsEnum'
         identifier:
           title: Identifier
           type: string
@@ -1050,15 +1031,11 @@ components:
       title: CRS
       type: object
     CrsEnum:
-      enum: ["EPSG:28992", "EPSG:7415", "EPSG:7931"] # filled in code, dummy values to suppress error by linter
+      enum: [EPSG:28992, EPSG:7415, EPSG:7931]       # filled in code, dummy values to suppress error by linter
       example: EPSG:28992
       type: string
     CrsHeaderEnum:
-      enum: [
-          "http://www.opengis.net/def/crs/EPSG/0/28992",
-          "http://www.opengis.net/def/crs/EPSG/0/7415",
-          "http://www.opengis.net/def/crs/EPSG/0/7931",
-        ] # filled in code, dummy values to suppress error by linter
+      enum: [http://www.opengis.net/def/crs/EPSG/0/28992, http://www.opengis.net/def/crs/EPSG/0/7415, http://www.opengis.net/def/crs/EPSG/0/7931] # filled in code, dummy values to suppress error by linter
       example: http://www.opengis.net/def/crs/EPSG/0/28992
       type: string
     DensityCheckReport:
@@ -1072,10 +1049,10 @@ components:
           features:
             - geometry:
                 coordinates:
-                  - - 156264.9064
-                    - 601302.5889
-                  - - 165681.9645
-                    - 605544.3131
+                  -   - 156264.9064
+                      - 601302.5889
+                  -   - 165681.9645
+                      - 605544.3131
                 type: LineString
               properties:
                 segment_length: 10327.9665
@@ -1087,12 +1064,10 @@ components:
           description: Result of density-check
           type: boolean
         failedLineSegments:
-          description:
-            FeatureCollection containing line segments that failed
-            density-check. If all line segments passed density-check, value of
-            `failedLineSegments` is `null`.
+          description: FeatureCollection containing line segments that failed density-check. If all line segments passed density-check, value of `failedLineSegments`
+            is `null`.
           oneOf:
-            - type: "null" # Note the quotes around 'null'
+            - type: 'null' # Note the quotes around 'null'
             - $ref: https://geojson.org/schema/FeatureCollection.json
       type: object
     DensityCheckResultEnum:
@@ -1105,11 +1080,10 @@ components:
       example: success
       type: string
     Epoch:
-      example: ""
+      example: ''
       type: number
     Error:
-      description:
-        Object specified according to https://tools.ietf.org/html/rfc7807.
+      description: Object specified according to https://tools.ietf.org/html/rfc7807.
       properties:
         detail:
           type: string
@@ -1129,10 +1103,7 @@ components:
         - detail
       type: object
     GeoJsonCrs:
-      description:
-        Optional `.crs` field for GeoJSON FeatureCollection.
-        The  `.properties.name` value should conform to the [OGC URN
-        scheme](https://www.ogc.org/about-ogc/policies/ogc-urn-policy/).
+      description: Optional `.crs` field for GeoJSON FeatureCollection. The  `.properties.name` value should conform to the [OGC URN scheme](https://www.ogc.org/about-ogc/policies/ogc-urn-policy/).
       type: object
       properties:
         properties:
@@ -1161,7 +1132,7 @@ components:
           type: string
         links:
           items:
-            $ref: "#/components/schemas/Link"
+            $ref: '#/components/schemas/Link'
           type: array
         title:
           example: Coordinate Transformation API
