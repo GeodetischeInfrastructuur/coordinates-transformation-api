@@ -21,7 +21,7 @@ info:
     - CityJSON
     - RDNAPTRANS
 servers:
-  - url: '' # replaced in code
+  - url: http://example.org   # replaced in code
 tags:
   - name: About
   - name: CRS
