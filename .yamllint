@@ -1,0 +1,5 @@
+---
+extends: default
+
+ignore:
+  - src/coordinate_transformation_api/assets/openapi.yaml
