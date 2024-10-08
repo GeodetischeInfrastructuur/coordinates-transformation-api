@@ -36,9 +36,7 @@ from coordinate_transformation_api.util import (
 def test_densify_points_raises_request_validation_error(geojson, expected, request):
     gj: GeojsonObject = request.getfixturevalue(geojson)
     with expected:
-        _ = densify_request_body(
-            gj, "EPSG:28992", max_segment_length=10, max_segment_deviation=None
-        )
+        _ = densify_request_body(gj, "EPSG:28992", max_segment_length=10, max_segment_deviation=None)
 
 
 @pytest.mark.parametrize(
@@ -62,9 +60,7 @@ def test_densify_points_raises_request_validation_error(geojson, expected, reque
     ],
 )
 @pytest.mark.asyncio
-async def test_density_check_points_raises_request_validation_error(
-    geojson, expected, request
-):
+async def test_density_check_points_raises_request_validation_error(geojson, expected, request):
     gj: GeojsonObject = request.getfixturevalue(geojson)
 
     with expected:

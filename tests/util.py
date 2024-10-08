@@ -20,12 +20,8 @@ def not_raises(exception, message: Optional[str] = ""):
             raise pytest.fail(message.format(exc=exception))  # noqa: B904
 
 
-def do_pyproj_transformation(
-    source_crs: str, target_crs: str, coords: tuple[float, ...]
-) -> tuple[float, ...]:
-    tfg = transformer.TransformerGroup(
-        source_crs, target_crs, allow_ballpark=False, always_xy=True
-    )
+def do_pyproj_transformation(source_crs: str, target_crs: str, coords: tuple[float, ...]) -> tuple[float, ...]:
+    tfg = transformer.TransformerGroup(source_crs, target_crs, allow_ballpark=False, always_xy=True)
 
     if len(tfg.transformers) == 0:
         return (float("inf"), float("inf"), float("inf"), float("inf"))
@@ -82,9 +78,7 @@ def nl_eu_validation_data():
         with open(file, "w") as fwrite:
             for source_crs in seed_crs_list:
                 for target_crs in seed_crs_list:
-                    source_coord = do_pyproj_transformation(
-                        seed_init_crs, source_crs, seed_coord
-                    )
+                    source_coord = do_pyproj_transformation(seed_init_crs, source_crs, seed_coord)
                     fwrite.write(
                         "{},{},{}\n".format(
                             source_crs,
@@ -122,9 +116,7 @@ def nl_bonaire_validation_data():
         with open(file, "w") as fwrite:
             for source_crs in seed_crs_list:
                 for target_crs in seed_crs_list:
-                    source_coord = do_pyproj_transformation(
-                        seed_init_crs, source_crs, seed_coord
-                    )
+                    source_coord = do_pyproj_transformation(seed_init_crs, source_crs, seed_coord)
                     fwrite.write(
                         "{},{},{}\n".format(
                             source_crs,
@@ -162,9 +154,7 @@ def nl_st_eustatius_validation_data():
         with open(file, "w") as fwrite:
             for source_crs in seed_crs_list:
                 for target_crs in seed_crs_list:
-                    source_coord = do_pyproj_transformation(
-                        seed_init_crs, source_crs, seed_coord
-                    )
+                    source_coord = do_pyproj_transformation(seed_init_crs, source_crs, seed_coord)
                     fwrite.write(
                         "{},{},{}\n".format(
                             source_crs,
@@ -203,9 +193,7 @@ def nl_saba_validation_data():
         with open(file, "w") as fwrite:
             for source_crs in seed_crs_list:
                 for target_crs in seed_crs_list:
-                    source_coord = do_pyproj_transformation(
-                        seed_init_crs, source_crs, seed_coord
-                    )
+                    source_coord = do_pyproj_transformation(seed_init_crs, source_crs, seed_coord)
                     fwrite.write(
                         "{},{},{}\n".format(
                             source_crs,

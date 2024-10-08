@@ -40,15 +40,11 @@ CorsAllOrNone = Literal["*"] | None
 
 def check_path_empty(v: Url) -> Url:
     if v.path != "/":
-        raise ValueError(
-            f"path of setting cors_allow_origins url needs to be empty: {v}"
-        )
+        raise ValueError(f"path of setting cors_allow_origins url needs to be empty: {v}")
     return v
 
 
-AnyHttpUrl = Annotated[
-    Url, UrlConstraints(allowed_schemes=["https"]), AfterValidator(check_path_empty)
-]
+AnyHttpUrl = Annotated[Url, UrlConstraints(allowed_schemes=["https"]), AfterValidator(check_path_empty)]
 
 
 class AppSettings(BaseSettings):

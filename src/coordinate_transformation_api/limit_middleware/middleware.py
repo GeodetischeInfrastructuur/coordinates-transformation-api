@@ -8,9 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
-DispatchFunction = typing.Callable[
-    [Request, RequestResponseEndpoint], typing.Awaitable[Response]
-]
+DispatchFunction = typing.Callable[[Request, RequestResponseEndpoint], typing.Awaitable[Response]]
 
 
 class ContentSizeExceededError(Exception):
@@ -28,13 +26,9 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
         BaseHTTPMiddleware.__init__(self, app, dispatch=dispatch)
         self.timeout_seconds = timeout_seconds
 
-    async def dispatch(
-        self: "TimeoutMiddleware", request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self: "TimeoutMiddleware", request: Request, call_next: RequestResponseEndpoint) -> Response:
         try:
-            response = await asyncio.wait_for(
-                call_next(request), timeout=self.timeout_seconds
-            )
+            response = await asyncio.wait_for(call_next(request), timeout=self.timeout_seconds)
         except asyncio.TimeoutError:
             return JSONResponse(
                 {
@@ -62,9 +56,7 @@ class ContentSizeLimitMiddleware:
         self.max_content_size = max_content_size
         self.received = 0
 
-    def receive_wrapper(
-        self: "ContentSizeLimitMiddleware", receive: Receive
-    ) -> Callable:
+    def receive_wrapper(self: "ContentSizeLimitMiddleware", receive: Receive) -> Callable:
         received = 0
 
         async def inner() -> Message:
@@ -84,9 +76,7 @@ class ContentSizeLimitMiddleware:
 
         return inner
 
-    async def __call__(
-        self: "ContentSizeLimitMiddleware", scope: Scope, receive: Receive, send: Send
-    ) -> None:
+    async def __call__(self: "ContentSizeLimitMiddleware", scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return

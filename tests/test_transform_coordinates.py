@@ -26,8 +26,6 @@ def test_transformed_coordinates(coordinates, s_crs, t_crs, expectation):
     source_crs = CRS.from_authority(*s_crs)
     target_crs = CRS.from_authority(*t_crs)
 
-    transformed_coordinates = transform_coordinates(
-        coordinates, source_crs, target_crs, None
-    )
+    transformed_coordinates = transform_coordinates(coordinates, source_crs, target_crs, None)
 
     assert transformed_coordinates == expectation

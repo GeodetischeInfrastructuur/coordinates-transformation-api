@@ -9,9 +9,7 @@ class DataValidationError(Exception):
     type_str = "nsgi.nl/data-validation-error"
     title = "Data Validation Error"
 
-    def __init__(
-        self: "DataValidationError", message: str, extra: dict | None = None
-    ) -> None:
+    def __init__(self: "DataValidationError", message: str, extra: dict | None = None) -> None:
         super().__init__(message)
         if extra is None:
             extra = {}
@@ -55,9 +53,7 @@ class TransformationNotPossibleError(DataValidationError):
         reason: str = "no transformation path available",
     ) -> None:
         # Call the base class constructor with the parameters it needs
-        message = (
-            f"Transformation not possible between {src_crs} and {target_crs}, {reason}"
-        )
+        message = f"Transformation not possible between {src_crs} and {target_crs}, {reason}"
         super().__init__(message)
         # Now for your custom code...
 
@@ -114,9 +110,7 @@ class Conformance(BaseModel):
 
 class DensityCheckReport(BaseModel):
     check_result: bool = Field(..., alias="checkResult")
-    failed_line_segments: CrsFeatureCollection | None = Field(
-        ..., alias="failedLineSegments"
-    )
+    failed_line_segments: CrsFeatureCollection | None = Field(..., alias="failedLineSegments")
 
     @classmethod
     def from_fc_report(
@@ -201,9 +195,7 @@ class Crs(BaseModel):
             None,
         )
         if axe is None:
-            raise ValueError(
-                f"unable to retrieve unit x axis (x, e, lon) CRS {self.crs_auth_identifier}"
-            )
+            raise ValueError(f"unable to retrieve unit x axis (x, e, lon) CRS {self.crs_auth_identifier}")
         unit_name = axe.unit_name
         if unit_name not in ["degree", "metre"]:
             raise ValueError(

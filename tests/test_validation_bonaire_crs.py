@@ -9,9 +9,7 @@ from tests.util import do_pyproj_transformation, nl_bonaire_validation_data
 xy_dim = 2
 
 
-@pytest.mark.parametrize(
-    ("source_crs", "target_crs", "source_coord"), nl_bonaire_validation_data()
-)
+@pytest.mark.parametrize(("source_crs", "target_crs", "source_coord"), nl_bonaire_validation_data())
 def test_transformation(source_crs, target_crs, source_coord):
     source_crs_info = MyCrs.from_crs_str(source_crs)
     target_crs_info = MyCrs.from_crs_str(target_crs)
@@ -28,9 +26,7 @@ def test_transformation(source_crs, target_crs, source_coord):
             get_transform_crs_fun(source_crs_crs, target_crs_crs)(source_coord)
         assert type(e.value) is TransformationNotPossibleError
     else:
-        pyproj_transformed_coord = do_pyproj_transformation(
-            source_crs, target_crs, source_coord
-        )
+        pyproj_transformed_coord = do_pyproj_transformation(source_crs, target_crs, source_coord)
         api_transformed_coord = get_transform_crs_fun(
             source_crs_crs,
             target_crs_crs,
@@ -57,10 +53,5 @@ def test_transformation(source_crs, target_crs, source_coord):
         )  # round height
         assert api_transformed_coord[0:2] == pyproj_transformed_coord[0:2]
 
-        if (
-            len(api_transformed_coord) > xy_dim
-            and len(pyproj_transformed_coord) > xy_dim
-        ):
-            assert api_transformed_coord[2] == pytest.approx(
-                pyproj_transformed_coord[2], 0.0001
-            )
+        if len(api_transformed_coord) > xy_dim and len(pyproj_transformed_coord) > xy_dim:
+            assert api_transformed_coord[2] == pytest.approx(pyproj_transformed_coord[2], 0.0001)
