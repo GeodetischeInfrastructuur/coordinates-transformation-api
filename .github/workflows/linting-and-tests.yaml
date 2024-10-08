@@ -3,28 +3,34 @@ on:  # yamllint disable-line rule:truthy
   pull_request:
 jobs:
   linting_and_tests:
-    name: Linting, Type Check and Tests | python=${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.11']
+    name: Linting, Type Check and Tests
+    runs-on: ubuntu-24.04
+    # strategy:
+    #   matrix:
+    #     python-version: ['3.11']
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # to fetch all history for all branches and tags; required because we derive app version from latest tag
           fetch-tags: true
-      - name: Setup conda
-        uses: s-weigand/setup-conda@v1
+      # - name: Setup conda
+      #   uses: s-weigand/setup-conda@v1
+      #   with:
+      #     update-conda: true
+      #     python-version: ${{ matrix.python-version }}
+      #     conda-channels: anaconda, conda-forge
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          update-conda: true
-          python-version: ${{ matrix.python-version }}
-          conda-channels: anaconda, conda-forge
-      - name: Conda install dependencies
-        run: conda install -c conda-forge pyproj==3.6.0
+          # Install a specific version of uv.
+          version: "0.4.19"
       - name: Install dependencies
         run: |
-          python${{ matrix.python-version }} -m pip install --upgrade pip
-          python${{ matrix.python-version }} -m pip install --force-reinstall -e ".[dev]"
+          uv sync
+      - name: Set env PATH
+        run: echo "PATH="$(pwd)/.venv/bin:$PATH"" >> $GITHUB_ENV
+      - name: Set env PROJ_DIR
+        run: echo "PROJ_DIR="$(pwd)/.venv/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj"" >> $GITHUB_ENV
       - name: Download NL correction grids and nsgi proj db
         run: |
           proj_data_dir=$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());')
@@ -32,15 +38,12 @@ jobs:
           curl -sL -o "${proj_data_dir}/nl_nsgi_rdcorr2018.tif" https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
           curl -sL -o "${proj_data_dir}/nl_nsgi_rdtrans2018.tif" https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
           curl -sL -H "Accept: application/octet-stream" $(curl -s "https://api.github.com/repos/GeodetischeInfrastructuur/transformations/releases/latest" | jq -r '.assets[] | select(.name=="proj.time.dependent.transformations.db").url') -o "${proj_data_dir}/proj.db"
-      - name: Lint with black
-        run: |
-          python${{ matrix.python-version }} -m black --check .
       - name: Lint with ruff
         run: |
-          python${{ matrix.python-version }} -m ruff check -v .
+          ruff check .
       - name: Run Mypy
         run: |
-          python${{ matrix.python-version }} -m mypy src/
+          mypy src/
       - name: Test with pytest and generate coverage report
         run: |-
-          python${{ matrix.python-version }} -m coverage run --source=src/coordinate_transformation_api -m pytest -v -k 'not validation' tests
+          coverage run --source=src/coordinate_transformation_api -m pytest -v -k 'not validation' tests
