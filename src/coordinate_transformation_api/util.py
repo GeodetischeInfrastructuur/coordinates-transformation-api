@@ -138,7 +138,7 @@ def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool
 
     shapely_bbox = [box(*body_bbox_t)]
     tree = STRtree(shapely_bbox)
-    contains_index = tree.query(box(*DEVIATION_VALID_BBOX), predicate="contains").tolist()
+    contains_index = tree.query(box(*DEVIATION_VALID_BBOX), predicate="contains").tolist()  # type: ignore
     return len(shapely_bbox) == len(contains_index)
 
 
