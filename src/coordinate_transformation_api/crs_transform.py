@@ -60,7 +60,7 @@ def get_shapely_objects(
     body: GeojsonObject,
 ) -> list[ShapelyGeometry]:
     def _shapely_object(geometry: GeojsonGeomNoGeomCollection) -> ShapelyGeometry:
-        return shape(geometry)
+        return shape(geometry)  # type: ignore
 
     result = transform_geojson_geometries(body, _shapely_object)
     flat_result: list[ShapelyGeometry] = []
