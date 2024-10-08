@@ -58,13 +58,9 @@ BBOX_3D_DIMENSION = 6
 logger = logging.getLogger(__name__)
 
 
-def validate_coords_source_crs(
-    position: Position, source_crs, projections_axis_info: list[AvailableCrs]
-):
+def validate_coords_source_crs(position: Position, source_crs, projections_axis_info: list[AvailableCrs]):
     source_crs_dims = next(
-        crs.nr_of_dimensions
-        for crs in projections_axis_info
-        if source_crs == crs.crs_auth_identifier
+        crs.nr_of_dimensions for crs in projections_axis_info if source_crs == crs.crs_auth_identifier
     )
     if source_crs_dims != len(position):
         raise_request_validation_error(
@@ -104,11 +100,7 @@ def get_source_crs_body(
     source_crs: str | None = None
     if isinstance(body, CrsFeatureCollection) and body.crs is not None:
         source_crs = body.get_crs_auth_code()
-    elif (
-        isinstance(body, CityjsonV113)
-        and body.metadata is not None
-        and body.metadata.referenceSystem is not None
-    ):
+    elif isinstance(body, CityjsonV113) and body.metadata is not None and body.metadata.referenceSystem is not None:
         ref_system: str = body.metadata.referenceSystem
         crs_auth = ref_system.split("/")[-3]
         crs_id = ref_system.split("/")[-1]
@@ -126,9 +118,7 @@ def accept_html(request: Request) -> bool:
 
 def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool:
     if source_crs not in [DENSIFY_CRS_2D, DENSIFY_CRS_3D]:
-        transform_f = get_transform_crs_fun(
-            str_to_crs(source_crs), str_to_crs(DENSIFY_CRS_2D)
-        )
+        transform_f = get_transform_crs_fun(str_to_crs(source_crs), str_to_crs(DENSIFY_CRS_2D))
 
         if body.bbox is None:
             # set bbox to initial value, otherwise wont be updated
@@ -148,9 +138,7 @@ def request_body_within_valid_bbox(body: GeojsonObject, source_crs: str) -> bool
 
     shapely_bbox = [box(*body_bbox_t)]
     tree = STRtree(shapely_bbox)
-    contains_index = tree.query(
-        box(*DEVIATION_VALID_BBOX), predicate="contains"
-    ).tolist()
+    contains_index = tree.query(box(*DEVIATION_VALID_BBOX), predicate="contains").tolist()
     return len(shapely_bbox) == len(contains_index)
 
 
@@ -194,9 +182,7 @@ def density_check_request_body(
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
     transform_crs = (
-        str_to_crs(DENSIFY_CRS_3D)
-        if len(source_crs.axis_info) == THREE_DIMENSIONAL
-        else str_to_crs(DENSIFY_CRS_2D)
+        str_to_crs(DENSIFY_CRS_3D) if len(source_crs.axis_info) == THREE_DIMENSIONAL else str_to_crs(DENSIFY_CRS_2D)
     )
     transform = "{}:{}".format(*source_crs.to_authority()) not in [
         DENSIFY_CRS_3D,
@@ -211,18 +197,12 @@ def density_check_request_body(
     failed_line_segments = check_density_geojson_object(c, body_t)
 
     if transform:
-        failed_line_segments_t = crs_transform(
-            failed_line_segments, transform_crs, source_crs, epoch=epoch
-        )
+        failed_line_segments_t = crs_transform(failed_line_segments, transform_crs, source_crs, epoch=epoch)
     return failed_line_segments_t
 
 
-def bbox_check_deviation_set(
-    body: GeojsonObject, source_crs, max_segment_deviation
-) -> None:
-    if max_segment_deviation is not None and not request_body_within_valid_bbox(
-        body, source_crs
-    ):
+def bbox_check_deviation_set(body: GeojsonObject, source_crs, max_segment_deviation) -> None:
+    if max_segment_deviation is not None and not request_body_within_valid_bbox(body, source_crs):
         raise DeviationOutOfBboxError(
             f"Geometries not within bounding box: {DEVIATION_VALID_BBOX!s}. Use of max_segment_deviation parameter requires data to be within mentioned bounding box."
         )
@@ -246,11 +226,7 @@ def densify_request_body(
         max_segment_length = convert_deviation_to_distance(max_segment_deviation)
 
     source_crs_crs = CRS.from_authority(*source_crs.split(":"))
-    transform_crs = (
-        DENSIFY_CRS_3D
-        if len(source_crs_crs.axis_info) == THREE_DIMENSIONAL
-        else DENSIFY_CRS_2D
-    )
+    transform_crs = DENSIFY_CRS_3D if len(source_crs_crs.axis_info) == THREE_DIMENSIONAL else DENSIFY_CRS_2D
     transform = source_crs not in [DENSIFY_CRS_3D, DENSIFY_CRS_2D]
 
     s_crs = str_to_crs(source_crs)
@@ -305,9 +281,7 @@ def init_oas(crs_config) -> tuple[dict, str, str]:
             security: dict = {"security": [{"APIKeyHeader": []}]}
             if app_settings.example_api_key is not None:
                 api_key_description = f"\n\nThe Demo API key is `{app_settings.example_api_key}` and is intended for exploratory use of the API only. This key may stop working without warning."
-                oas["info"]["description"] = (
-                    oas["info"]["description"] + api_key_description
-                )
+                oas["info"]["description"] = oas["info"]["description"] + api_key_description
 
             oas["components"]["securitySchemes"] = api_key_header_def
 
@@ -384,14 +358,10 @@ def check_crs_is_known(crs_str: str, crs_list: list[AvailableCrs]) -> None:
         raise ValueError(f"could not instantiate CRS object for CRS with id {crs_str}")
 
 
-def transform_coordinates(
-    coordinates: Position, source_crs: CRS, target_crs: CRS, epoch
-) -> Any:
+def transform_coordinates(coordinates: Position, source_crs: CRS, target_crs: CRS, epoch) -> Any:
     precision = get_precision(target_crs)
 
-    transform_crs_fun = get_transform_crs_fun(
-        source_crs, target_crs, precision=precision, epoch=epoch
-    )
+    transform_crs_fun = get_transform_crs_fun(source_crs, target_crs, precision=precision, epoch=epoch)
     transformed_coordinates = transform_crs_fun(coordinates)
     return transformed_coordinates
 
@@ -516,9 +486,7 @@ def get_src_crs_densify(
     return cast(str, s_crs)
 
 
-def set_response_headers(
-    *args, headers: dict[str, str] | None = None
-) -> dict[str, str]:
+def set_response_headers(*args, headers: dict[str, str] | None = None) -> dict[str, str]:
     headers = {} if headers is None else headers
     for arg in args:
         key, val = arg

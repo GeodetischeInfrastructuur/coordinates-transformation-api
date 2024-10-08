@@ -13,8 +13,6 @@ def test_cityjson_transformed():
         cj.crs_transform(str_to_crs("EPSG:7415"), str_to_crs("EPSG:9753"), 2010.0)
         assert cj.metadata.geographicalExtent != cj_original.metadata.geographicalExtent
         assert cj.vertices != cj_original.vertices
-        assert (
-            cj.metadata.referenceSystem == "https://www.opengis.net/def/crs/EPSG/0/9753"
-        )
+        assert cj.metadata.referenceSystem == "https://www.opengis.net/def/crs/EPSG/0/9753"
         assert cj.transform is not None
         assert cj.transform != cj_original.transform

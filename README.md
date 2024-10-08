@@ -6,7 +6,7 @@ transformations for the Netherlands. Build on top of pyproj and FastAPI.
 ## Assumptions
 
 - API metadata, documentation and source code is in English
-- Easily accessible, but correct
+- API provides easy accesible and correct coordinate transformations
 - Conforms (as much is possible) to the
   [OGC API Common](https://ogcapi.ogc.org/common/) and the
   [NL API Design rules](https://gitdocumentatie.logius.nl/publicatie/api/adr/)
@@ -45,31 +45,18 @@ application. This can be done by
 
 ## Development
 
-To install from source requires minimum version of pip: `23.2.1`.
+Project uses [uv](https://docs.astral.sh/uv/) for package management. To get started install `uv` and run:
 
 Install dev dependencies with:
 
 ```sh
-pip install ".[dev]"
+uv sync
 ```
 
-Install enable pre-commit hook with:
+Enable [pre-commit](https://pre-commit.com/) hooks with:
 
 ```sh
-git config --local core.hooksPath .githooks
-```
-
-To run debug session in VS Code install the package with pip with the
-`--editable` flag:
-
-```sh
-pip install --editable .
-```
-
-Also install Mypy as follows
-
-```sh
-mypy --install-types
+pre-commit install
 ```
 
 Check test coverage (install `coverage` with `pip install coverage`):
@@ -113,18 +100,6 @@ proj_data_dir=$(python3 -c 'import pyproj;print(pyproj.datadir.get_data_dir());'
 > :warning: For 'default' usage, like QGIS, use the proj.db. The coordinate
 > transformation API it self uses the proj.time.dependent.transformations.db for
 > specific time dependent transformations.
-
-## Install
-
-```bash
-pip install .
-```
-
-## Run
-
-```bash
-ct-api
-```
 
 ## Docker
 

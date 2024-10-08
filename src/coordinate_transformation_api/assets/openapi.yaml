@@ -1,12 +1,10 @@
----
 openapi: 3.1.0
 info:
   title: NSGI Coordinate Transformation API
   version: '' # replaced in code
   description: >
-    The Coordinate Transformation API performs coordinate transformations on
-    GeoJSON and CityJSON files using the official RDNAPTRANS™ transformation
-    procedure and other transformations defined or recommended by NSGI.
+    The Coordinate Transformation API performs coordinate transformations on GeoJSON and CityJSON files using the official RDNAPTRANS™ transformation procedure and other transformations defined or recommended by NSGI.
+
   contact:
     name: NSGI
     email: rd@kadaster.nl
@@ -21,7 +19,7 @@ info:
     - CityJSON
     - RDNAPTRANS
 servers:
-  - url: http://example.org   # replaced in code
+  - url: http://example.org # replaced in code
 tags:
   - name: About
   - name: CRS
@@ -73,11 +71,8 @@ paths:
         - About
       summary: Conformance page
       description: >
-        OGC API Common Conformance page describing the capabilities of this API.
-        Best effort has been made to comply to the OGC API Commons standard, but
-        due to the nature of this API, full compliance is not possible. See for
-        details the
-        [docs](https://github.com/GeodetischeInfrastructuur/coordinate-transformation-api/blob/main/docs/OGC-API-Common.md).
+        OGC API Common Conformance page describing the capabilities of this API. Best effort has been made to comply to the OGC API Commons standard, but due to the nature of this API, full compliance is not possible. See for details the [docs](https://github.com/GeodetischeInfrastructuur/coordinate-transformation-api/blob/main/docs/OGC-API-Common.md).
+
       responses:
         '200':
           description: OK
@@ -119,8 +114,8 @@ paths:
         - CRS
       summary: Get a single CRS
       description: >
-        Returns the definition of a single coordinate reference system (CRS) by
-        `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
+        Returns the definition of a single coordinate reference system (CRS) by `crs-id` (format: `{authority:identifier}`, for example: `EPSG:28992`).
+
       parameters:
         - name: crs-id
           in: path
@@ -146,9 +141,8 @@ paths:
       tags:
         - Check-density
       summary: >
-        Check segment length of (multi)polygon and (multi)linestring geometries
-        based on the geodesic (ellipsoidal great-circle) distance on the GRS80
-        ellipsoid
+        Check segment length of (multi)polygon and (multi)linestring geometries based on the geodesic (ellipsoidal great-circle) distance on the GRS80 ellipsoid
+
       description: |
         Check segment length of polygon and linestring geometries. Returns a `DensityCheckReport` containing a FeatureCollection containing all line segments exceeding the maximum segment length 'maxSegmentLength' or maximum segment deviation `maxSegmentDeviation`.
       parameters:
@@ -156,7 +150,6 @@ paths:
         - $ref: '#/components/parameters/contentCrs'
         - $ref: '#/components/parameters/maxSegmentLength'
         - $ref: '#/components/parameters/maxSegmentDeviation'
-
       requestBody:
         required: true
         description: |
@@ -192,10 +185,10 @@ paths:
                     geometry:
                       type: LineString
                       coordinates:
-                        -   - 156264.9063
-                            - 601302.5889
-                        -   - 165681.9644
-                            - 605544.3131
+                        - - 156264.9063
+                          - 601302.5889
+                        - - 165681.9644
+                          - 605544.3131
       responses:
         '200':
           description: OK
@@ -203,7 +196,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DensityCheckReport'
-
           headers:
             api-version:
               $ref: '#/components/headers/api-version'
@@ -214,15 +206,14 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
-
   /densify:
     post:
       operationId: post-densify
       tags:
         - Experimental
       summary: >
-        Densify (multi)polygon and (multi)linestring geometries using the
-        geodesic (ellipsoidal great-circle) trajectory on the GR80 ellipsoid
+        Densify (multi)polygon and (multi)linestring geometries using the geodesic (ellipsoidal great-circle) trajectory on the GR80 ellipsoid
+
       description: |
         **Warning**: This endpoint is currently in an experimental phase!
 
@@ -234,7 +225,6 @@ paths:
         - $ref: '#/components/parameters/contentCrs'
         - $ref: '#/components/parameters/maxSegmentLength'
         - $ref: '#/components/parameters/maxSegmentDeviation'
-
       requestBody:
         required: true
         description: |
@@ -264,10 +254,10 @@ paths:
               geometry:
                 type: LineString
                 coordinates:
-                  -   - 156264.9063
-                      - 601302.5889
-                  -   - 165681.9644
-                      - 605544.3131
+                  - - 156264.9063
+                    - 601302.5889
+                  - - 165681.9644
+                    - 605544.3131
       responses:
         '200':
           description: OK
@@ -288,10 +278,10 @@ paths:
                     geometry:
                       type: LineString
                       coordinates:
-                        -   - 156264.9063
-                            - 601302.5889
-                        -   - 165681.9644
-                            - 605544.3131
+                        - - 156264.9063
+                          - 601302.5889
+                        - - 165681.9644
+                          - 605544.3131
           headers:
             api-version:
               $ref: '#/components/headers/api-version'
@@ -301,25 +291,19 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
-
   /transform:
     get:
       operationId: get-transform
       tags:
         - Transform
       summary: >
-        Transformation of the given coordinates of a point from the source CRS
-        to the target CRS.
-      description: >
-        A GET endpoint that accepts coordinates of a given source CRS and
-        performs the transformation to the provided target CRS. The input
-        coordinates are a comma separated list of numbers that can represent the
-        `x, y` or (depending on the EPSG definition of CRS) `lat, lon` / `lon,
-        lat` coordinates (with or without a height), or `X, Y, Z` coordinates.
+        Transformation of the given coordinates of a point from the source CRS to the target CRS.
 
-        Source CRS and target CRS can be defined through either the query
-        parameters or the request headers. Order of precedence is: query
-        parameters > request headers.
+      description: >
+        A GET endpoint that accepts coordinates of a given source CRS and performs the transformation to the provided target CRS. The input coordinates are a comma separated list of numbers that can represent the `x, y` or (depending on the EPSG definition of CRS) `lat, lon` / `lon, lat` coordinates (with or without a height), or `X, Y, Z` coordinates.
+
+        Source CRS and target CRS can be defined through either the query parameters or the request headers. Order of precedence is: query parameters > request headers.
+
       parameters:
         - $ref: '#/components/parameters/sourceCrs'
         - $ref: '#/components/parameters/targetCrs'
@@ -356,17 +340,16 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
-
     post:
       operationId: post-transform
       tags:
         - Transform
       summary: >
-        Transformation of the given geometries from the source CRS to the target
-        CRS
+        Transformation of the given geometries from the source CRS to the target CRS
+
       description: >
-        A POST endpoint that accepts a file in a given source CRS and performs
-        the transformation to the provided target CRS.
+        A POST endpoint that accepts a file in a given source CRS and performs the transformation to the provided target CRS.
+
       parameters:
         - $ref: '#/components/parameters/sourceCrs'
         - $ref: '#/components/parameters/targetCrs'
@@ -416,12 +399,12 @@ paths:
                       geometry:
                         type: LineString
                         coordinates:
-                          -   - 156264.9063
-                              - 601302.5889
-                              - 0.0
-                          -   - 165681.9644
-                              - 605544.3131
-                              - 0.0
+                          - - 156264.9063
+                            - 601302.5889
+                            - 0.0
+                          - - 165681.9644
+                            - 605544.3131
+                            - 0.0
               CityJSON:
                 value:
                   type: CityJSON
@@ -452,38 +435,38 @@ paths:
                       geometry:
                         - type: Solid
                           boundaries:
-                            -   -   -   - 0
-                                        - 1
-                                        - 2
-                                        - 3
-                                -   -   - 1
-                                        - 4
-                                        - 5
-                                        - 2
-                                -   -   - 4
-                                        - 6
-                                        - 7
-                                        - 5
-                                -   -   - 6
-                                        - 0
-                                        - 3
-                                        - 7
-                                -   -   - 6
-                                        - 4
-                                        - 1
-                                        - 0
-                                -   -   - 3
-                                        - 2
-                                        - 5
-                                        - 7
-                          semantics:
-                            values:
-                              -   - 0
+                            - - - - 0
                                   - 1
                                   - 2
                                   - 3
+                              - - - 1
                                   - 4
                                   - 5
+                                  - 2
+                              - - - 4
+                                  - 6
+                                  - 7
+                                  - 5
+                              - - - 6
+                                  - 0
+                                  - 3
+                                  - 7
+                              - - - 6
+                                  - 4
+                                  - 1
+                                  - 0
+                              - - - 3
+                                  - 2
+                                  - 5
+                                  - 7
+                          semantics:
+                            values:
+                              - - 0
+                                - 1
+                                - 2
+                                - 3
+                                - 4
+                                - 5
                             surfaces:
                               - type: WallSurface
                               - type: WallSurface
@@ -496,12 +479,12 @@ paths:
                           material:
                             '':
                               values:
-                                -   - 0
-                                    - 0
-                                    - 0
-                                    - 0
-                                    - 1
-                                    - 2
+                                - - 0
+                                  - 0
+                                  - 0
+                                  - 0
+                                  - 1
+                                  - 2
                           lod: '2'
                       parents:
                         - GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F
@@ -516,51 +499,51 @@ paths:
                       geometry:
                         - type: Solid
                           boundaries:
-                            -   -   -   - 8
-                                        - 9
-                                        - 10
-                                        - 11
-                                -   -   - 9
-                                        - 12
-                                        - 13
-                                        - 10
-                                -   -   - 12
-                                        - 14
-                                        - 15
-                                        - 13
-                                -   -   - 14
-                                        - 8
-                                        - 11
-                                        - 15
-                                -   -   - 12
-                                        - 9
-                                        - 16
-                                -   -   - 8
-                                        - 14
-                                        - 17
-                                -   -   - 9
-                                        - 8
-                                        - 17
-                                        - 16
-                                -   -   - 14
-                                        - 12
-                                        - 16
-                                        - 17
-                                -   -   - 11
-                                        - 10
-                                        - 13
-                                        - 15
+                            - - - - 8
+                                  - 9
+                                  - 10
+                                  - 11
+                              - - - 9
+                                  - 12
+                                  - 13
+                                  - 10
+                              - - - 12
+                                  - 14
+                                  - 15
+                                  - 13
+                              - - - 14
+                                  - 8
+                                  - 11
+                                  - 15
+                              - - - 12
+                                  - 9
+                                  - 16
+                              - - - 8
+                                  - 14
+                                  - 17
+                              - - - 9
+                                  - 8
+                                  - 17
+                                  - 16
+                              - - - 14
+                                  - 12
+                                  - 16
+                                  - 17
+                              - - - 11
+                                  - 10
+                                  - 13
+                                  - 15
                           semantics:
                             values:
-                              -   - 0
-                                  - 1
-                                  - 2
-                                  - 3
-                                  - 4
-                                  - 5
-                                  - 6
-                                  - 7
-                                  - 8
+                              - - 0
+                                - 1
+                                - 2
+                                - 3
+                                - 4
+                                - 5
+                                - 6
+                                - 7
+                                - 8
                             surfaces:
                               - type: WallSurface
                               - type: WallSurface
@@ -578,73 +561,73 @@ paths:
                           material:
                             '':
                               values:
-                                -   - 3
-                                    - 3
-                                    - 3
-                                    - 3
-                                    - 3
-                                    - 3
-                                    - 4
-                                    - 4
-                                    - 5
+                                - - 3
+                                  - 3
+                                  - 3
+                                  - 3
+                                  - 3
+                                  - 3
+                                  - 4
+                                  - 4
+                                  - 5
                           lod: '2'
                       parents:
                         - GUID_0C208AED-A967-4A3B-8F57-EB2E7732176F
                   vertices:
-                    -   - 587180
-                        - 227141
-                        - 7261
-                    -   - 587142
-                        - 227186
-                        - 7261
-                    -   - 587142
-                        - 227186
-                        - 3953
-                    -   - 587180
-                        - 227141
-                        - 3953
-                    -   - 587139
-                        - 227595
-                        - 7261
-                    -   - 587139
-                        - 227595
-                        - 3953
-                    -   - 587368
-                        - 227312
-                        - 7261
-                    -   - 587368
-                        - 227312
-                        - 3953
-                    -   - 592523
-                        - 222407
-                        - 7261
-                    -   - 588403
-                        - 218371
-                        - 7261
-                    -   - 588403
-                        - 218371
-                        - 3945
-                    -   - 592523
-                        - 222407
-                        - 3945
-                    -   - 583472
-                        - 223723
-                        - 7261
-                    -   - 583472
-                        - 223723
-                        - 3945
-                    -   - 587773
-                        - 227687
-                        - 7261
-                    -   - 587773
-                        - 227687
-                        - 3945
-                    -   - 585938
-                        - 221048
-                        - 10379
-                    -   - 590148
-                        - 225048
-                        - 10379
+                    - - 587180
+                      - 227141
+                      - 7261
+                    - - 587142
+                      - 227186
+                      - 7261
+                    - - 587142
+                      - 227186
+                      - 3953
+                    - - 587180
+                      - 227141
+                      - 3953
+                    - - 587139
+                      - 227595
+                      - 7261
+                    - - 587139
+                      - 227595
+                      - 3953
+                    - - 587368
+                      - 227312
+                      - 7261
+                    - - 587368
+                      - 227312
+                      - 3953
+                    - - 592523
+                      - 222407
+                      - 7261
+                    - - 588403
+                      - 218371
+                      - 7261
+                    - - 588403
+                      - 218371
+                      - 3945
+                    - - 592523
+                      - 222407
+                      - 3945
+                    - - 583472
+                      - 223723
+                      - 7261
+                    - - 583472
+                      - 223723
+                      - 3945
+                    - - 587773
+                      - 227687
+                      - 7261
+                    - - 587773
+                      - 227687
+                      - 3945
+                    - - 585938
+                      - 221048
+                      - 10379
+                    - - 590148
+                      - 225048
+                      - 10379
                   transform:
                     scale:
                       - 0.001
@@ -692,7 +675,6 @@ paths:
                           - 0.502
                           - 0.502
                           - 0.502
-
       responses:
         '200':
           description: OK
@@ -714,7 +696,6 @@ paths:
                     - 43.2772
                 properties:
                   id: 1
-
           headers:
             api-version:
               $ref: '#/components/headers/api-version'
@@ -728,7 +709,6 @@ paths:
           $ref: '#/components/responses/400Transform'
         '500':
           $ref: '#/components/responses/500'
-
 components:
   examples:
     404CrsExample:
@@ -756,10 +736,10 @@ components:
                   bbox:
                   type: LineString
                   coordinates:
-                    -   - 156264.9064
-                        - 601302.5889
-                    -   - 165681.9645
-                        - 605544.3131
+                    - - 156264.9064
+                      - 601302.5889
+                    - - 165681.9645
+                      - 605544.3131
                 properties:
                   segment_length: 10327.9665
                 id:
@@ -782,7 +762,6 @@ components:
         status: 500
         instance: self
         title: Internal Server Error
-
   headers:
     api-version:
       description: Open API Specification version number
@@ -838,8 +817,7 @@ components:
         type: boolean
         default: true
     epochParam:
-      description: Epoch of coordinates in source and target coordinate reference systems (CRSs). Leave empty for null transformation recommended for most
-        applications.
+      description: Epoch of coordinates in source and target coordinate reference systems (CRSs). Leave empty for null transformation recommended for most applications.
       name: epoch
       in: query
       required: false
@@ -1031,11 +1009,11 @@ components:
       title: CRS
       type: object
     CrsEnum:
-      enum: [EPSG:28992, EPSG:7415, EPSG:7931]       # filled in code, dummy values to suppress error by linter
+      enum: ['EPSG:28992', 'EPSG:7415', 'EPSG:7931'] # filled in code, dummy values to suppress error by linter
       example: EPSG:28992
       type: string
     CrsHeaderEnum:
-      enum: [http://www.opengis.net/def/crs/EPSG/0/28992, http://www.opengis.net/def/crs/EPSG/0/7415, http://www.opengis.net/def/crs/EPSG/0/7931] # filled in code, dummy values to suppress error by linter
+      enum: ['http://www.opengis.net/def/crs/EPSG/0/28992', 'http://www.opengis.net/def/crs/EPSG/0/7415', 'http://www.opengis.net/def/crs/EPSG/0/7931'] # filled in code, dummy values to suppress error by linter
       example: http://www.opengis.net/def/crs/EPSG/0/28992
       type: string
     DensityCheckReport:
@@ -1049,10 +1027,10 @@ components:
           features:
             - geometry:
                 coordinates:
-                  -   - 156264.9064
-                      - 601302.5889
-                  -   - 165681.9645
-                      - 605544.3131
+                  - - 156264.9064
+                    - 601302.5889
+                  - - 165681.9645
+                    - 605544.3131
                 type: LineString
               properties:
                 segment_length: 10327.9665
@@ -1064,8 +1042,7 @@ components:
           description: Result of density-check
           type: boolean
         failedLineSegments:
-          description: FeatureCollection containing line segments that failed density-check. If all line segments passed density-check, value of `failedLineSegments`
-            is `null`.
+          description: FeatureCollection containing line segments that failed density-check. If all line segments passed density-check, value of `failedLineSegments` is `null`.
           oneOf:
             - type: 'null' # Note the quotes around 'null'
             - $ref: https://geojson.org/schema/FeatureCollection.json

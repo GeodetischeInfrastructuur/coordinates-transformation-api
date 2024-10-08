@@ -72,9 +72,7 @@ class ProblemResponse(Response):
         elif isinstance(content, Exception):
             p = from_exception(content)
         else:
-            logger.error(
-                f"Got unexpected content when trying to generate error response. Content: {content}"
-            )
+            logger.error(f"Got unexpected content when trying to generate error response. Content: {content}")
             if app_settings.debug:  # if debug
                 p = ProblemError(
                     status=500,
@@ -382,9 +380,7 @@ def get_exception_handler(
         await exec_hooks(pre_hooks, request, exc)
         response = ProblemResponse(exc, debug=debug)
         if response.problem.type == "nsgi.nl/density-check-failed":
-            response.headers[DENSITY_CHECK_RESULT_HEADER] = (
-                DensityCheckResult.failed.value
-            )
+            response.headers[DENSITY_CHECK_RESULT_HEADER] = DensityCheckResult.failed.value
         await exec_hooks(post_hooks, request, response, exc)
 
         return response
@@ -480,15 +476,11 @@ def register(
             OpenAPI definitions. If this is a string, it will be added to the
             schema using the string as the name.
     """
-    _handler = get_exception_handler(
-        debug=app.debug, pre_hooks=pre_hooks, post_hooks=post_hooks
-    )
+    _handler = get_exception_handler(debug=app.debug, pre_hooks=pre_hooks, post_hooks=post_hooks)
 
     app.add_exception_handler(HTTPException, _handler)
     app.add_exception_handler(RequestValidationError, _handler)
-    app.add_middleware(
-        ProblemMiddleware, debug=app.debug, pre_hooks=pre_hooks, post_hooks=post_hooks
-    )
+    app.add_middleware(ProblemMiddleware, debug=app.debug, pre_hooks=pre_hooks, post_hooks=post_hooks)
 
     # if add_schema:
     #     if isinstance(add_schema, str):
@@ -554,9 +546,7 @@ class ProblemMiddleware:
         )
 
     # See: starlette.middleware.errors.ServerErrorMiddleware
-    async def __call__(
-        self: "ProblemMiddleware", scope: Scope, receive: Receive, send: Send
-    ) -> None:
+    async def __call__(self: "ProblemMiddleware", scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return

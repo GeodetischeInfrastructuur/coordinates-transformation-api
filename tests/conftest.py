@@ -23,9 +23,7 @@ def feature(test_dir):
 
 @pytest.fixture
 def feature_collection_geometry_collection(test_dir):
-    with open(
-        os.path.join(test_dir, "data", "feature-collection-geometry-collection.json")
-    ) as f:
+    with open(os.path.join(test_dir, "data", "feature-collection-geometry-collection.json")) as f:
         return textio_to_geojson(f)
 
 

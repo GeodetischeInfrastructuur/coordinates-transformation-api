@@ -80,9 +80,7 @@ API_VERSION: str
 CRS_LIST: list[Crs]
 OPEN_API_SPEC, API_TITLE, API_VERSION = init_oas(CRS_CONFIG)
 crs_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"]["CrsEnum"]["enum"]
-crs_header_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"][
-    "CrsHeaderEnum"
-]["enum"]
+crs_header_identifiers: list[str] = OPEN_API_SPEC["components"]["schemas"]["CrsHeaderEnum"]["enum"]
 CRS_LIST = [Crs.from_crs_str(x) for x in crs_identifiers]
 BASE_DIR: str = os.path.dirname(__file__)
 logger: logging.Logger
@@ -99,17 +97,13 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator:
     logger.info(f"pyproj datadir: {pyproj.datadir.get_data_dir()}")
     if not app_settings.debug:  # suppres pyproj warnings in prod
         logging.getLogger("pyproj").setLevel(logging.ERROR)
-    with suppress(
-        asyncio.CancelledError
-    ):  # required for cancellation see runner method
+    with suppress(asyncio.CancelledError):  # required for cancellation see runner method
         yield
 
 
 @asynccontextmanager
 async def lifespan_probes(_app: FastAPI) -> AsyncGenerator:
-    with suppress(
-        asyncio.CancelledError
-    ):  # required for cancellation see runner method
+    with suppress(asyncio.CancelledError):  # required for cancellation see runner method
         yield
 
 
@@ -118,9 +112,7 @@ app_probes: FastAPI = FastAPI(docs_url=None, lifespan=lifespan_probes)
 app: FastAPI = FastAPI(docs_url=None, lifespan=lifespan)
 # note: order of adding middleware is required for it to work
 middleware.register(app)
-app.add_middleware(
-    ContentSizeLimitMiddleware, max_content_size=app_settings.max_size_request_body
-)
+app.add_middleware(ContentSizeLimitMiddleware, max_content_size=app_settings.max_size_request_body)
 app.add_middleware(TimeoutMiddleware, timeout_seconds=app_settings.request_timeout)
 
 if app_settings.cors_allow_origins:
@@ -161,9 +153,7 @@ async def add_api_version(request: Request, call_next: Callable) -> Response:
         # overwrite response in case route is a know route with trailing slash
         for route in app.routes:
             if isinstance(route, APIRoute) and request.url.path == f"{route.path}/":
-                response_body["detail"] = (
-                    f"not found, path contains trailing slash try {route.path}"
-                )
+                response_body["detail"] = f"not found, path contains trailing slash try {route.path}"
                 response = Response(
                     content=json.dumps(response_body),
                     status_code=404,
@@ -177,9 +167,7 @@ async def add_api_version(request: Request, call_next: Callable) -> Response:
 
 @app.get("/openapi", include_in_schema=False)
 @app.get("/openapi.html", include_in_schema=False)
-async def openapi(
-    request: Request, format: Annotated[str | None, Query(alias="f")] = None
-) -> Response:
+async def openapi(request: Request, format: Annotated[str | None, Query(alias="f")] = None) -> Response:
     if format == "html" or (
         accept_html(request) and format != "json"
     ):  # return html when format=html, return json when format=json, but return html when accept header accepts html
@@ -279,24 +267,16 @@ async def densify(  # noqa: ANN201
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
-    max_segment_deviation: Annotated[
-        float | None, Query(alias="max-segment-deviation", ge=0.0001)
-    ] = None,
-    max_segment_length: Annotated[
-        float | None, Query(alias="max-segment-length", ge=200)
-    ] = 200,
+    max_segment_deviation: Annotated[float | None, Query(alias="max-segment-deviation", ge=0.0001)] = None,
+    max_segment_length: Annotated[float | None, Query(alias="max-segment-length", ge=200)] = 200,
 ):
     source_crs_str: str
     content_crs_str: str
 
-    source_crs_str, content_crs_str = (
-        x.value if x is not None else None for x in [source_crs, content_crs]
-    )
+    source_crs_str, content_crs_str = (x.value if x is not None else None for x in [source_crs, content_crs])
 
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
-    body_d = densify_request_body(
-        body, s_crs, max_segment_deviation, max_segment_length
-    )
+    body_d = densify_request_body(body, s_crs, max_segment_deviation, max_segment_length)
     return JSONResponse(
         content=body_d.model_dump(exclude_none=True),
         headers=set_response_headers(("content-crs", Crs.from_crs_str(s_crs).crs)),
@@ -312,19 +292,13 @@ async def density_check(  # noqa: ANN201
     body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
-    max_segment_deviation: Annotated[
-        float | None, Query(alias="max-segment-deviation", ge=0.0001)
-    ] = None,
-    max_segment_length: Annotated[
-        float | None, Query(alias="max-segment-length", ge=200)
-    ] = 200,
+    max_segment_deviation: Annotated[float | None, Query(alias="max-segment-deviation", ge=0.0001)] = None,
+    max_segment_length: Annotated[float | None, Query(alias="max-segment-length", ge=200)] = 200,
 ):
     source_crs_str: str
     content_crs_str: str
 
-    source_crs_str, content_crs_str = (
-        x.value if x is not None else None for x in [source_crs, content_crs]
-    )
+    source_crs_str, content_crs_str = (x.value if x is not None else None for x in [source_crs, content_crs])
 
     s_crs = get_src_crs_densify(body, source_crs_str, content_crs_str)
     try:  # raises GeodenseError when all geometries in body are (multi)point
@@ -349,9 +323,7 @@ async def density_check(  # noqa: ANN201
 async def transform(  # noqa: PLR0913, ANN201
     coordinates: Annotated[
         str,
-        Query(
-            alias="coordinates", pattern=r"^(-?\d+\.?\d*),(-?\d+\.?\d*)(,-?\d+\.?\d*)?$"
-        ),
+        Query(alias="coordinates", pattern=r"^(-?\d+\.?\d*),(-?\d+\.?\d*)(,-?\d+\.?\d*)?$"),
     ],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,  # type: ignore
     target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,  # type: ignore
@@ -366,8 +338,7 @@ async def transform(  # noqa: PLR0913, ANN201
     content_crs_str: str
     accept_crs_str: str
     source_crs_str, target_crs_str, content_crs_str, accept_crs_str = (
-        x.value if x is not None else None
-        for x in [source_crs, target_crs, content_crs, accept_crs]
+        x.value if x is not None else None for x in [source_crs, target_crs, content_crs, accept_crs]
     )
 
     check_crs_is_known(
@@ -375,9 +346,7 @@ async def transform(  # noqa: PLR0913, ANN201
         CRS_LIST,
     )
 
-    s_crs, t_crs = get_transform_get_crss(
-        source_crs_str, target_crs_str, content_crs_str, accept_crs_str
-    )
+    s_crs, t_crs = get_transform_get_crss(source_crs_str, target_crs_str, content_crs_str, accept_crs_str)
 
     _coords_list = list(map(lambda x: float(x), coordinates.split(",")))
 
@@ -396,13 +365,9 @@ async def transform(  # noqa: PLR0913, ANN201
         position_t = position_t[0:2]
 
     if float("inf") in [abs(x) for x in position_t]:
-        raise_response_validation_error(
-            "Out of range float values are not JSON compliant", ["responseBody"]
-        )
+        raise_response_validation_error("Out of range float values are not JSON compliant", ["responseBody"])
 
-    headers = set_response_headers(
-        ("content-crs", "{}:{}".format(*t_crs.to_authority()))
-    )
+    headers = set_response_headers(("content-crs", "{}:{}".format(*t_crs.to_authority())))
     if epoch is not None:
         headers = set_response_headers(("epoch", epoch), headers=headers)
 
@@ -418,27 +383,19 @@ async def transform(  # noqa: PLR0913, ANN201
 
 @app.post(
     "/transform",
-    response_model=Union[
-        Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
-    ],
+    response_model=Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113],
     response_model_exclude_none=True,
 )
 async def post_transform(  # noqa: ANN201, PLR0913
-    body: Union[
-        Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113
-    ],
+    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113],
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,
     content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
     accept_crs: Annotated[CrsHeaderEnum | None, Header(alias="accept-crs")] = None,
     epoch: Annotated[float | None, Query(alias="epoch")] = None,
     density_check: Annotated[bool, Query(alias="density-check")] = True,
-    max_segment_deviation: Annotated[
-        float | None, Query(alias="max-segment-deviation", ge=0.0001)
-    ] = None,
-    max_segment_length: Annotated[
-        float | None, Query(alias="max-segment-length", ge=200)
-    ] = 200,
+    max_segment_deviation: Annotated[float | None, Query(alias="max-segment-deviation", ge=0.0001)] = None,
+    max_segment_length: Annotated[float | None, Query(alias="max-segment-length", ge=200)] = 200,
 ):
     # get string values from CrsEnum|None parameters
     source_crs_str: str
@@ -446,13 +403,10 @@ async def post_transform(  # noqa: ANN201, PLR0913
     content_crs_str: str
     accept_crs_str: str
     source_crs_str, target_crs_str, content_crs_str, accept_crs_str = (
-        x.value if x is not None else None
-        for x in [source_crs, target_crs, content_crs, accept_crs]
+        x.value if x is not None else None for x in [source_crs, target_crs, content_crs, accept_crs]
     )
 
-    s_crs, t_crs = post_transform_get_crss(
-        body, source_crs_str, target_crs_str, content_crs_str, accept_crs_str
-    )
+    s_crs, t_crs = post_transform_get_crss(body, source_crs_str, target_crs_str, content_crs_str, accept_crs_str)
     response_headers: dict = {}
 
     if isinstance(body, CityjsonV113):
@@ -473,9 +427,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
         if density_check:
             try:  # raises GeodenseError when all geometries in body are (multi)point
                 d_body = copy.deepcopy(body)
-                fc_report = density_check_request_body(
-                    d_body, s_crs, max_segment_deviation, max_segment_length, epoch
-                )
+                fc_report = density_check_request_body(d_body, s_crs, max_segment_deviation, max_segment_length, epoch)
                 result = DensityCheckReport.from_fc_report(fc_report)
                 if result.check_result:
                     response_headers = set_response_headers(
@@ -517,9 +469,7 @@ async def post_transform(  # noqa: ANN201, PLR0913
             headers=response_headers,
         )
         if epoch is not None:
-            response_headers = set_response_headers(
-                ("epoch", epoch), headers=response_headers
-            )
+            response_headers = set_response_headers(("epoch", epoch), headers=response_headers)
 
         response_body = body_t.model_dump(exclude_none=True)
         return JSONResponse(

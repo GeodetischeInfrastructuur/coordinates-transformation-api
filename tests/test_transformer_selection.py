@@ -22,10 +22,7 @@ from coordinate_transformation_api.util import str_to_crs
     ],
 )
 def test_time_dependant_operation_method(source, target, epoch, expectation):
-    assert (
-        needs_epoch(get_transformer(str_to_crs(source), str_to_crs(target), epoch))
-        == expectation
-    )
+    assert needs_epoch(get_transformer(str_to_crs(source), str_to_crs(target), epoch)) == expectation
 
 
 @pytest.mark.parametrize(
