@@ -24,10 +24,6 @@ ENV UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/app
 
 
-
-
-
-
 # split install of dependencies and application in two
 # for improved caching
 COPY pyproject.toml uv.lock ./
@@ -37,8 +33,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY . /src_app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-editable
-
-
 
 WORKDIR /app/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj/
 
