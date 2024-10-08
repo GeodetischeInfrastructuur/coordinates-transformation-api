@@ -19,22 +19,11 @@ from shapely.geometry import (
 )
 
 GeojsonCoordinates = (
-    Position
-    | PolygonCoords
-    | LineStringCoords
-    | MultiPointCoords
-    | MultiLineStringCoords
-    | MultiPolygonCoords
+    Position | PolygonCoords | LineStringCoords | MultiPointCoords | MultiLineStringCoords | MultiPolygonCoords
 )
 CoordinatesType = tuple[float, float] | tuple[float, float, float] | list[float]
 
 
 ShapelyGeometry: TypeAlias = (
-    Point
-    | Polygon
-    | LineString
-    | MultiLineString
-    | MultiPoint
-    | MultiPolygon
-    | GeometryCollection
+    Point | Polygon | LineString | MultiLineString | MultiPoint | MultiPolygon | GeometryCollection
 )

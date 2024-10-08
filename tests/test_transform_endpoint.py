@@ -220,9 +220,7 @@ def test_transform_post(request_body, expectation, source_crs, target_crs):
         ),
     ],
 )
-def test_transform_post_invalid_crs_returns_400(
-    source_crs, target_crs, content_crs, expectation
-):
+def test_transform_post_invalid_crs_returns_400(source_crs, target_crs, content_crs, expectation):
     request_body = {
         "type": "Point",
         "coordinates": [9.9999, 10.0],
@@ -262,9 +260,7 @@ def test_transform_post_no_crs_returns_error():
     response = client.post("/transform", json=request_body)
     assert response.status_code == 400  # noqa: PLR2004
     response_body = response.json()
-    assert response_body["errors"][0]["msg"].startswith(
-        "No source CRS found in request"
-    )
+    assert response_body["errors"][0]["msg"].startswith("No source CRS found in request")
 
 
 @pytest.mark.parametrize(
@@ -289,9 +285,7 @@ def test_transform_post_no_crs_returns_error():
         ),
     ],
 )
-def test_transform_get_invalid_crs_returns_400(
-    source_crs, target_crs, content_crs, expectation
-):
+def test_transform_get_invalid_crs_returns_400(source_crs, target_crs, content_crs, expectation):
     headers = None
     if content_crs is not None:
         headers = {"content-crs": content_crs}
@@ -336,9 +330,7 @@ def test_transform_get_invalid_crs_returns_400(
         ),
     ],
 )
-def test_transform_densify_check_post(
-    request_body, expectation, source_crs, target_crs
-):
+def test_transform_densify_check_post(request_body, expectation, source_crs, target_crs):
     response = client.post(
         f"/transform?source-crs={source_crs}&target-crs={target_crs}&density-check=true&max-segment-length=10000000",
         json=request_body,

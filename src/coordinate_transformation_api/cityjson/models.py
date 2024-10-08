@@ -359,9 +359,7 @@ class Type14(Enum):
 
 class BridgeRoom(FieldAbstractCityObject):
     type: Type14
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class Type15(Enum):
@@ -390,9 +388,7 @@ class Type20(Enum):
 
 class BuildingRoom(FieldAbstractCityObject):
     type: Type20
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class Type21(Enum):
@@ -401,9 +397,7 @@ class Type21(Enum):
 
 class BuildingStorey(FieldAbstractCityObject):
     type: Type21
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class Type22(Enum):
@@ -441,12 +435,7 @@ class Type27(Enum):
 
 class PlantCover(FieldAbstractCityObject):
     type: Type27
-    geometry: (
-        list[
-            MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | MultiSolid)))
-        ]
-        | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | MultiSolid)))] | None = None
 
 
 class Type28(Enum):
@@ -492,9 +481,7 @@ class Type33(Enum):
 
 class Tunnel(FieldAbstractCityObject):
     type: Type33
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class Type34(Enum):
@@ -511,9 +498,7 @@ class Type36(Enum):
 
 class TunnelHollowSpace(FieldAbstractCityObject):
     type: Type36
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class Type37(Enum):
@@ -526,9 +511,7 @@ class Type38(Enum):
 
 class TunnelPart(FieldAbstractCityObject):
     type: Type38
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class Type39(Enum):
@@ -537,13 +520,7 @@ class Type39(Enum):
 
 class WaterBody(FieldAbstractCityObject):
     type: Type39
-    geometry: (
-        list[
-            MultiLineString
-            | (MultiSurface | (CompositeSurface | (Solid | CompositeSolid)))
-        ]
-        | None
-    ) = None
+    geometry: list[MultiLineString | (MultiSurface | (CompositeSurface | (Solid | CompositeSolid)))] | None = None
 
 
 class Type40(Enum):
@@ -617,9 +594,7 @@ class Metadata(BaseModel):
     referenceSystem: (
         Annotated[
             str | None,
-            StringConstraints(
-                pattern="^(http|https)://www.opengis.net/def/crs/.+/.+/.+"
-            ),
+            StringConstraints(pattern="^(http|https)://www.opengis.net/def/crs/.+/.+/.+"),
         ]
         | None
     ) = None
@@ -645,13 +620,7 @@ class BridgeConstructiveElement(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -665,13 +634,7 @@ class BridgeFurniture(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -685,13 +648,7 @@ class BridgeInstallation(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -705,16 +662,12 @@ class Addres(BaseModel):
 class BridgePart(FieldAbstractCityObject):
     type: Type13
     address: list[Addres] | None = None
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class FieldAbstractBuilding(FieldAbstractCityObject):
     address: list[Addres] | None = None
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class BuildingConstructiveElement(FieldAbstractCityObject):
@@ -724,13 +677,7 @@ class BuildingConstructiveElement(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -744,13 +691,7 @@ class BuildingFurniture(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -764,13 +705,7 @@ class BuildingInstallation(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -784,9 +719,7 @@ class BuildingPart(FieldAbstractBuilding):
 class BuildingUnit(FieldAbstractCityObject):
     type: Type22
     address: list[Addres] | None = None
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class CityFurniture(FieldAbstractCityObject):
@@ -796,13 +729,7 @@ class CityFurniture(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -817,13 +744,7 @@ class CityObjectGroup(FieldAbstractCityObject):
     geometry: (
         list[
             MultiPoint
-            | (
-                MultiLineString
-                | (
-                    MultiSurface
-                    | (CompositeSurface | (Solid | (CompositeSolid | MultiSolid)))
-                )
-            )
+            | (MultiLineString | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | MultiSolid)))))
         ]
         | None
     ) = None
@@ -836,13 +757,7 @@ class OtherConstruction(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -860,13 +775,7 @@ class SolitaryVegetationObject(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -880,13 +789,7 @@ class TunnelConstructiveElement(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -900,13 +803,7 @@ class TunnelFurniture(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -920,13 +817,7 @@ class TunnelInstallation(FieldAbstractCityObject):
             MultiPoint
             | (
                 MultiLineString
-                | (
-                    MultiSurface
-                    | (
-                        CompositeSurface
-                        | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))
-                    )
-                )
+                | (MultiSurface | (CompositeSurface | (Solid | (CompositeSolid | (MultiSolid | GeometryInstance)))))
             )
         ]
         | None
@@ -937,14 +828,7 @@ class GeometryTemplates(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     templates: list[
-        MultiPoint
-        | (
-            MultiLineString
-            | (
-                Solid
-                | (MultiSolid | (CompositeSolid | (MultiSurface | CompositeSurface)))
-            )
-        )
+        MultiPoint | (MultiLineString | (Solid | (MultiSolid | (CompositeSolid | (MultiSurface | CompositeSurface)))))
     ]
     vertices_templates: list[list[float]] = Field(..., alias="vertices-templates")
 
@@ -952,9 +836,7 @@ class GeometryTemplates(BaseModel):
 class Bridge(FieldAbstractCityObject):
     type: Type1
     address: list[Addres] | None = None
-    geometry: (
-        list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None
-    ) = None
+    geometry: list[MultiSurface | (CompositeSurface | (Solid | CompositeSolid))] | None = None
 
 
 class Building(FieldAbstractBuilding):
@@ -1054,21 +936,15 @@ class CityjsonV113(BaseModel):
     vertices: list[list[float | int]]
     transform: Transform
     appearance: Appearance | None = None
-    geometry_templates: GeometryTemplates | None = Field(
-        None, alias="geometry-templates"
-    )
+    geometry_templates: GeometryTemplates | None = Field(None, alias="geometry-templates")
 
     def set_epsg(self: CityjsonV113, crs_auth_identifier: str) -> None:
         pattern_string = r"^(OGC|EPSG):.*$"
         pattern = re.compile(pattern_string)
         if not pattern.match(crs_auth_identifier):
-            raise ValueError(
-                f"crs_auth_identifier does not matchr regex pattern: `{pattern_string}`"
-            )
+            raise ValueError(f"crs_auth_identifier does not matchr regex pattern: `{pattern_string}`")
         crs_auth, crs_identifier = crs_auth_identifier.split(":")
-        crs_ref_system_string = (
-            f"https://www.opengis.net/def/crs/{crs_auth}/0/{crs_identifier}"
-        )
+        crs_ref_system_string = f"https://www.opengis.net/def/crs/{crs_auth}/0/{crs_identifier}"
         if self.metadata:
             self.metadata.referenceSystem = crs_ref_system_string
 
@@ -1270,9 +1146,7 @@ class CityjsonV113(BaseModel):
                     vs.append(each)
 
         for co in self.CityObjects:
-            if addifmissing is True or hasattr(
-                self.CityObjects[co], "geographicalExtent"
-            ):
+            if addifmissing is True or hasattr(self.CityObjects[co], "geographicalExtent"):
                 vs: list[int] = []
                 bbox = [9e9, 9e9, 9e9, -9e9, -9e9, -9e9]
                 c_object = self._get_cityobject_without_extension(self.CityObjects[co])
@@ -1295,28 +1169,18 @@ class CityjsonV113(BaseModel):
                                 bbox[i + 3] = max(v[i], bbox[i + 3])
                         if hasattr(self, "transform") and self.transform is not None:
                             for i in range(3):
-                                bbox[i] = (
-                                    bbox[i] * self.transform.scale[i]
-                                ) + self.transform.translate[i]
+                                bbox[i] = (bbox[i] * self.transform.scale[i]) + self.transform.translate[i]
                             for i in range(3):
-                                bbox[i + 3] = (
-                                    bbox[i + 3] * self.transform.scale[i]
-                                ) + self.transform.translate[i]
+                                bbox[i + 3] = (bbox[i + 3] * self.transform.scale[i]) + self.transform.translate[i]
                         self.CityObjects[co].geographicalExtent = bbox  # type: ignore
 
     def get_x_unit_crs(self: CityjsonV113, target_crs_crs: CRS) -> str:
         axe = next(
-            (
-                x
-                for x in target_crs_crs.axis_info
-                if x.abbrev.lower() in ["x", "e", "lon"]
-            ),
+            (x for x in target_crs_crs.axis_info if x.abbrev.lower() in ["x", "e", "lon"]),
             None,
         )
         if axe is None:
-            raise ValueError(
-                f"unable to retrieve unit x axis (x, e, lon) CRS {target_crs_crs}"
-            )
+            raise ValueError(f"unable to retrieve unit x axis (x, e, lon) CRS {target_crs_crs}")
         unit_name = axe.unit_name
         if unit_name not in ["degree", "metre"]:
             raise ValueError(
@@ -1324,16 +1188,18 @@ class CityjsonV113(BaseModel):
             )
         return unit_name
 
-    def crs_transform(
-        self: CityjsonV113, source_crs: CRS, target_crs: CRS, epoch: float | None = None
-    ) -> None:
+    def crs_transform(self: CityjsonV113, source_crs: CRS, target_crs: CRS, epoch: float | None = None) -> None:
         message = ""
         extra = {}
         if len(source_crs.axis_info) != THREE_DIMENSIONAL:
-            message += f"CityJSON requires 3D source-crs as input. Source CRS {source_crs} is {len(source_crs.axis_info)}D. "
+            message += (
+                f"CityJSON requires 3D source-crs as input. Source CRS {source_crs} is {len(source_crs.axis_info)}D. "
+            )
             extra["crs"] = ["source-crs"]
         if len(target_crs.axis_info) != THREE_DIMENSIONAL:
-            message += f"CityJSON requires 3D target-crs as input. Target CRS {target_crs} is {len(target_crs.axis_info)}D. "
+            message += (
+                f"CityJSON requires 3D target-crs as input. Target CRS {target_crs} is {len(target_crs.axis_info)}D. "
+            )
             if "crs" in extra:
                 extra["crs"].append("target-crs")
             else:

@@ -1,5 +1,8 @@
----
 extends: default
-
 ignore:
   - src/coordinate_transformation_api/assets/openapi.yaml
+rules:
+  document-start: disable
+  line-length: disable
+  truthy:
+    level: error

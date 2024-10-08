@@ -99,9 +99,7 @@ def traverse_geojson_coordinates(
         [Position],
         Position,
     ],
-    geojson_coordinates: (
-        Position | MultiPointCoords | MultiLineStringCoords | MultiPolygonCoords
-    ),
+    geojson_coordinates: (Position | MultiPointCoords | MultiLineStringCoords | MultiPolygonCoords),
 ) -> Any:  # noqa: ANN401
     """traverse GeoJSON coordinates object and apply callback function to coordinates-nodes
 
@@ -112,10 +110,7 @@ def traverse_geojson_coordinates(
     Returns:
         GeoJSON coordinates object
     """
-    if not (
-        hasattr(geojson_coordinates, "latitude")
-        and hasattr(geojson_coordinates, "longitude")
-    ):
+    if not (hasattr(geojson_coordinates, "latitude") and hasattr(geojson_coordinates, "longitude")):
         coords = cast(list[list], geojson_coordinates)
         _self = partial(traverse_geojson_coordinates, callback)
         return list(map(_self, coords))
@@ -159,15 +154,11 @@ def get_bbox_from_coordinates(coordinates: Any) -> BBox:  # noqa: ANN401
         x, y, z = coordinate_tuples
         return min(x), min(y), min(z), max(x), max(y), max(z)
     else:
-        raise ValueError(
-            f"expected dimension of coordinates is either 2 or 3, got {len(coordinate_tuples)}"
-        )
+        raise ValueError(f"expected dimension of coordinates is either 2 or 3, got {len(coordinate_tuples)}")
 
 
 def exclude_transformation(source_crs_str: str, target_crs_str: str) -> bool:
-    return source_crs_str in CRS_CONFIG and (
-        target_crs_str in CRS_CONFIG[source_crs_str]["exclude-transformations"]
-    )
+    return source_crs_str in CRS_CONFIG and (target_crs_str in CRS_CONFIG[source_crs_str]["exclude-transformations"])
 
 
 def needs_epoch(tf: Transformer) -> bool:
@@ -181,8 +172,7 @@ def needs_epoch(tf: Transformer) -> bool:
     ]
     static_coordinate_operation_methode_time_specific = ["1065", "1066"]
     time_coordinate_operation_methodes = (
-        static_coordinate_operation_methode_time_dependent
-        + static_coordinate_operation_methode_time_specific
+        static_coordinate_operation_methode_time_dependent + static_coordinate_operation_methode_time_specific
     )
 
     has_epoch = False
@@ -196,10 +186,7 @@ def needs_epoch(tf: Transformer) -> bool:
 
     if tf.operations is not None:
         for operation in tf.operations:
-            if (
-                operation.type_name == "Transformation"
-                and operation.method_code in time_coordinate_operation_methodes
-            ):
+            if operation.type_name == "Transformation" and operation.method_code in time_coordinate_operation_methodes:
                 has_epoch = True
 
     return has_epoch
@@ -214,9 +201,7 @@ def check_axis(s_crs: CRS, t_crs: CRS) -> None:
         )
 
 
-def get_transformer(
-    source_crs: CRS, target_crs: CRS, epoch: float | None
-) -> Transformer:  # quit
+def get_transformer(source_crs: CRS, target_crs: CRS, epoch: float | None) -> Transformer:  # quit
     check_axis(source_crs, target_crs)
 
     if exclude_transformation(
@@ -231,9 +216,7 @@ def get_transformer(
 
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
-    tfg = transformer.TransformerGroup(
-        source_crs, target_crs, allow_ballpark=False, always_xy=True
-    )
+    tfg = transformer.TransformerGroup(source_crs, target_crs, allow_ballpark=False, always_xy=True)
 
     # If everything is 'right' we should always have a transformer
     # based on our configured proj.db. Therefor this error.
@@ -292,11 +275,7 @@ def build_input_coord(coord: CoordinatesType, epoch: float | None) -> Coordinate
     input_coord = tuple(
         [
             *coord,
-            (
-                float(epoch)
-                if len(coord) == THREE_DIMENSIONAL and epoch is not None
-                else None
-            ),
+            (float(epoch) if len(coord) == THREE_DIMENSIONAL and epoch is not None else None),
         ]
     )
 
@@ -343,16 +322,10 @@ def get_transform_crs_fun(
     # - ETRS89 + NAP (EPSG:9286)
     # - ETRS89 + LAT-NL (EPSG:9289)
     # These transformations need to be splitted in a horizontal and vertical transformation.
-    if (
-        target_crs is not None
-        and source_crs is not target_crs
-        and target_crs.is_compound
-    ):
+    if target_crs is not None and source_crs is not target_crs and target_crs.is_compound:
         check_axis(source_crs, target_crs)
 
-        target_crs_horizontal, target_crs_vertical = get_individual_crs_from_compound(
-            target_crs
-        )
+        target_crs_horizontal, target_crs_vertical = get_individual_crs_from_compound(target_crs)
 
         if source_crs is not None and source_crs.is_compound:
             (
@@ -363,9 +336,7 @@ def get_transform_crs_fun(
             source_crs_horizontal = source_crs
             source_crs_vertical = source_crs
 
-        h_transformer = get_transformer(
-            source_crs_horizontal, target_crs_horizontal, epoch
-        )
+        h_transformer = get_transformer(source_crs_horizontal, target_crs_horizontal, epoch)
 
         # Not all transformation that are possible are defined
         # When no transformation is found we fall back on the original COMPOUND CRS
@@ -373,21 +344,14 @@ def get_transform_crs_fun(
         # These we identify by the laking of a AUTO:CODE, because all our CRS should be
         # coded. These are also defaulted to the original COMPOUND CRS.
         try:
-            v_transformer = get_transformer(
-                source_crs_vertical, target_crs_vertical, epoch
-            )
-            if (
-                v_transformer.source_crs is not None
-                and v_transformer.source_crs.to_authority() is None
-            ):
+            v_transformer = get_transformer(source_crs_vertical, target_crs_vertical, epoch)
+            if v_transformer.source_crs is not None and v_transformer.source_crs.to_authority() is None:
                 raise UnknownCrsError()  # empty error, we catch it the line below
         except (TransformationNotPossibleError, UnknownCrsError):
             v_transformer = get_transformer(source_crs, target_crs, epoch)
 
         # note transformers are injected in transform_compound_crs so they are instantiated only once
-        _transform_compound_crs = partial(
-            transform_compound_crs, h_transformer, v_transformer, precision, epoch
-        )
+        _transform_compound_crs = partial(transform_compound_crs, h_transformer, v_transformer, precision, epoch)
         return _transform_compound_crs
     else:
         transformer = get_transformer(source_crs, target_crs, epoch)
@@ -443,11 +407,7 @@ def transform_crs(
     if transformer.target_crs is None:
         raise ValueError("transformer.target_crs is None")
     dim = len(transformer.target_crs.axis_info)
-    if (
-        dim is not None
-        and dim != len(val)
-        and TWO_DIMENSIONAL > dim > THREE_DIMENSIONAL
-    ):
+    if dim is not None and dim != len(val) and TWO_DIMENSIONAL > dim > THREE_DIMENSIONAL:
         # check so we can safely cast to tuple[float, float], tuple[float, float, float]
         raise ValueError(f"dimension of target-crs should be 2 or 3, is {dim}")
 
