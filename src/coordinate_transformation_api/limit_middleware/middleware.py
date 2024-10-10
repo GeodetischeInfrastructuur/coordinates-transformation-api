@@ -1,6 +1,6 @@
 import asyncio
 import typing
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import JSONResponse
@@ -21,7 +21,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
         self: "TimeoutMiddleware",
         app: ASGIApp,
         dispatch: DispatchFunction | None = None,
-        timeout_seconds: Optional[int] = None,
+        timeout_seconds: int | None = None,
     ) -> None:
         BaseHTTPMiddleware.__init__(self, app, dispatch=dispatch)
         self.timeout_seconds = timeout_seconds
@@ -29,7 +29,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
     async def dispatch(self: "TimeoutMiddleware", request: Request, call_next: RequestResponseEndpoint) -> Response:
         try:
             response = await asyncio.wait_for(call_next(request), timeout=self.timeout_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return JSONResponse(
                 {
                     "type": "about:blank",
@@ -50,7 +50,7 @@ class ContentSizeLimitMiddleware:
     def __init__(
         self: "ContentSizeLimitMiddleware",
         app: ASGIApp,
-        max_content_size: Optional[int] = None,
+        max_content_size: int | None = None,
     ) -> None:
         self.app = app
         self.max_content_size = max_content_size

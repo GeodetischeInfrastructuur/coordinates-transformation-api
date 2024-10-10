@@ -41,5 +41,5 @@ def test_get_shapely_objects(geojson, expected, request):
     gj: GeojsonObject = request.getfixturevalue(geojson)
     result = get_shapely_objects(gj)
 
-    for item, excepted_type in zip(result, expected):
+    for item, excepted_type in zip(result, expected, strict=False):
         assert isinstance(item, excepted_type)

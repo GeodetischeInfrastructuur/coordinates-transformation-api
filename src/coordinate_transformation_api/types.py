@@ -24,6 +24,6 @@ GeojsonCoordinates = (
 CoordinatesType = tuple[float, float] | tuple[float, float, float] | list[float]
 
 
-ShapelyGeometry: TypeAlias = (
+ShapelyGeometry: TypeAlias = (  # noqa: UP040
     Point | Polygon | LineString | MultiLineString | MultiPoint | MultiPolygon | GeometryCollection
 )

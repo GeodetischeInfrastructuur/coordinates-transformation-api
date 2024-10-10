@@ -20,13 +20,13 @@ from coordinate_transformation_api.crs_transform import (
 )
 from coordinate_transformation_api.models import DataValidationError
 
-CityJSONBoundary = Union[
-    list[list[list[int]]],
-    list[list[list[list[int]]]],
-    list[list[list[list[list[int]]]]],
-    list[int],
-    list[list[int]],
-]
+CityJSONBoundary = (
+    list[list[list[int]]]
+    | list[list[list[list[int]]]]
+    | list[list[list[list[list[int]]]]]
+    | list[int]
+    | list[list[int]]
+)
 
 
 class Type(Enum):
@@ -843,7 +843,7 @@ class Building(FieldAbstractBuilding):
     type: Type15
 
 
-CityObject = Union[
+CityObject = Union[  # noqa: UP007
     Bridge,
     BridgeConstructiveElement,
     BridgeFurniture,
@@ -879,7 +879,7 @@ CityObject = Union[
     Waterway,
 ]
 
-CityObjectWithGeometry = Union[
+CityObjectWithGeometry = Union[  # noqa: UP007
     Bridge,
     BridgeConstructiveElement,
     BridgeFurniture,
@@ -972,7 +972,7 @@ class CityjsonV113(BaseModel):
                 raise ValueError("self.metadata is None")
             self.metadata.geographicalExtent = [0, 0, 0, 0, 0, 0]
             return
-        x, y, z = zip(*self.vertices)
+        x, y, z = zip(*self.vertices, strict=False)
         bbox = [min(x), min(y), min(z), max(x), max(y), max(z)]
         if self.metadata:
             self.metadata.geographicalExtent = bbox

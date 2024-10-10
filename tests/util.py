@@ -2,7 +2,6 @@ import csv
 import math
 import os
 from contextlib import contextmanager
-from typing import Optional
 
 import pytest
 from pyproj import transformer
@@ -16,7 +15,7 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 @contextmanager
-def not_raises(exception, message: Optional[str] = ""):
+def not_raises(exception, message: str | None = ""):
     try:
         yield
     except exception:

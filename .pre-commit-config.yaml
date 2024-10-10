@@ -1,4 +1,8 @@
 repos:
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
   - repo: https://github.com/google/yamlfmt
     rev: v0.13.0
     hooks:
@@ -18,3 +22,20 @@ repos:
         args: [--fix]
         # Run the formatter.
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest-check
+        stages: [pre-commit]
+        types: [python]
+        entry: pytest
+        language: system
+        pass_filenames: false
+        args: ["-v", "-k", "not validation", "tests"]
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.17  # Use the ref you want to point at
+    hooks:
+      - id: mdformat
+        # Optionally add plugins
+        additional_dependencies:
+          - mdformat-gfm

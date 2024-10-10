@@ -1,9 +1,9 @@
 import math
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from functools import partial, wraps
 from importlib import resources as impresources
 from itertools import chain
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 import yaml
 from geodense.lib import (  # type: ignore
@@ -132,13 +132,7 @@ def explode(coords: Any) -> Generator[Any, Any, None]:  # noqa: ANN401
     Source: https://gis.stackexchange.com/a/90554
     """
     for e in coords:
-        if isinstance(
-            e,
-            (
-                float,
-                int,
-            ),
-        ):
+        if isinstance(e, float | int):
             yield coords
             break
         else:
@@ -146,7 +140,7 @@ def explode(coords: Any) -> Generator[Any, Any, None]:  # noqa: ANN401
 
 
 def get_bbox_from_coordinates(coordinates: Any) -> BBox:  # noqa: ANN401
-    coordinate_tuples = list(zip(*list(explode(coordinates))))
+    coordinate_tuples = list(zip(*list(explode(coordinates)), strict=False))
     if len(coordinate_tuples) == TWO_DIMENSIONAL:
         x, y = coordinate_tuples
         return min(x), min(y), max(x), max(y)
