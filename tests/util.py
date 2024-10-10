@@ -1,10 +1,16 @@
 import csv
+import math
 import os
 from contextlib import contextmanager
 from typing import Optional
 
 import pytest
 from pyproj import transformer
+
+from coordinate_transformation_api.crs_transform import InfValCoordinateError, get_transform_crs_fun
+from coordinate_transformation_api.models import Crs as MyCrs
+from coordinate_transformation_api.models import TransformationNotPossibleError
+from coordinate_transformation_api.util import str_to_crs
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -203,3 +209,68 @@ def nl_saba_validation_data():
                     )
 
         nl_saba_validation_data()
+
+
+xy_dim = 2
+
+
+def _test_transformation(source_crs, target_crs, source_coord):
+    source_crs_info = MyCrs.from_crs_str(source_crs)
+    target_crs_info = MyCrs.from_crs_str(target_crs)
+    unit = target_crs_info.get_x_unit_crs()
+
+    source_crs_crs = str_to_crs(source_crs)
+    target_crs_crs = str_to_crs(target_crs)
+
+    pyproj_transformed_coord = do_pyproj_transformation(source_crs, target_crs, source_coord)
+    inf_val = False
+    try:
+        api_transformed_coord = get_transform_crs_fun(
+            source_crs_crs,
+            target_crs_crs,
+            precision=(4 if unit == "metre" else 9),
+            epoch=source_coord[3],
+        )(source_coord[0:3])
+
+    except InfValCoordinateError as _:
+        inf_val = True
+    except TransformationNotPossibleError as e:
+        if source_crs_info.nr_of_dimensions < target_crs_info.nr_of_dimensions:
+            with pytest.raises(
+                TransformationNotPossibleError,
+                match="number of dimensions source-crs: 2, number of dimensions target-crs: 3",
+            ):
+                raise e
+            return  # if we get here source_crs_nr_dim < target_crs_nr_dim and correct excpetion raised test is ok
+        else:
+            with pytest.raises(
+                TransformationNotPossibleError,
+                match=r"Transformation not possible between .* and .*, Transformation Excluded",
+            ):
+                raise e
+            return  # if we get here transformation is exluded and test should be OK
+    if unit == "metre":
+        pyproj_transformed_coord = (
+            round(pyproj_transformed_coord[0], 4),
+            round(pyproj_transformed_coord[1], 4),
+            round(pyproj_transformed_coord[2], 4),
+        )
+    else:
+        pyproj_transformed_coord = (
+            round(pyproj_transformed_coord[0], 9),
+            round(pyproj_transformed_coord[1], 9),
+            round(pyproj_transformed_coord[2], 4),
+        )
+
+    pyproj_transformed_coord = (
+        pyproj_transformed_coord[0],
+        pyproj_transformed_coord[1],
+        round(pyproj_transformed_coord[2], 4),
+    )  # round height
+    if inf_val:
+        api_transformed_coord = (math.inf, math.inf, math.inf)
+
+    assert api_transformed_coord[0:2] == pyproj_transformed_coord[0:2]
+
+    if len(api_transformed_coord) > xy_dim and len(pyproj_transformed_coord) > xy_dim:
+        assert api_transformed_coord[2] == pytest.approx(pyproj_transformed_coord[2], 0.0001)

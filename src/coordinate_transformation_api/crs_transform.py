@@ -219,7 +219,7 @@ def get_transformer(source_crs: CRS, target_crs: CRS, epoch: float | None) -> Tr
     tfg = transformer.TransformerGroup(source_crs, target_crs, allow_ballpark=False, always_xy=True)
 
     # If everything is 'right' we should always have a transformer
-    # based on our configured proj.db. Therefor this error.
+    # based on our configured proj.db. Therefore this error.
     if len(tfg.transformers) == 0:
         raise TransformationNotPossibleError(
             src_crs=str(source_crs),
