@@ -6,7 +6,7 @@ license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 readme = { file = "./README.md", content-type = "text/markdown" }
 dependencies = [
@@ -17,9 +17,9 @@ dependencies = [
     "pyproj == 3.6.1",
     "pydantic-settings == 2.4.0",
     "email-validator == 2.2.0",
-    "geodense == 2.0.0",
+    "geodense == 2.0.1",
 ]
-requires-python = ">=3.11.4"
+requires-python = ">=3.12"
 dynamic = ["version"]
 
 
@@ -65,7 +65,7 @@ exclude = [
 line-length = 120
 
 # Allow unused variables when underscore-prefixed.
-target-version = "py39"
+target-version = "py312"
 
 [tool.ruff.lint]
 

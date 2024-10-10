@@ -5,10 +5,10 @@ import json
 import logging
 import os
 import pkgutil
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager, suppress
 from importlib import resources as impresources
-from typing import Annotated, Any, Callable, Union
+from typing import Annotated, Any
 
 import pyproj
 import uvicorn
@@ -260,11 +260,11 @@ async def conformance() -> Conformance:
 
 @app.post(
     "/densify",
-    response_model=Union[Feature, CrsFeatureCollection, Geometry],
+    response_model=Feature | CrsFeatureCollection | Geometry,
     response_model_exclude_none=True,
 )
 async def densify(  # noqa: ANN201
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
     max_segment_deviation: Annotated[float | None, Query(alias="max-segment-deviation", ge=0.0001)] = None,
@@ -289,7 +289,7 @@ async def densify(  # noqa: ANN201
     response_model_exclude_none=True,
 )
 async def density_check(  # noqa: ANN201
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection],
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection,
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,
     max_segment_deviation: Annotated[float | None, Query(alias="max-segment-deviation", ge=0.0001)] = None,
@@ -383,11 +383,11 @@ async def transform(  # noqa: PLR0913, ANN201
 
 @app.post(
     "/transform",
-    response_model=Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113],
+    response_model=Feature | CrsFeatureCollection | Geometry | GeometryCollection | CityjsonV113,
     response_model_exclude_none=True,
 )
 async def post_transform(  # noqa: ANN201, PLR0913
-    body: Union[Feature, CrsFeatureCollection, Geometry, GeometryCollection, CityjsonV113],
+    body: Feature | CrsFeatureCollection | Geometry | GeometryCollection | CityjsonV113,
     source_crs: Annotated[CrsEnum | None, Query(alias="source-crs")] = None,
     target_crs: Annotated[CrsEnum | None, Query(alias="target-crs")] = None,
     content_crs: Annotated[CrsHeaderEnum | None, Header(alias="content-crs")] = None,

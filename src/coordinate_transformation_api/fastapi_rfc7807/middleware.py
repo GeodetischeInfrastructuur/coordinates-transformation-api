@@ -3,8 +3,8 @@ import asyncio
 import http
 import json
 import logging
-from collections.abc import Awaitable, Mapping, Sequence
-from typing import Any, Callable, Optional, Union
+from collections.abc import Awaitable, Callable, Mapping, Sequence
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
@@ -25,8 +25,8 @@ from coordinate_transformation_api.models import (
 )
 from coordinate_transformation_api.settings import app_settings
 
-PreHook = Callable[[Request, Exception], Union[Any, Awaitable[Any]]]
-PostHook = Callable[[Request, Response, Exception], Union[Any, Awaitable[Any]]]
+PreHook = Callable[[Request, Exception], Any | Awaitable[Any]]
+PostHook = Callable[[Request, Response, Exception], Any | Awaitable[Any]]
 
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ class ProblemResponse(Response):
         self.debug: bool = debug
         super().__init__(*args, **kwargs)
 
-    def init_headers(self: "ProblemResponse", headers: Optional[Mapping[str, str]] = None) -> None:  # type: ignore
+    def init_headers(self: "ProblemResponse", headers: Mapping[str, str] | None = None) -> None:  # type: ignore
         h = dict(headers) if headers else {}
         if hasattr(self, "problem") and self.problem.headers:
             h.update(self.problem.headers)
@@ -111,18 +111,18 @@ class ProblemError(Exception):
 
     def __init__(
         self: "ProblemError",
-        type: Optional[str] = None,
-        title: Optional[str] = None,
-        status: Optional[int] = None,
-        detail: Optional[str] = None,
-        instance: Optional[str] = None,
+        type: str | None = None,
+        title: str | None = None,
+        status: int | None = None,
+        detail: str | None = None,
+        instance: str | None = None,
         **kwargs,  # noqa: ANN003
     ) -> None:
         self.type: str = type or "about:blank"
         self.status: int = status or 500
         self.title: str = title or http.HTTPStatus(self.status).phrase
-        self.detail: Optional[str] = detail
-        self.instance: Optional[str] = instance
+        self.detail: str | None = detail
+        self.instance: str | None = instance
         self.kwargs: dict = kwargs
         self.headers: dict[str, str] = {}
 
@@ -348,8 +348,8 @@ def from_exception(exc: Exception) -> ProblemError:
 
 def get_exception_handler(
     debug: bool = False,
-    pre_hooks: Optional[Sequence[PreHook]] = None,
-    post_hooks: Optional[Sequence[PostHook]] = None,
+    pre_hooks: Sequence[PreHook] | None = None,
+    post_hooks: Sequence[PostHook] | None = None,
 ) -> Callable:
     """A custom FastAPI exception handler constructor.
 
@@ -389,7 +389,7 @@ def get_exception_handler(
 
 
 async def exec_hooks(
-    hooks: Optional[Sequence[Union[PreHook, PostHook]]],
+    hooks: Sequence[PreHook | PostHook] | None,
     *args,  # noqa: ANN002
 ) -> None:
     """Helper function to execute hooks, if any are defined.
@@ -408,9 +408,9 @@ async def exec_hooks(
 
 def register(
     app: FastAPI,
-    pre_hooks: Optional[Sequence[PreHook]] = None,
-    post_hooks: Optional[Sequence[PostHook]] = None,
-    add_schema: Union[str, bool] = False,  # noqa: ARG001
+    pre_hooks: Sequence[PreHook] | None = None,
+    post_hooks: Sequence[PostHook] | None = None,
+    add_schema: str | bool = False,  # noqa: ARG001
 ) -> None:
     """Register the FastAPI RFC7807 middleware with a FastAPI application instance.
 
@@ -529,8 +529,8 @@ class ProblemMiddleware:
         self: "ProblemMiddleware",
         app: ASGIApp,
         debug: bool = False,
-        pre_hooks: Optional[Sequence[PreHook]] = None,
-        post_hooks: Optional[Sequence[PostHook]] = None,
+        pre_hooks: Sequence[PreHook] | None = None,
+        post_hooks: Sequence[PostHook] | None = None,
     ) -> None:
         self.app: ASGIApp = app
         self.pre_hooks = pre_hooks or []

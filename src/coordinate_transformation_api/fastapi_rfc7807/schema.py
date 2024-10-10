@@ -1,8 +1,6 @@
 # copied from https://github.com/vapor-ware/fastapi-rfc7807
 """Pydantic model for the Problem response schema."""
 
-from typing import Optional
-
 from pydantic import BaseModel
 
 
@@ -11,6 +9,6 @@ class Problem(BaseModel):
 
     type: str
     title: str
-    status: Optional[int]
-    detail: Optional[str]
-    instance: Optional[str]
+    status: int | None
+    detail: str | None
+    instance: str | None
