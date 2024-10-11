@@ -7,7 +7,6 @@ ARG NSGI_PROJ_DB_VERSION="1.2.1"
 
 LABEL maintainer="NSGI <info@nsgi.nl>"
 
-
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
     jq=1.6-2.1 \
@@ -15,15 +14,13 @@ RUN apt-get update && \
     git=1:2.39.5-0+deb12u1 && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-WORKDIR /src_app
-
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_PYTHON=python${PYTHON_VERSION} \
     UV_PROJECT_ENVIRONMENT=/app
 
-
+WORKDIR /src_app
 # split install of dependencies and application in two
 # for improved caching
 COPY pyproject.toml uv.lock ./
@@ -37,6 +34,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 WORKDIR /app/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj/
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# install grid and modified proj.db with NSGI CRS definitions
 RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif && \
     curl -sL -o nl_nsgi_rdcorr2018.tif https://cdn.proj.org/nl_nsgi_rdcorr2018.tif && \
     curl -sL -o nl_nsgi_rdtrans2018.tif https://cdn.proj.org/nl_nsgi_rdtrans2018.tif && \
@@ -50,15 +49,14 @@ RUN curl -sL -o nl_nsgi_nlgeo2018.tif https://cdn.proj.org/nl_nsgi_nlgeo2018.tif
 
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runner
 ARG PYTHON_VERSION
-
 RUN groupadd -r app && \
     useradd -r -d /app -g app -N app
-
 COPY --from=builder --chown=app:app --chmod=555 /app /app
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/bin:$PATH"
-ENV PROJ_DIR="/app/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj"
+ENV PROJ_DATA="/app/lib/python${PYTHON_VERSION}/site-packages/pyproj/proj_dir/share/proj"
+
 USER app
 WORKDIR /app
 
