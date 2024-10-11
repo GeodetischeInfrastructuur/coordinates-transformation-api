@@ -3,7 +3,7 @@ ARG PYTHON_VERSION=3.12
 FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm-slim AS builder
 
 ARG PYTHON_VERSION
-ARG NSGI_PROJ_DB_VERSION="1.2.1"
+ARG NSGI_PROJ_DB_VERSION="2.0.0"
 
 LABEL maintainer="NSGI <info@nsgi.nl>"
 
