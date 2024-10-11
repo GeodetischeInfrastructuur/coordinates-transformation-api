@@ -1,8 +1,0 @@
-# no hidden files and folders
-**/.*
-# but copy git dir, required for determining version on build
-!.git/
-
-**/*.egg-info/
-**/__pycache__/
-**/build/
