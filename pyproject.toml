@@ -14,10 +14,10 @@ dependencies = [
     "uvicorn == 0.30.6",
     "pyyaml == 6.0.2",
     "geojson_pydantic == 1.1.1",
-    "pyproj == 3.6.1",
+    "pyproj ~= 3.7.0",
     "pydantic-settings == 2.4.0",
     "email-validator == 2.2.0",
-    "geodense == 2.0.1",
+    "geodense ~= 2.0.2",
 ]
 requires-python = ">=3.12"
 dynamic = ["version"]

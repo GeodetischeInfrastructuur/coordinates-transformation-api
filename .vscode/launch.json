@@ -32,8 +32,12 @@
       "name": "Python: Debug Tests",
       "type": "debugpy",
       "request": "launch",
-      "args": ["${file}"],
-      "purpose": ["debug-test"],
+      "args": [
+        "${file}"
+      ],
+      "purpose": [
+        "debug-test"
+      ],
       "console": "integratedTerminal",
       "justMyCode": false
     }
