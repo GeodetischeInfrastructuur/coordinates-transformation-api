@@ -10,8 +10,8 @@ classifiers = [
 ]
 readme = { file = "./README.md", content-type = "text/markdown" }
 dependencies = [
-    "fastapi[all] == 0.115.0",
-    "uvicorn == 0.31.1",
+    "fastapi[all] == 0.115.2",
+    "uvicorn == 0.32.0",
     "pyyaml == 6.0.2",
     "geojson_pydantic == 1.1.1",
     "pyproj ~= 3.7.0",
