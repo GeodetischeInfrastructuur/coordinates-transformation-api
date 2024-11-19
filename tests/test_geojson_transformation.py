@@ -46,7 +46,7 @@ def test_transformer_object_created_thrice_while_transforming_7930_7415():
         ) as get_transformer_call:
             _ = crs_transform(geojson_obj, str_to_crs("EPSG:7930"), str_to_crs("EPSG:7415"))
             # get_transformer is called 3 times, once for horizontal, once for vertical causes exc, exc caught -> one more call to get_tranformer
-            expected_call_count = 3
+            expected_call_count = 2
             assert get_transformer_call.call_count == expected_call_count
 
 

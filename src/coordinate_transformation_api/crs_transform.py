@@ -35,7 +35,6 @@ from coordinate_transformation_api.constants import (
 )
 from coordinate_transformation_api.models import (
     TransformationNotPossibleError,
-    UnknownCrsError,
 )
 from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
 
@@ -196,18 +195,6 @@ def check_axis(s_crs: CRS, t_crs: CRS) -> None:
 
 
 def get_transformer(source_crs: CRS, target_crs: CRS, epoch: float | None) -> Transformer:  # quit
-    check_axis(source_crs, target_crs)
-
-    if exclude_transformation(
-        "{}:{}".format(*source_crs.to_authority()),
-        "{}:{}".format(*target_crs.to_authority()),
-    ):
-        raise TransformationNotPossibleError(
-            "{}:{}".format(*source_crs.to_authority()),
-            "{}:{}".format(*target_crs.to_authority()),
-            "Transformation Excluded",
-        )
-
     # Get available transformer through TransformerGroup
     # TODO check/validate if always_xy=True is correct
     tfg = transformer.TransformerGroup(source_crs, target_crs, allow_ballpark=False, always_xy=True)
@@ -241,18 +228,6 @@ def get_transformer(source_crs: CRS, target_crs: CRS, epoch: float | None) -> Tr
 
     # Select 1st result. The first result is based on the input parameters the "best" result
     return tfg.transformers[0]
-
-
-def get_individual_crs_from_compound(compound_crs: CRS) -> tuple[CRS, CRS]:
-    horizontal = compound_crs
-    vertical = compound_crs
-    for crs in compound_crs.sub_crs_list:
-        if len(crs.axis_info) == HORIZONTAL_AXIS_LENGTH:
-            horizontal = crs
-        elif len(crs.axis_info) == VERTICAL_AXIS_LENGTH:
-            vertical = crs
-
-    return (horizontal, vertical)
 
 
 def build_input_coord(coord: CoordinatesType, epoch: float | None) -> CoordinatesType:
@@ -311,45 +286,35 @@ def get_transform_crs_fun(
     if precision is None:
         precision = get_precision(target_crs)
 
-    # We need to do something special for transformation targetting a Compound CRS of 2D coordinates with another height system, like NAP or a LAT height
+    check_axis(source_crs, target_crs)
+    if exclude_transformation(
+        "{}:{}".format(*source_crs.to_authority()),
+        "{}:{}".format(*target_crs.to_authority()),
+    ):
+        raise TransformationNotPossibleError(
+            "{}:{}".format(*source_crs.to_authority()),
+            "{}:{}".format(*target_crs.to_authority()),
+            "Transformation Excluded",
+        )
+
+    # We need to do something special for transformation involving a Compound CRS of 2D coordinates with another height system, like NAP or a LAT height
     # - RD + NAP (EPSG:7415)
     # - ETRS89 + NAP (EPSG:9286)
     # - ETRS89 + LAT-NL (EPSG:9289)
-    # These transformations need to be splitted in a horizontal and vertical transformation.
-    if target_crs is not None and source_crs is not target_crs and target_crs.is_compound:
-        check_axis(source_crs, target_crs)
-
-        target_crs_horizontal, target_crs_vertical = get_individual_crs_from_compound(target_crs)
-
-        if source_crs is not None and source_crs.is_compound:
-            (
-                source_crs_horizontal,
-                source_crs_vertical,
-            ) = get_individual_crs_from_compound(source_crs)
-        else:
-            source_crs_horizontal = source_crs
-            source_crs_vertical = source_crs
-
-        h_transformer = get_transformer(source_crs_horizontal, target_crs_horizontal, epoch)
-
-        # Not all transformation that are possible are defined
-        # When no transformation is found we fall back on the original COMPOUND CRS
-        # Issue is that in some case a transformation is found but not the correct one
-        # These we identify by the laking of a AUTO:CODE, because all our CRS should be
-        # coded. These are also defaulted to the original COMPOUND CRS.
-        try:
-            v_transformer = get_transformer(source_crs_vertical, target_crs_vertical, epoch)
-            if v_transformer.source_crs is not None and v_transformer.source_crs.to_authority() is None:
-                raise UnknownCrsError()  # empty error, we catch it the line below
-        except (TransformationNotPossibleError, UnknownCrsError):
-            v_transformer = get_transformer(source_crs, target_crs, epoch)
+    # These transformations need to be splitted in a horizontal and vertical transformation (vertical transformation actually attempts the 3d transformation).
+    if target_crs is not None and source_crs is not target_crs and (target_crs.is_compound or source_crs.is_compound):
+        target_crs_horizontal = target_crs.to_2d()
+        h_transformer = get_transformer(source_crs, target_crs_horizontal, epoch)
+        v_transformer = get_transformer(
+            source_crs, target_crs, epoch
+        )  # this will do the 3d transformation that might fail, in that case Z/H value is dropped
 
         # note transformers are injected in transform_compound_crs so they are instantiated only once
         _transform_compound_crs = partial(transform_compound_crs, h_transformer, v_transformer, precision, epoch)
         return _transform_compound_crs
     else:
         transformer = get_transformer(source_crs, target_crs, epoch)
-        # note transformer is injected in transform_compound_crs is instantiated once
+        # note transformer is injected in transform_crs is instantiated once
         # creating transformers is expensive
         _transform_crs = partial(transform_crs, transformer, precision, epoch)
         return _transform_crs
@@ -379,7 +344,9 @@ def transform_compound_crs(
 
     output_2d = Position2D(*h[:2])
     output: Position = output_2d
-    if len(v) == THREE_DIMENSIONAL and not math.isinf(v[2]):
+    if len(v) >= THREE_DIMENSIONAL and not math.isinf(
+        v[2]
+    ):  # note len(v) can be larger than three when epoch is supplied
         output = Position3D(*output_2d, v[2])
     else:
         # height coordinate dropped, since v[2] not added
@@ -420,6 +387,9 @@ def transform_crs(
     _round_v = partial(_round, HEIGHT_DIGITS_FOR_ROUNDING)
 
     _output = tuple(map(_round_h, transformer.transform(*input)[0:dim]))
+
+    # - 1 van de twee compound
+    # -
 
     output_2d = Position2D(*_output[:2])
     output: Position = output_2d

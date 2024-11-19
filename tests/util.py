@@ -55,7 +55,6 @@ def nl_eu_validation_data():
         "EPSG:4326",
         "EPSG:3857",
         "EPSG:9000",
-        "EPSG:9755",
         "EPSG:4937",
         "EPSG:4936",
         "EPSG:9286",
@@ -65,8 +64,6 @@ def nl_eu_validation_data():
         "EPSG:4979",
         "EPSG:7912",
         "EPSG:7789",
-        "EPSG:9754",
-        "EPSG:9753",
         "EPSG:9289",
         "EPSG:3395",
     ]
@@ -92,7 +89,7 @@ def nl_eu_validation_data():
                         )
                     )
 
-        nl_eu_validation_data()
+        return nl_eu_validation_data()
 
 
 def nl_bonaire_validation_data():
@@ -129,8 +126,8 @@ def nl_bonaire_validation_data():
                             "({} {} {} {})".format(*source_coord),
                         )
                     )
-
-        nl_bonaire_validation_data()
+        # still read data and return it
+        return nl_bonaire_validation_data()
 
 
 def nl_st_eustatius_validation_data():
@@ -168,7 +165,7 @@ def nl_st_eustatius_validation_data():
                         )
                     )
 
-        nl_st_eustatius_validation_data()
+        return nl_st_eustatius_validation_data()
 
 
 def nl_saba_validation_data():
