@@ -38,13 +38,9 @@ from coordinate_transformation_api.models import (
 )
 from coordinate_transformation_api.types import CoordinatesType, ShapelyGeometry
 
-COMPOUND_CRS_LENGTH: int = 2
-HORIZONTAL_AXIS_LENGTH: int = 2
-VERTICAL_AXIS_LENGTH: int = 1
-
 assets_resources = impresources.files(assets)
-api_conf = assets_resources.joinpath("config.yaml")
-with open(str(api_conf)) as f:
+crs_conf = assets_resources.joinpath("crs-config.yaml")
+with open(str(crs_conf)) as f:
     CRS_CONFIG = yaml.safe_load(f)
 
 
