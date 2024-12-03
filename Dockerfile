@@ -3,14 +3,14 @@ ARG PYTHON_VERSION=3.12
 FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm-slim AS builder
 
 ARG PYTHON_VERSION
-ARG NSGI_PROJ_DB_VERSION="2.0.0"
+ARG NSGI_PROJ_DB_VERSION="2.1.0"
 
 LABEL maintainer="NSGI <info@nsgi.nl>"
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
     jq=1.6-2.1 \
-    curl=7.88.1-10+deb12u7 \
+    curl=7.88.1-10+deb12u8 \
     git=1:2.39.5-0+deb12u1 && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
