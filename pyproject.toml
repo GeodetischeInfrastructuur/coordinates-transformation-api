@@ -10,12 +10,12 @@ classifiers = [
 ]
 readme = { file = "./README.md", content-type = "text/markdown" }
 dependencies = [
-    "fastapi[all] == 0.115.0",
-    "uvicorn == 0.31.1",
+    "fastapi[all] == 0.115.6",
+    "uvicorn == 0.34.0",
     "pyyaml == 6.0.2",
-    "geojson_pydantic == 1.1.1",
+    "geojson_pydantic == 1.2.0",
     "pyproj ~= 3.7.0",
-    "pydantic-settings == 2.5.2",
+    "pydantic-settings == 2.7.1",
     "email-validator == 2.2.0",
     "geodense ~= 2.0.2",
 ]
